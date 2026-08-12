@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+
+# Retained source evidence is immutable. Never normalize its bytes.
+config/recorded_evidence/** -text -eol

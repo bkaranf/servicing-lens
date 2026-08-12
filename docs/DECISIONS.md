@@ -12,7 +12,7 @@ investment, legal, security, or regulatory approval.
 | D-001 | ACCEPTED | Reset the product from synthetic internal loan operations to public mortgage-servicing intelligence and archive the predecessor unchanged |
 | D-002 | ACCEPTED | Stage A covers TFC and PFSI for Q3 2025 through Q2 2026 only |
 | D-003 | ACCEPTED | Use FastAPI, Pydantic, SQLAlchemy 2, Alembic, local SQLite with PostgreSQL-compatible schemas, server-rendered Jinja2/HTMX, and locally hosted chart assets |
-| D-004 | ACCEPTED | Make the application independently installable from released dependencies; do not modify upstream \`libs/\` |
+| D-004 | ACCEPTED | Make the application independently installable from released dependencies |
 | D-005 | ACCEPTED | Deterministic services and exact arithmetic are authoritative; models never publish financial values |
 | D-006 | ACCEPTED | Preserve immutable evidence, reporting entity/scope, bitemporal history, revisions, and pairwise comparability |
 | D-007 | ACCEPTED | Use controlled SEC/IR/regulatory boundaries and filed-evidence precedence; Stage A publishes only retained SEC exhibits |
@@ -21,7 +21,7 @@ investment, legal, security, or regulatory approval.
 | D-010 | ACCEPTED | Public routes are read-only; Stage A candidate review is an audited CLI boundary |
 | D-011 | ACCEPTED | Default tests and CI are deterministic, offline, socket-blocked, strict, and branch-covered at 90% or more |
 | D-012 | ACCEPTED | Do not start controlled expansion until Stage A and the intervening phase gates pass |
-| D-013 | ACCEPTED | Extract the application from the LangChain monorepo into a standalone repository after Stage A |
+| D-013 | ACCEPTED | Extract the application from its former source repository into a standalone repository after Stage A |
 | D-014 | DEFERRED | Select model/provider, production graph persistence, tracing, hosting, authentication, and production retention only through separate approval |
 | D-015 | ACCEPTED | Stage A passed its closure audit on 2026-08-12; proceed to D-013 extraction before later pipeline phases |
 
@@ -88,8 +88,7 @@ compatible released packages with \`uv\` and deliberately update the lockfile.
 \`mortgage_servicing_dashboard/\` must install independently from its own
 \`pyproject.toml\` and \`uv.lock\`.
 
-Do not edit, delete, or rewrite upstream LangChain \`libs/\` for application
-behavior.
+Do not use path or editable dependency overrides for application behavior.
 
 ## D-005 — Financial and publication authority
 
@@ -175,14 +174,46 @@ before expansion.
 
 ## D-013 — Standalone repository extraction
 
-The application remains inside the LangChain monorepo through Stage A to avoid
-rewriting or deleting upstream history. The governing 2026-08-12 objective now
-authorizes history-preserving extraction of \`mortgage_servicing_dashboard/\`
-immediately after the Stage A exit gate.
+The history-preserving extraction completed on 2026-08-12 after the Stage A exit
+gate. The source was frozen at commit
+\`6f32c801431dd626c3a95dcd54b137341e1efd9e\` with subtree tree
+\`f9130db83bdae5acb592776cb6653c766b745263\`. A disposable, no-tag,
+single-branch clone was filtered with pinned \`git-filter-repo==2.47.0\` using
+\`--subdirectory-filter mortgage_servicing_dashboard\`. No source repository ref,
+object, or remote was rewritten; the old public repository remains untouched.
 
-The follow-up must preserve Git history, dependency locks, evidence/fixture
-provenance, CI controls, issue/PR traceability, release artifacts, and documented
-rollback. It must not be combined with Stage A product behavior.
+The filtered Stage A tip is
+\`ec758b6be35cd8363fcac7db94ba665d60b58b05\`. The mapping below preserves the
+review lineage for every application-touching source commit:
+
+| Source commit | Standalone commit |
+| --- | --- |
+| \`22ba71d6600bd857bc2004e3b882f78391e6a302\` | \`747a45cadd2e8506d652a6fcce2771151addedbb\` |
+| \`b606160e15b5a3c68bdcb6dafb1248ce2a8f008a\` | pruned merge-only commit; content retained by its child |
+| \`cd81fd585eb0f2b71e2956e85869b797c042cc0a\` | \`db14c6b36fb218c2c8e9dc830f7b5c59cd94085f\` |
+| \`3090246c01f12bb67175c70eceb01a04aa2eec00\` | \`5bfd075229fc52b0f72d37e600307d47b0b458a1\` |
+| \`2e81f9dc1ea19f7b3276072ee4c75c50c2d7979d\` | \`5c39d3f352105488175e699ba7c66c2e578b2c78\` |
+| \`fedc0e98c7738a65c770a6788a3a65c823f72b6f\` | \`94a7094006e3757f31a95d0eb420b558512add42\` |
+| \`09b6552e1d2ec94ce572d533b77d08f68b7b4c93\` | \`43f28eeb2ff673b73aba6cb2b326f8cea406df48\` |
+| \`3139ad7c10b484e424af23744f9e5269de5bb4e4\` | \`7e1c5566321455d153bb528dcb106c3c3f815ac8\` |
+| \`6f32c801431dd626c3a95dcd54b137341e1efd9e\` | \`ec758b6be35cd8363fcac7db94ba665d60b58b05\` |
+
+Verification requires the released-only locked install, the complete quality
+gate, a fresh clone with Windows automatic line-ending conversion enabled, exact
+retained-evidence byte counts and SHA-256 values, and an empty search for former
+repository build/tooling references. The standalone root recreates CI, scoped
+Git attributes, ignore rules, licensing, and consolidated contributor instructions.
+
+That verification passed on 2026-08-12 in a fresh GitHub clone at standalone
+commit `74d23d5c90811962c49b4f3e7828d2054b4c06ac`: locked sync and lock check,
+Ruff, Ruff format, strict Mypy, 84 socket-blocked tests at 91.33% branch
+coverage, deterministic doctor, provenance parsing, and the Alembic
+upgrade/check/downgrade/upgrade round trip all exited zero. Windows checkout
+preserved the two D-015 byte counts and SHA-256 values exactly.
+
+Rollback is non-destructive: discard the standalone clone or its new remote and
+repeat from the frozen source commit. The source repository is never a rollback
+target because extraction did not modify it.
 
 ## D-014 — Production and model choices deferred
 

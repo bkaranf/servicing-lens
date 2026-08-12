@@ -19,7 +19,8 @@ value to complete a comparison.
 
 ## Status
 
-Stage A is closed as a deterministic recorded-data vertical slice. It includes
+Stage A is closed as a deterministic recorded-data vertical slice, and the
+application now lives in this history-preserving standalone repository. It includes
 versioned configuration, hash-verified retained SEC DOM serializations,
 SQLAlchemy/Alembic persistence,
 a read-only API and dashboard, an interruptible LangGraph review workflow, and a
@@ -46,8 +47,8 @@ Start with the [documentation index](docs/README.md). The binding documents cove
 - [implementation and acceptance gates](docs/IMPLEMENTATION_PLAN.md); and
 - [architecture decisions](docs/DECISIONS.md).
 
-The former synthetic internal loan-operations documentation is preserved unchanged
-under \`docs/archive/internal_servicing_operations_foundation/\` and is not
+The former synthetic internal loan-operations documentation is preserved as
+historical context under \`docs/archive/internal_servicing_operations_foundation/\` and is not
 authoritative for this product.
 
 ## Non-negotiable behavior
@@ -78,9 +79,8 @@ Work from this directory and use \`uv\`:
 uv sync --locked --group dev
 \`\`\`
 
-Stage A removes editable dependencies on \`../libs/\`; a locked install must work
-from this directory using released packages. Do not install dependencies with
-\`pip\`, and do not modify upstream LangChain \`libs/\` for application behavior.
+The locked install uses released packages only; there are no path or editable
+dependency overrides. Do not install dependencies with \`pip\`.
 
 No credential is required for the normal test suite. Phase 2 live SEC acquisition
 will require a declared contact string held in an untracked \`.env\` or secret
