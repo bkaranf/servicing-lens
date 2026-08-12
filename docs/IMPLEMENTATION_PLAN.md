@@ -71,7 +71,7 @@ Deliver:
 
 Gate:
 
-- clean PostgreSQL upgrade succeeds;
+- clean SQLite upgrade and PostgreSQL-compatible schema contract succeed;
 - ORM/migration/schema contracts agree;
 - float inputs fail;
 - same semantic input is idempotent;
@@ -82,13 +82,11 @@ Gate:
 
 Deliver:
 
-- SEC discovery/acquisition adapter with descriptive configured User-Agent,
-  conservative rate limit, bounded concurrency, backoff, caching, and conditional
-  requests;
-- filed-exhibit-first issuer IR adapter;
-- FFIEC Call Report, FR Y-9C, and NIC adapter boundaries;
+- SEC discovery/acquisition client boundary with identifying User-Agent,
+  conservative rate limit, bounded retry, caching, and official-host enforcement;
+- fail-closed issuer IR and FFIEC/FR Y-9C/NIC adapter boundaries;
 - content-addressed immutable evidence storage;
-- deterministic filing HTML/inline XBRL, table, PDF-text, and regulatory parsers;
+- deterministic recorded HTML table parser;
 - source-contact removal for bounded model excerpts; and
 - offline recorded fixtures for every Stage A source path.
 
@@ -131,7 +129,8 @@ Gate:
 
 Deliver:
 
-- the eight required versioned JSON GET routes;
+- the required versioned JSON GET routes plus bounded health, coverage, and
+  observation-detail reads;
 - coverage/freshness, company comparison, company detail, methodology, and
   evidence-drawer pages;
 - server-rendered Jinja2 and HTMX;
@@ -198,9 +197,10 @@ Gate:
 
 ## Required deterministic test inventory
 
-Fixtures cover SEC submissions, company facts, filing HTML, inline XBRL,
-earnings-release tables, investor-presentation PDF text, FFIEC/regulatory records,
-and corporate-action/name-change scenarios.
+Stage A fixtures cover retained SEC filing exhibits and earnings-release tables.
+SEC submissions, company facts, filing-level XBRL, investor-presentation PDF
+text, FFIEC/FR Y-9C/NIC records, and broader corporate-action scenarios are Phase
+2 and later deterministic-fixture requirements.
 
 Tests cover:
 
@@ -238,12 +238,15 @@ After shared contracts stabilize, issuer-specific disclosure maps, recipes, and
 fixtures can split by TFC and PFSI. Issuer owners do not edit shared metrics,
 universe identity, migrations, core logic, graph, or dependencies concurrently.
 
-## Stage A exit and Stage B hold
+## Stage A exit and governed next phases
 
 Stage A exits only when all 15 product-scope acceptance outcomes pass together.
 Passing unit tests while provenance, source coverage, UI, review, or
 reconciliation is incomplete is not exit.
 
-Stage B remains a future expansion target of at least five banks, five nonbanks,
-and eight quarters where available. Issuers and metrics must be reassessed live;
-the Stage A configuration is not silently generalized.
+Stage A exited on 2026-08-12 under D-015. The governing objective requires, in
+order: standalone repository extraction; live SEC/XBRL/regulatory/calendar
+adapters; TFC/PFSI metric deepening; exactly two additional banks and two
+additional nonbanks over Q3 2025 through Q2 2026; and UI alignment last. Issuers
+and metrics must be reassessed from official evidence; the Stage A configuration
+is not silently generalized.

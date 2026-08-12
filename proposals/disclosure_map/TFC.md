@@ -1,6 +1,8 @@
 # TFC disclosure map
 
-Status: proposed Stage A bank issuer, based on public evidence available through August 11, 2026.
+Status: Stage A retained-evidence map as of August 12, 2026. The Q2 2026 filed
+exhibit below is retained and parsed; linked periodic filings are official source
+inventory but remain `NOT_RETAINED_NOT_CHECKED` for catalog-wide missingness.
 
 ## Entity and scope
 
@@ -19,7 +21,7 @@ Truist reports Consumer and Small Business Banking and Wholesale Banking as its 
 
 ## Canonical evidence
 
-The canonical four-quarter table is the [Q2 2026 Quarterly Performance Summary](https://www.sec.gov/Archives/edgar/data/92230/000009223026000096/ex992-qpsx2q26.htm), Exhibit 99.2 to Form 8-K accession `0000092230-26-000096`, filed July 17, 2026. The 8-K states that Exhibit 99.2 is deemed filed. The locator is “Selected Mortgage Banking Information & Additional Information,” page 9.
+The canonical four-quarter table is the [Q2 2026 Quarterly Performance Summary](https://www.sec.gov/Archives/edgar/data/92230/000009223026000096/ex992-qpsx2q26.htm), Exhibit 99.2 to Form 8-K accession `0000092230-26-000096`, filed July 17, 2026. The 8-K states that Exhibit 99.2 is deemed filed. The locator is “Selected Mortgage Banking Information & Additional Information,” page 10.
 
 Accounting-policy and portfolio support comes from [Q2 2026 Form 10-Q, Note 6](https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm), accession `0000092230-26-000099`, filed July 31, 2026.
 
@@ -30,7 +32,7 @@ Period-specific filed support:
 - [Q1 2026 Form 10-Q](https://www.sec.gov/Archives/edgar/data/92230/000009223026000062/tfc-20260331.htm), accession `0000092230-26-000062`
 - [Q2 2026 Form 10-Q](https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm), accession `0000092230-26-000099`
 
-## Proposed mappings
+## Implemented retained mappings
 
 | Metric ID | Exact source label | Semantics | Reported precision | Scope note |
 |---|---|---|---|---|

@@ -1,6 +1,8 @@
 # PFSI disclosure map
 
-Status: proposed Stage A nonbank issuer, based on public evidence available through August 11, 2026.
+Status: Stage A retained-evidence map as of August 12, 2026. The Q2 2026 filed
+exhibit below is retained and parsed; linked periodic filings are official source
+inventory but remain `NOT_RETAINED_NOT_CHECKED` for catalog-wide missingness.
 
 ## Entity and scope
 
@@ -29,7 +31,7 @@ Filed support:
 - [Q1 2026 Form 10-Q](https://www.sec.gov/Archives/edgar/data/1745916/000110465926055690/pfsi-20260331x10q.htm), accession `0001104659-26-055690`
 - [Q2 2026 Form 10-Q](https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm), accession `0001104659-26-090486`; relevant locators are Note 11 and Note 26
 
-## Proposed mappings
+## Implemented retained mappings
 
 | Metric ID | Exact source label | Semantics | Reported precision | Scope note |
 |---|---|---|---|---|

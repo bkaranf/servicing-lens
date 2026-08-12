@@ -413,8 +413,11 @@ class ComparabilityAssessment(Base):
     id: Mapped[str] = mapped_column(String(128), primary_key=True)
     left_observation_id: Mapped[str] = mapped_column(ForeignKey("metric_observations.id"))
     right_observation_id: Mapped[str] = mapped_column(ForeignKey("metric_observations.id"))
+    policy_version: Mapped[str] = mapped_column(String(32))
+    requested_operation: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(40))
     reasons: Mapped[list[str]] = mapped_column(JSON)
+    permitted_calculations: Mapped[list[str]] = mapped_column(JSON)
     assessed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 

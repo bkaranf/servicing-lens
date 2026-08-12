@@ -27,8 +27,9 @@ The Stage A recorded-data vertical slice is implemented. It provides versioned
 TFC/PFSI configuration, hash-verified retained SEC DOM serializations, exact observations and
 explicit missingness, SQLAlchemy/Alembic persistence, typed read tools, a
 read-only API, server-rendered dashboard pages, a provenance dialog, and an
-interruptible review graph. Live acquisition is opt-in and the bank regulatory
-adapter remains fail-closed until a governed endpoint is configured. This is not
+interruptible review graph. The SEC client and bank regulatory boundary are
+implemented but unwired and fail closed; Phase 2 adds governed live acquisition
+and structured adapters. This is not
 a claim of production readiness or broad market coverage.
 
 ## Stage A selection
@@ -50,8 +51,10 @@ dashboard. A metric can remain \`NOT_DISCLOSED\` for either issuer. Stage A does
 force symmetric coverage and never substitutes \`total_servicing_upb\` for
 \`servicing_for_others_upb\` or \`owned_msr_upb\`.
 
-Stage B, including any move toward ten issuers or eight quarters, is blocked until
-every Stage A acceptance gate passes.
+Controlled expansion is blocked until every Stage A acceptance gate and the
+intervening standalone, acquisition, and metric-deepening phase gates pass. The
+governing objective permits exactly two additional banks and two additional
+nonbanks over the same four-quarter window before UI alignment.
 
 ## In-scope user outcomes
 
@@ -78,11 +81,14 @@ preliminary reported, pro forma, announced impact, derived, and not disclosed.
 
 The versioned JSON API exposes only bounded read operations:
 
+- \`GET /api/v1/health\`
 - \`GET /api/v1/companies\`
 - \`GET /api/v1/companies/{company_id}\`
 - \`GET /api/v1/metrics\`
 - \`GET /api/v1/observations\`
+- \`GET /api/v1/observations/{observation_id}\`
 - \`GET /api/v1/comparisons\`
+- \`GET /api/v1/coverage\`
 - \`GET /api/v1/evidence/{evidence_id}\`
 - \`GET /api/v1/earnings-events\`
 - \`GET /api/v1/pipeline/freshness\`
@@ -95,8 +101,7 @@ The controlled CLI surface is:
 
 - \`msi doctor\`
 - \`msi discover\`
-- \`msi ingest --company ...\`
-- \`msi ingest\` (all configured Stage A issuers)
+- \`msi ingest\` (the complete governed Stage A source set)
 - \`msi validate\`
 - \`msi review list\`
 - \`msi review approve\`

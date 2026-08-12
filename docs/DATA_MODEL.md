@@ -6,10 +6,12 @@ The database preserves source evidence, semantic interpretation, publication
 history, and what the system knew at a point in time. It is not a mutable cache of
 the latest number.
 
-The implementation uses SQLAlchemy 2 models and Alembic migrations over
-PostgreSQL. Monetary amounts, balances, UPB, rates, and derived values use
-\`NUMERIC\` mapped to Python \`Decimal\`. Authoritative schemas reject binary
-floating-point values. Timestamps are timezone-aware.
+The implementation uses SQLAlchemy 2 models and Alembic migrations. SQLite is the
+default local engine; PostgreSQL compatibility is enforced through the schema
+contract without requiring a running server in the default gate. Monetary
+amounts, balances, UPB, rates, and derived values use \`NUMERIC\` mapped to Python
+\`Decimal\`. Authoritative schemas reject binary floating-point values.
+Timestamps are timezone-aware.
 
 Typed Pydantic/domain models validate boundaries. Pure financial and
 comparability functions do not depend on SQLAlchemy, FastAPI, LangChain, or
@@ -187,7 +189,8 @@ intervals and create successors; they do not update history in place.
 
 Alembic migrations must:
 
-- create the schema from an empty PostgreSQL database;
+- create the schema from an empty local SQLite database and remain compatible
+  with PostgreSQL exact types and constraints under the schema contract;
 - upgrade through every committed revision and support a documented downgrade
   policy;
 - use exact database types and explicit constraints;

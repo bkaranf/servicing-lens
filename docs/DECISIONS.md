@@ -11,18 +11,19 @@ investment, legal, security, or regulatory approval.
 | --- | --- | --- |
 | D-001 | ACCEPTED | Reset the product from synthetic internal loan operations to public mortgage-servicing intelligence and archive the predecessor unchanged |
 | D-002 | ACCEPTED | Stage A covers TFC and PFSI for Q3 2025 through Q2 2026 only |
-| D-003 | ACCEPTED | Use FastAPI, Pydantic, SQLAlchemy 2, Alembic, PostgreSQL, server-rendered Jinja2/HTMX, and locally hosted chart assets |
+| D-003 | ACCEPTED | Use FastAPI, Pydantic, SQLAlchemy 2, Alembic, local SQLite with PostgreSQL-compatible schemas, server-rendered Jinja2/HTMX, and locally hosted chart assets |
 | D-004 | ACCEPTED | Make the application independently installable from released dependencies; do not modify upstream \`libs/\` |
 | D-005 | ACCEPTED | Deterministic services and exact arithmetic are authoritative; models never publish financial values |
 | D-006 | ACCEPTED | Preserve immutable evidence, reporting entity/scope, bitemporal history, revisions, and pairwise comparability |
-| D-007 | ACCEPTED | Use controlled SEC/IR/regulatory adapters and filed-evidence precedence |
+| D-007 | ACCEPTED | Use controlled SEC/IR/regulatory boundaries and filed-evidence precedence; Stage A publishes only retained SEC exhibits |
 | D-008 | ACCEPTED | Keep LangChain, LangGraph, and Deep Agents responsibilities and switches separate |
 | D-009 | ACCEPTED | Use explicit public-document classifications and typed public identifiers |
 | D-010 | ACCEPTED | Public routes are read-only; Stage A candidate review is an audited CLI boundary |
 | D-011 | ACCEPTED | Default tests and CI are deterministic, offline, socket-blocked, strict, and branch-covered at 90% or more |
-| D-012 | ACCEPTED | Do not start Stage B until all Stage A acceptance gates pass |
-| D-013 | DEFERRED | Extract the application from the LangChain monorepo into a standalone repository after Stage A |
+| D-012 | ACCEPTED | Do not start controlled expansion until Stage A and the intervening phase gates pass |
+| D-013 | ACCEPTED | Extract the application from the LangChain monorepo into a standalone repository after Stage A |
 | D-014 | DEFERRED | Select model/provider, production graph persistence, tracing, hosting, authentication, and production retention only through separate approval |
+| D-015 | ACCEPTED | Stage A passed its closure audit on 2026-08-12; proceed to D-013 extraction before later pipeline phases |
 
 ## D-001 — Public-product scope reset
 
@@ -70,7 +71,7 @@ Use:
 
 - FastAPI and Pydantic for typed HTTP boundaries;
 - SQLAlchemy 2 and Alembic;
-- PostgreSQL with exact \`NUMERIC\`;
+- SQLite as the default local engine and PostgreSQL-compatible exact \`NUMERIC\`;
 - server-rendered Jinja2 and HTMX;
 - a locally hosted chart library; and
 - a replaceable immutable evidence-retention interface.
@@ -163,20 +164,21 @@ Dependency, secret, migration, schema-contract, generated-artifact, route/tool
 inventory, provenance, accessibility, and restricted-data checks are release
 gates.
 
-## D-012 — Stage B hold
+## D-012 — Controlled-expansion hold
 
-Stage B targets at least ten issuers and eight quarters where evidence permits,
-but is not authorized until Stage A passes provenance, reconciliation,
-reproducibility, quarantine/review, comparability, model-disabled operation,
-accessibility, and full-quality gates. Candidate identities are reverified live
+The earlier broad target of ten issuers and eight quarters is superseded by the
+governing 2026-08-12 objective. Controlled expansion adds exactly two banks and
+two nonbanks over Q3 2025 through Q2 2026, one issuer at a time, only after Stage
+A, standalone extraction, acquisition-adapter work, and TFC/PFSI metric deepening
+pass their gates. Candidate identities are reverified from official sources
 before expansion.
 
-## D-013 — Standalone repository follow-up
+## D-013 — Standalone repository extraction
 
-The application remains inside the LangChain monorepo for Stage A to avoid
-rewriting or deleting upstream history in this task. After Stage A, create a
-separate owner decision and migration plan to extract
-\`mortgage_servicing_dashboard/\` into a standalone repository.
+The application remains inside the LangChain monorepo through Stage A to avoid
+rewriting or deleting upstream history. The governing 2026-08-12 objective now
+authorizes history-preserving extraction of \`mortgage_servicing_dashboard/\`
+immediately after the Stage A exit gate.
 
 The follow-up must preserve Git history, dependency locks, evidence/fixture
 provenance, CI controls, issue/PR traceability, release artifacts, and documented
@@ -191,3 +193,38 @@ require separate accepted decisions.
 
 This deferral does not block deterministic ingestion, the controlled review CLI,
 the read API, or the dashboard.
+
+## D-015 — Stage A exit
+
+Stage A exited on 2026-08-12 after the complete local gate and independent
+closure audits passed together. The exit evidence is:
+
+- 36 observations parsed from two hash-verified retained SEC DOM
+  serializations, with no configured authoritative numeric observation;
+- 220 catalog cells retained as `SOURCE_NOT_CHECKED`, zero as
+  `NOT_DISCLOSED`, and one deliberate ambiguous candidate retained in quarantine;
+- 16 substantive ingestion nodes with content/config/parser-derived idempotent
+  run keys, explicit terminal states, bounded retry, fail-closed errors, and
+  same-thread CLI approve/reject through deterministic revalidation;
+- four retained pairwise comparison assessments, including a Q2 2026
+  `total_servicing_upb` `not_comparable` assessment with no permitted arithmetic;
+- explicit migration 0001 operations with matching 27-table ORM/migration
+  contracts and no metadata-wide create/drop call; and
+- locked sync, Ruff, Ruff format, strict Mypy, socket-blocked Pytest above 90%
+  branch coverage, deterministic doctor, and clean diff checks.
+
+The TFC retained bytes are 1,697,426 bytes with SHA-256
+`7353334b2f40cb48d0ed6dc6756378e93260d2e2b6541ea37d800790057a7883`.
+The PFSI retained bytes are 741,531 bytes with SHA-256
+`db128f08fa4fff4835e13467e6dc18f081983b64618ada3e6a7ee7097ade78cf`.
+
+This exit does not claim complete catalog coverage. The linked quarterly
+periodic filings remain unretained and unchecked at the catalog-cell level, so
+their gaps are not converted to `NOT_DISCLOSED`. The SEC client remains unwired,
+and XBRL, FFIEC/FR Y-9C/NIC, and calendar behavior remain Phase 2 work.
+
+The only remaining owner decisions are those already deferred by D-014:
+deployment/hosting, authentication, production retention and persistence,
+tracing, and any model-provider decision. D-012 is satisfied for Stage A; the
+governing phased objective permits Phase 1 extraction now and permits universe
+expansion only after Phases 2 and 3 pass their gates.

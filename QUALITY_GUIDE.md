@@ -33,7 +33,8 @@ non-secret configuration and readiness data.
 
 The quality suite must prove:
 
-- Alembic upgrades an empty PostgreSQL database to head;
+- Alembic upgrades an empty local SQLite database to head and its explicit schema
+  remains PostgreSQL-\`NUMERIC\` compatible under the schema-contract test;
 - committed migrations and SQLAlchemy metadata agree;
 - required tables, constraints, indexes, enums, exact \`NUMERIC\` columns, and
   foreign keys match the schema contract;
@@ -43,8 +44,9 @@ The quality suite must prove:
 - revisions and as-known-at history survive amendments/reviews; and
 - no migration seeds fabricated financial observations.
 
-Tests use an isolated disposable database or transaction. They never point at a
-shared or production database.
+Tests use an isolated disposable SQLite database or transaction by default. An
+optional PostgreSQL exercise may run separately, but it is not required for the
+local gate. Tests never point at a shared or production database.
 
 ## Fixture and network policy
 
@@ -98,13 +100,14 @@ Tests prove:
   cells explicitly;
 - one deliberate ambiguity enters quarantine;
 - quarantined values are absent from public reads;
-- approve/reject uses the same opaque thread, records the reviewer decision, and
+- CLI approve/reject rebuilds the graph deterministically to its interrupt,
+  resumes on the same opaque run thread, records the reviewer decision, and
   revalidates before any publication; and
 - rejected and superseded history remains recoverable.
 
 ## API, UI, and accessibility
 
-Contract tests cover all eight required \`/v1\` GET resources, strict filters,
+Contract tests cover all required \`/api/v1\` GET resources, strict filters,
 bounded pagination/results, exact string serialization, safe errors, evidence
 links, and schema stability.
 

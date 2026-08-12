@@ -18,6 +18,7 @@ from typing import Annotated, Any, Literal, Protocol, assert_never, cast
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command, interrupt
@@ -58,8 +59,6 @@ INGESTION_NODES = (
     "acquire_source",
     "hash_and_store",
     "parse_document",
-    "extract_xbrl_facts",
-    "extract_bank_regulatory_facts",
     "resolve_entity_and_scope",
     "resolve_fiscal_period",
     "map_metric",
@@ -79,8 +78,6 @@ StageName = Literal[
     "acquire_source",
     "hash_and_store",
     "parse_document",
-    "extract_xbrl_facts",
-    "extract_bank_regulatory_facts",
     "resolve_entity_and_scope",
     "resolve_fiscal_period",
     "map_metric",
@@ -118,6 +115,8 @@ class IngestionState(TypedDict, total=False):
     quarantine_candidate_ids: list[str]
     visited: Annotated[list[str], operator.add]
     review_decision: Literal["approve", "reject", "pending"]
+    reviewer: str
+    review_rationale: str
     published_count: int
     not_disclosed_count: int
     source_not_checked_count: int
@@ -543,8 +542,11 @@ class StageAIngestionServices:
             repository.record_review_decision(
                 candidate_id=candidate_id,
                 decision=decision,
-                reviewer="langgraph-human-review",
-                rationale="explicit durable-thread review resume",
+                reviewer=state.get("reviewer", "langgraph-human-review"),
+                rationale=state.get(
+                    "review_rationale",
+                    "explicit durable-thread review resume",
+                ),
                 thread_id=_required_thread_id(state),
             )
         return {
@@ -628,16 +630,6 @@ class StageAIngestionServices:
                 return self._hash_and_store(state)
             if stage == "parse_document":
                 return self._parse(state)
-            if stage == "extract_xbrl_facts":
-                return {
-                    "terminal_status": "RUNNING",
-                    "audit_events": ["xbrl_facts_extracted:0:recorded_dom_sources"],
-                }
-            if stage == "extract_bank_regulatory_facts":
-                return {
-                    "terminal_status": "RUNNING",
-                    "audit_events": ["bank_regulatory_facts_extracted:0:adapter_disabled"],
-                }
             if stage == "resolve_entity_and_scope":
                 return self._resolve_entities()
             if stage == "resolve_fiscal_period":
@@ -705,6 +697,13 @@ def _validate_bounded_state(state: IngestionState) -> None:
             "RETRY_BOUND_EXCEEDED",
             "retry counters must remain within the configured bound",
         )
+    for field in ("reviewer", "review_rationale"):
+        value = state.get(cast("Any", field))
+        if value is not None and (
+            not isinstance(value, str) or len(value) > _MAX_STATE_STRING_LENGTH
+        ):
+            msg = f"{field} exceeds the bounded orchestration-state contract"
+            raise IngestionServiceError("STATE_BOUND_EXCEEDED", msg)
 
 
 def _checkpoint_thread(config: RunnableConfig) -> str:
@@ -823,7 +822,7 @@ def create_ingestion_graph(
     services: IngestionServices | None = None,
     checkpointer: BaseCheckpointSaver[Any] | None = None,
 ) -> CompiledStateGraph[Any, Any, Any, Any]:
-    """Compile all 18 stages over typed services and bounded checkpoint state."""
+    """Compile all 16 Stage A stages over typed services and bounded checkpoint state."""
     bound_services = services or StageAIngestionServices()
     builder = StateGraph(IngestionState)
     for stage in INGESTION_NODES:
@@ -835,7 +834,8 @@ def create_ingestion_graph(
                 cast("Any", _stage_node(cast("StageName", stage), bound_services)),
             )
     builder.add_edge(START, INGESTION_NODES[0])
-    linear_stages = INGESTION_NODES[:13]
+    quarantine_index = INGESTION_NODES.index("quarantine_ambiguous_candidates")
+    linear_stages = INGESTION_NODES[:quarantine_index]
     for left, right in pairwise(linear_stages):
         builder.add_conditional_edges(
             left,
@@ -884,3 +884,58 @@ def resume_review(
     config = RunnableConfig(configurable={"thread_id": thread_id})
     result = graph.invoke(Command[Any](resume={"decision": decision}), config=config)
     return dict(result)
+
+
+def run_cli_review_resume(  # noqa: PLR0913
+    *,
+    engine: Engine,
+    candidate_id: str,
+    thread_id: str,
+    decision: Literal["approve", "reject"],
+    reviewer: str,
+    rationale: str,
+    config_dir: Path | None = None,
+) -> dict[str, object]:
+    """Rebuild and resume the deterministic review graph on its persisted run thread."""
+    with Session(engine) as session:
+        candidate = session.get(QuarantineCandidate, candidate_id)
+        if candidate is None:
+            raise KeyError(candidate_id)
+        run = session.get(PipelineRun, candidate.pipeline_run_id)
+        if run is None or run.thread_id != thread_id:
+            msg = "review must resume the candidate's original thread"
+            raise ValueError(msg)
+
+    services = StageAIngestionServices(engine=engine, config_dir=config_dir)
+    graph = create_ingestion_graph(services=services, checkpointer=InMemorySaver())
+    config = RunnableConfig(configurable={"thread_id": thread_id})
+    interrupted = graph.invoke(
+        {
+            "thread_id": thread_id,
+            "source_keys": [],
+            "visited": [],
+            "review_decision": "pending",
+            "reviewer": reviewer,
+            "review_rationale": rationale,
+            "published_count": 0,
+            "audit_events": [],
+        },
+        config=config,
+    )
+    if candidate_id not in interrupted.get("quarantine_candidate_ids", []):
+        msg = "candidate is not part of the interrupted review thread"
+        raise ValueError(msg)
+    resumed = resume_review(graph, thread_id=thread_id, decision=decision)
+    with Session(engine) as session:
+        reviewed = session.get(QuarantineCandidate, candidate_id)
+        if reviewed is None:
+            raise KeyError(candidate_id)
+        status = reviewed.status
+    return {
+        "candidate_id": candidate_id,
+        "decision": decision,
+        "status": status,
+        "thread_id": thread_id,
+        "terminal_status": resumed.get("terminal_status"),
+        "terminal_outcomes": resumed.get("terminal_outcomes", {}),
+    }

@@ -17,13 +17,16 @@ from sqlalchemy.orm import Session
 
 from mortgage_servicing_dashboard.config import AppSettings
 from mortgage_servicing_dashboard.database import (
+    PipelineRun,
     QuarantineCandidate,
     create_database_engine,
     default_database_url,
 )
+from mortgage_servicing_dashboard.ingestion import run_cli_review_resume
 from mortgage_servicing_dashboard.repository import (
     IntelligenceRepository,
     load_stage_a_configuration,
+    prepare_stage_a,
     seed_stage_a,
 )
 from mortgage_servicing_dashboard.tools import StaticFoundationInformation
@@ -46,9 +49,8 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--company", choices=("TFC", "PFSI"))
     discover.add_argument("--config-dir", type=Path)
     for command in ("ingest", "validate"):
-        child = subparsers.add_parser(command, help=f"{command} recorded Stage A evidence.")
+        child = subparsers.add_parser(command, help=f"{command} all recorded Stage A evidence.")
         child.add_argument("--database-url")
-        child.add_argument("--company", choices=("TFC", "PFSI"))
         child.add_argument("--config-dir", type=Path)
     review = subparsers.add_parser("review", help="List or decide quarantined candidates.")
     review.add_argument("action", choices=("list", "approve", "reject"))
@@ -110,8 +112,10 @@ def _review_candidate(engine: Any, args: argparse.Namespace) -> tuple[int, dict[
     """List candidates or record one auditable decision."""
     with Session(engine) as session:
         if args.action == "list":
-            candidates = session.scalars(
-                select(QuarantineCandidate).order_by(QuarantineCandidate.id)
+            candidates = session.execute(
+                select(QuarantineCandidate, PipelineRun.thread_id)
+                .join(PipelineRun, QuarantineCandidate.pipeline_run_id == PipelineRun.id)
+                .order_by(QuarantineCandidate.id)
             )
             return 0, {
                 "candidates": [
@@ -120,22 +124,24 @@ def _review_candidate(engine: Any, args: argparse.Namespace) -> tuple[int, dict[
                         "metric_id": item.proposed_metric_id,
                         "status": item.status,
                         "confidence": str(item.confidence),
+                        "thread_id": thread_id,
                     }
-                    for item in candidates
+                    for item, thread_id in candidates
                 ]
             }
         if not args.candidate_id:
             return 2, {"error": "--candidate-id is required for approve or reject"}
     if not args.thread_id:
         return 2, {"error": "--thread-id is required for approve or reject"}
-    repository = IntelligenceRepository(engine)
     try:
-        result = repository.record_review_decision(
+        result = run_cli_review_resume(
+            engine=engine,
             candidate_id=args.candidate_id,
             decision=args.action,
             reviewer=args.reviewer,
             rationale=args.rationale,
             thread_id=args.thread_id,
+            config_dir=args.config_dir,
         )
     except KeyError:
         return 3, {"error": "candidate not found"}
@@ -144,6 +150,10 @@ def _review_candidate(engine: Any, args: argparse.Namespace) -> tuple[int, dict[
     return 0, {
         "candidate_id": result["candidate_id"],
         "status": result["status"],
+        "decision": result["decision"],
+        "thread_id": result["thread_id"],
+        "terminal_status": result["terminal_status"],
+        "terminal_outcomes": result["terminal_outcomes"],
     }
 
 
@@ -183,6 +193,12 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911
     if getattr(args, "config_dir", None) is not None:
         os.environ["MSI_CONFIG_DIR"] = str(args.config_dir.resolve())
     engine = create_database_engine(database_url)
+    if command == "review":
+        prepare_stage_a(engine, config_dir=getattr(args, "config_dir", None))
+        exit_code, payload = _review_candidate(engine, args)
+        print(json.dumps(payload, sort_keys=True))
+        engine.dispose()
+        return exit_code
     counts = seed_stage_a(engine, config_dir=getattr(args, "config_dir", None))
     if command in {"init-db", "seed", "ingest"}:
         print(json.dumps({"database": "ready", "inserted": counts}, sort_keys=True))
@@ -200,11 +216,6 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911
         print(json.dumps(payload, sort_keys=True))
         engine.dispose()
         return 0
-    if command == "review":
-        exit_code, payload = _review_candidate(engine, args)
-        print(json.dumps(payload, sort_keys=True))
-        engine.dispose()
-        return exit_code
     if command == "serve":
         repository = IntelligenceRepository(engine)
         from mortgage_servicing_dashboard.api import create_app  # noqa: PLC0415

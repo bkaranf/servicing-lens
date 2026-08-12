@@ -2,9 +2,10 @@
 
 Servicing Lens is a read-only public-data application for
 comparing selected publicly traded U.S. mortgage servicers. It turns authoritative
-SEC filings, filed earnings materials, limited issuer investor-relations material,
-and official bank regulatory data into reproducible observations with complete
-provenance.
+SEC filings and filed earnings materials into reproducible observations with
+complete provenance. Governed issuer investor-relations and official bank
+regulatory adapters are planned pipeline extensions; they do not support a
+Stage A published value.
 
 Stage A is intentionally narrow:
 
@@ -18,11 +19,12 @@ value to complete a comparison.
 
 ## Status
 
-Stage A is implemented as a deterministic recorded-data vertical slice. It includes
+Stage A is closed as a deterministic recorded-data vertical slice. It includes
 versioned configuration, hash-verified retained SEC DOM serializations,
 SQLAlchemy/Alembic persistence,
 a read-only API and dashboard, an interruptible LangGraph review workflow, and a
-socket-blocked acceptance suite. Live acquisition remains opt-in.
+socket-blocked acceptance suite. The controlled SEC client exists as an unwired
+boundary; operational live acquisition is added only in Phase 2.
 
 This is not production-ready, comprehensive issuer coverage, an industry ranking,
 an audit product, or investment advice.
@@ -52,8 +54,9 @@ authoritative for this product.
 
 - Deterministic code owns numbers, normalization, formulas, validation,
   reconciliation, revisions, and comparability.
-- Money, balances, UPB, rates, and derived values use \`Decimal\` and PostgreSQL
-  \`NUMERIC\`, never binary floating point.
+- Money, balances, UPB, rates, and derived values use \`Decimal\` and SQL
+  \`NUMERIC\`, never binary floating point. SQLite is the default local engine;
+  PostgreSQL compatibility remains a tested schema contract.
 - Retained evidence is immutable, content-addressed, and labeled by representation
   and capture method. The Stage A browser DOM serializations are not described as
   original HTTP response bytes.
@@ -79,9 +82,9 @@ Stage A removes editable dependencies on \`../libs/\`; a locked install must wor
 from this directory using released packages. Do not install dependencies with
 \`pip\`, and do not modify upstream LangChain \`libs/\` for application behavior.
 
-No credential is required for the normal test suite. A real SEC contact string is
-required only for opt-in live acquisition and belongs in an untracked \`.env\` or
-secret manager.
+No credential is required for the normal test suite. Phase 2 live SEC acquisition
+will require a declared contact string held in an untracked \`.env\` or secret
+manager.
 
 ## CLI
 
@@ -90,16 +93,17 @@ The Stage A command is \`msi\`:
 \`\`\`bash
 uv run msi doctor --json
 uv run msi discover --company TFC
-uv run msi ingest --company TFC
-uv run msi ingest --company PFSI
+uv run msi ingest
 uv run msi validate
 uv run msi review list
 uv run msi serve
 \`\`\`
 
-All listed commands are implemented. Review approval/rejection creates an audited
-decision with the same thread identifier and marks the candidate for revalidation;
-it never edits a published observation directly.
+All listed commands are implemented. Stage A ingest is atomic across the complete
+governed source set; discovery can be filtered by issuer. Review approval and
+rejection rebuild the deterministic graph to its interrupt, resume on the
+candidate's persisted run thread, create an audited decision, and run
+revalidation; they never edit a published observation directly.
 
 ## Stage A web surface
 
@@ -117,8 +121,9 @@ page shows data-as-of time and clearly labels reported actual, preliminary,
 pro-forma, announced-impact, derived, and not-disclosed states.
 
 The light Servicing Lens interface adds a searchable company universe, four
-presentation sorts, a checkbox-only three-company comparison bench with three
-synchronized KPI selectors, and an event-backed earnings brief at `GET /earnings`.
+presentation sorts, a comparison bench with three visual slots and two governed
+Stage A issuers, three synchronized KPI selectors, and an event-backed earnings
+brief at `GET /earnings`.
 These components are Jinja templates with progressively enhanced vanilla
 JavaScript; the existing FastAPI routes, repository, evidence views, and public
 read API remain authoritative.
@@ -153,12 +158,14 @@ values and does not characterize sentiment when none is produced by the pipeline
 
 Public JSON resources are:
 
+- \`GET /api/v1/health\`;
 - \`GET /api/v1/companies\`;
 - \`GET /api/v1/companies/{company_id}\`;
 - \`GET /api/v1/metrics\`;
 - \`GET /api/v1/observations\`;
 - \`GET /api/v1/observations/{observation_id}\`;
 - \`GET /api/v1/comparisons\`;
+- \`GET /api/v1/coverage\`;
 - \`GET /api/v1/evidence/{evidence_id}\`;
 - \`GET /api/v1/earnings-events\`; and
 - \`GET /api/v1/pipeline/freshness\`.

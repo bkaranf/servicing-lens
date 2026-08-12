@@ -1,71 +1,86 @@
 # Stage A Gauntlet progress
 
-Branch: `bkaranf/mortgage-dashboard/stage-a-gauntlet`
+Branch: `bkaranf/mortgage-dashboard/stage-a-closure`
 
-Base: `origin/master` at `3090246c01f12bb67175c70eceb01a04aa2eec00`
+Base: `origin/master` at `3139ad7c10b484e424af23744f9e5269de5bb4e4`
+
+Audit date: 2026-08-12
 
 This is the concise release-audit ledger for the Stage A Gauntlet. Product
-contracts and tests remain authoritative; this file is not acceptance evidence.
-
-## Repository baseline
-
-- Bar: clean branch from merged PR #2, repository instructions read, remote and
-  workflow state verified, authoritative product documents read, and the full
-  local gate run before edits.
-- Builder: primary integrator.
-- Critic: runtime risk scan against the binding objective, isolated from prior
-  implementation rationale.
-- Verdict: **reference wins**.
-- Biggest gap: green tests and documentation describe a source-to-screen system,
-  but authoritative values are loaded from `config/stage_a_data.yaml`, most graph
-  nodes only append their own names, and migration `0001` calls metadata-wide
-  `create_all()`/`drop_all()`.
-- Evidence: `rg` found the YAML load in `repository.py`, visited-only node
-  factories in `ingestion.py`, and metadata operations in the migration. The
-  baseline still reported 62 passing tests and 96.50% branch coverage, proving
-  the existing suite does not enforce the hard contract.
-- Response: Luna-max backend and UI builders assigned non-overlapping scopes;
-  independent Terra-high criticism follows implementation.
-- Commands: `git fetch origin --prune`; GitHub PR/workflow inspection; `uv sync
-  --locked --group dev`; Ruff check and format check; strict Mypy; branch-aware
-  socket-blocked Pytest; `msi doctor --json`; targeted risk scan.
-- Status: in progress.
+contracts, retained evidence, migrations, and tests remain authoritative.
 
 ## Evidence, data, migrations, and orchestration
 
-- Bar: immutable official recorded bytes are the root of truth; deterministic
-  parsing and semantic services; explicit migrations; idempotent, resumable,
-  fail-closed graph behavior; exact `Decimal`; reviewable ambiguity.
-- Builder: Luna max, `backend_builder`.
-- Critic: pending Terra-high specialist review.
-- Verdict: pending.
-- Biggest gap: pending implementation and independent inspection.
-- Response: pending.
-- Tests: pending.
-- Status: in progress.
+- Verdict: **passed**.
+- `config/stage_a_data.yaml` contains identity, acquisition metadata, source
+  hashes, period metadata, and parser recipes. It contains no authoritative
+  financial observation value.
+- The retained TFC document is 1,697,426 bytes with SHA-256
+  `7353334b2f40cb48d0ed6dc6756378e93260d2e2b6541ea37d800790057a7883`.
+- The retained PFSI document is 741,531 bytes with SHA-256
+  `db128f08fa4fff4835e13467e6dc18f081983b64618ada3e6a7ee7097ade78cf`.
+- Hash-verified parsing produces 36 published observations. The catalog grid
+  also retains 220 `SOURCE_NOT_CHECKED` cells and one quarantined candidate;
+  none is mislabeled `NOT_DISCLOSED`.
+- The graph has 16 substantive Stage A nodes. XBRL and bank-regulatory extraction
+  are Phase 2 adapters, not placeholder Stage A nodes.
+- Run keys are content/config/parser-derived, retries are bounded to three,
+  terminal states are explicit, and deterministic failures fail closed.
+- CLI approve and reject both rebuild the deterministic graph to its interrupt
+  and resume on the candidate's persisted run thread, retain attributed
+  decisions, and run deterministic revalidation.
+  Approval leaves the ambiguous value `QUARANTINED_AFTER_REVALIDATION`; rejection
+  leaves it `REJECTED`.
+- Four versioned pairwise comparison assessments are retained. The Q2 2026
+  `total_servicing_upb` assessment is `not_comparable` because reporting scopes
+  and portfolio populations differ; no arithmetic is permitted.
+- Migration `0001` contains 27 explicit create-table and 27 explicit drop-table
+  operations and no metadata-wide `create_all()` or `drop_all()` call.
 
 ## API, tools, dashboard, and accessibility
 
-- Bar: exact read-only source-to-screen experience, complete evidence drilldown,
-  OWID-level analytical hierarchy, chart/table equivalence, responsive and
-  keyboard-accessible real states, bounded typed read tools only.
-- Builder: Luna max, `ui_builder`.
-- Critic: pending Terra-high specialist review with anonymous visual comparison.
-- Verdict: pending.
-- Biggest gap: pending implementation and independent inspection.
-- Response: pending.
-- Tests: pending.
-- Status: in progress.
+- Verdict: **passed**.
+- The governed dataset supports the read-only API, server-rendered dashboard,
+  evidence drill-through, locally hosted assets, accessible chart tables, and
+  exact `Decimal` presentation values.
+- Every displayed reported or derived value carries observation/evidence IDs and
+  a locator. Derived presentation values retain all inputs.
+- The comparison bench has three visual slots but only the two governed Stage A
+  issuers are available.
+- Public API routes are read-only. Model calls, Deep Agents, remote tracing, and
+  optional LangGraph persistence remain disabled by default.
 
 ## Final integration and release
 
-- Bar: every Stage A acceptance outcome and quality gate passes simultaneously;
-  Sol-high final critic selects ours; intentional Conventional Commits, pushed
-  branch, and unmerged draft PR with release evidence.
-- Builder: primary integrator plus Luna-max revision rounds.
-- Critic: Sol high, fresh final context.
-- Verdict: pending.
-- Biggest gap: implementation and specialist critique rounds are incomplete.
-- Response: pending.
-- Tests: pending.
-- Status: pending.
+- Verdict: **passed on 2026-08-12**.
+- Final closure gate on the diff from HEAD `3139ad7c10`:
+
+```text
+uv sync --locked --group dev
+Resolved 85 packages in 0.76ms
+Checked 84 packages in 8ms
+
+uv run ruff check .
+All checks passed!
+
+uv run ruff format --check .
+63 files already formatted
+
+uv run mypy src tests
+Success: no issues found in 31 source files
+
+uv run pytest --cov=mortgage_servicing_dashboard --cov-report=term-missing
+84 passed, 23 warnings in 32.22s
+Required test coverage of 90.0% reached. Total coverage: 91.33%
+
+uv run msi doctor --json
+status: ready; stage: A; universe: TFC, PFSI; all optional runtime switches: false
+```
+
+- The lockfile SHA-256 before and after the final gate was
+  `C403A3368034CBA6613E2541005A1EEABCEA6AC66A3D0DA9822ADBAE8F36107B`.
+- The 23 non-failing warnings comprise one third-party Python 3.17 deprecation
+  warning and test-process SQLite connection `ResourceWarning` debt.
+- Draft-PR evidence is recorded in the Phase 0 handoff and D-015. The
+  pre-existing untracked `artifacts/` directory is
+  user-owned and is not part of the closure commit.

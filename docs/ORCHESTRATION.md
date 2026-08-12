@@ -21,26 +21,25 @@ The compiled `public_servicing_ingestion_v1` graph has these explicit stages:
 2. `acquire_source`
 3. `hash_and_store`
 4. `parse_document`
-5. `extract_xbrl_facts`
-6. `extract_bank_regulatory_facts`
-7. `resolve_entity_and_scope`
-8. `resolve_fiscal_period`
-9. `map_metric`
-10. `normalize_value_and_units`
-11. `apply_effective_dated_rules`
-12. `reconcile_and_validate`
-13. `deduplicate_and_supersede`
-14. `quarantine_ambiguous_candidates`
-15. `request_human_review`
-16. `publish_approved_observations`
-17. `refresh_comparability_and_materializations`
-18. `emit_audit_events`
+5. `resolve_entity_and_scope`
+6. `resolve_fiscal_period`
+7. `map_metric`
+8. `normalize_value_and_units`
+9. `apply_effective_dated_rules`
+10. `reconcile_and_validate`
+11. `deduplicate_and_supersede`
+12. `quarantine_ambiguous_candidates`
+13. `request_human_review`
+14. `publish_approved_observations`
+15. `refresh_comparability_and_materializations`
+16. `emit_audit_events`
 
 The graph owns ordering, checkpoint-compatible state, interruption, and same-thread
 resume. The recorded-data seeder and deterministic repository/domain services own
-the Stage A values. The SEC client owns only governed acquisition. The bank
-regulatory adapter is fail-closed until an approved endpoint implementation is
-configured.
+the Stage A values. XBRL and bank-regulatory extraction become substantive graph
+stages only when Phase 2 lands their governed adapters; Stage A has no placeholder
+nodes for disabled sources. The SEC client owns only governed acquisition and is
+not wired to Stage A commands.
 
 ## State boundary
 
@@ -65,11 +64,11 @@ and observation semantic/knowledge keys. The recorded Stage A seed operation is
 idempotent: replay inserts no duplicate company, metric, evidence, filing, event,
 or observation rows.
 
-The live SEC client uses an explicit identifying User-Agent, official HTTPS SEC
-hosts only, a minimum request interval, bounded retry with backoff, and a local
-content cache. Non-SEC hosts and exhausted retries fail closed. The disabled bank
-adapter raises a typed acquisition error rather than silently substituting an
-issuer or source.
+The unwired SEC client boundary requires an explicit identifying User-Agent,
+official HTTPS SEC hosts only, a minimum request interval, bounded retry with
+backoff, and a local content cache. Non-SEC hosts and exhausted retries fail
+closed. The disabled bank adapter raises a typed acquisition error rather than
+silently substituting an issuer or source.
 
 ## Human review
 

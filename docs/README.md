@@ -1,18 +1,20 @@
 # Public Mortgage Servicing Intelligence documentation
 
-Status: Stage A recorded-data vertical slice implemented
+Status: Stage A recorded-data vertical slice closed; standalone extraction next
 
-Baseline date: 2026-08-11
+Baseline date: 2026-08-12
 
 These documents define the first public-data vertical slice of **Public Mortgage
 Servicing Intelligence**. The product compares selected publicly traded U.S.
-mortgage servicers using public filings and official regulatory evidence. It is
+mortgage servicers using public filings; the source policy also governs future
+official regulatory evidence. It is
 not a borrower-servicing application, an industry ranking, or investment advice.
 
 The repository contains the safety foundation plus the Stage A persistence,
 recorded-evidence ingestion, read API, dashboard, provenance, comparability, and
 human-review slice. The acceptance gates in the implementation plan define the
-evidence required for each release; live-source expansion remains opt-in.
+evidence required for each release. The existing SEC client is not CLI-wired;
+governed live acquisition starts in Phase 2 after standalone extraction.
 
 ## Authoritative documents
 

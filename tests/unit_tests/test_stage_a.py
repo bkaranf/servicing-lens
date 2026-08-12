@@ -16,7 +16,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
-from sqlalchemy import Engine
+from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
 from mortgage_servicing_dashboard.api import create_app
@@ -24,6 +24,8 @@ from mortgage_servicing_dashboard.cli import main
 from mortgage_servicing_dashboard.database import (
     Base,
     Company,
+    ComparabilityAssessment,
+    HumanReviewDecision,
     MetricObservation,
     PipelineRun,
     QuarantineCandidate,
@@ -272,6 +274,21 @@ def test_seed_is_idempotent_and_repository_queries(seeded_engine: Engine) -> Non
     assert total is not None
     assert total.status == "not_comparable"
     assert total.as_dict()["left"]["ticker"] == "TFC"  # type: ignore[index]
+    with Session(seeded_engine) as session:
+        assert session.scalar(select(func.count(ComparabilityAssessment.id))) == 4
+        retained = session.scalars(
+            select(ComparabilityAssessment).where(
+                ComparabilityAssessment.left_observation_id
+                == "observation:tfc:2026-06-30:total_servicing_upb:v1"
+            )
+        ).one()
+        assert retained.status == "not_comparable"
+        assert retained.policy_version == "1.0.0"
+        assert retained.permitted_calculations == []
+        assert retained.reasons == [
+            "portfolio populations differ",
+            "reporting scopes differ",
+        ]
     missing = repo.compare(metric_id="servicing_revenue", period_end=date(2026, 6, 30))
     assert missing is None
     assert repo.compare(metric_id="unknown", period_end=date(2026, 6, 30)) is None
@@ -558,7 +575,10 @@ def test_read_only_intelligence_tools(seeded_engine: Engine) -> None:
     assert tools["get_pipeline_freshness"].invoke({})["published_count"] == 36
 
 
-def test_cli_database_commands(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_database_commands(  # noqa: PLR0915
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     database_url = f"sqlite:///{(tmp_path / 'cli.db').as_posix()}"
     assert main([]) == 0
     assert "public-mortgage-servicing-intelligence" in capsys.readouterr().out
@@ -570,7 +590,7 @@ def test_cli_database_commands(tmp_path: Path, capsys: pytest.CaptureFixture[str
     assert payload["inserted"]["observations"] == 0
     assert main(["discover", "--company", "TFC"]) == 0
     assert len(json.loads(capsys.readouterr().out)["sources"]) == 1
-    assert main(["ingest", "--database-url", database_url, "--company", "PFSI"]) == 0
+    assert main(["ingest", "--database-url", database_url]) == 0
     assert json.loads(capsys.readouterr().out)["database"] == "ready"
     assert main(["validate", "--database-url", database_url]) == 0
     assert json.loads(capsys.readouterr().out)["observations"] == 36
@@ -604,7 +624,56 @@ def test_cli_database_commands(tmp_path: Path, capsys: pytest.CaptureFixture[str
         )
         == 0
     )
-    assert json.loads(capsys.readouterr().out)["status"] == "APPROVED_PENDING_REVALIDATION"
+    reviewed = json.loads(capsys.readouterr().out)
+    assert reviewed["status"] == "QUARANTINED_AFTER_REVALIDATION"
+    assert reviewed["decision"] == "approve"
+    assert reviewed["thread_id"] == review_thread
+    assert reviewed["terminal_status"] == "COMPLETED"
+    assert reviewed["terminal_outcomes"]["QUARANTINED"] == 1
+    assert (
+        main(
+            [
+                "review",
+                "reject",
+                "--database-url",
+                database_url,
+                "--candidate-id",
+                candidate_id,
+                "--thread-id",
+                review_thread,
+            ]
+        )
+        == 0
+    )
+    rejected = json.loads(capsys.readouterr().out)
+    assert rejected["status"] == "REJECTED"
+    assert rejected["decision"] == "reject"
+    assert rejected["thread_id"] == review_thread
+    assert rejected["terminal_status"] == "COMPLETED"
+    engine = create_database_engine(database_url)
+    with Session(engine) as session:
+        decisions = session.scalars(
+            select(HumanReviewDecision).order_by(HumanReviewDecision.decision)
+        ).all()
+        assert [item.decision for item in decisions] == ["APPROVE", "REJECT"]
+        assert {item.thread_id for item in decisions} == {review_thread}
+    engine.dispose()
+    assert (
+        main(
+            [
+                "review",
+                "reject",
+                "--database-url",
+                database_url,
+                "--candidate-id",
+                candidate_id,
+                "--thread-id",
+                "wrong-thread",
+            ]
+        )
+        == 4
+    )
+    assert "original thread" in json.loads(capsys.readouterr().out)["error"]
     assert (
         main(
             [

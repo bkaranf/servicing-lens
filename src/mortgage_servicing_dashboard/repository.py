@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from mortgage_servicing_dashboard.database import (
     Company,
+    ComparabilityAssessment,
     EarningsEvent,
     EligibleSourceAssessment,
     EntityIdentifier,
@@ -859,6 +860,95 @@ def _seed_quarantine(
             )
 
 
+def _seed_comparability_assessments(session: Session, *, known_at: datetime) -> None:
+    """Retain pairwise Stage A assessments against exact observation revisions."""
+    rows = session.execute(
+        select(
+            MetricObservation,
+            ReportingEntity.company_id,
+            MetricDefinitionVersion.metric_id,
+            MetricDefinitionVersion.semantic_version,
+            ReportingScope.portfolio_population,
+        )
+        .join(ReportingEntity, MetricObservation.reporting_entity_id == ReportingEntity.id)
+        .join(
+            MetricDefinitionVersion,
+            MetricObservation.metric_version_id == MetricDefinitionVersion.id,
+        )
+        .join(ReportingScope, MetricObservation.reporting_scope_id == ReportingScope.id)
+        .where(MetricObservation.publication_state == PublicationState.PUBLISHED.value)
+    ).all()
+    grouped: dict[tuple[str, date], dict[str, tuple[Any, str, str]]] = {}
+    for observation, company_id, metric_id, semantic_version, population in rows:
+        grouped.setdefault((metric_id, observation.period_end), {})[company_id] = (
+            observation,
+            semantic_version,
+            population,
+        )
+    for (metric_id, _period_end), by_company in grouped.items():
+        if set(by_company) != {"tfc", "pfsi"}:
+            continue
+        left, left_version, left_population = by_company["tfc"]
+        right, right_version, right_population = by_company["pfsi"]
+
+        def assessment_input(
+            observation: MetricObservation,
+            version: str,
+            population: str,
+            metric: str = metric_id,
+        ) -> ComparisonInput:
+            period_days = (
+                (observation.period_end - observation.period_start).days + 1
+                if observation.period_start is not None
+                else None
+            )
+            return ComparisonInput(
+                metric_id=metric,
+                metric_version=version,
+                reporting_scope=observation.reporting_scope_id,
+                period_days=period_days,
+                currency=observation.currency,
+                unit=observation.unit,
+                methodology=observation.methodology,
+                observation_state=ObservationState(observation.observation_state),
+                portfolio_population=population,
+            )
+
+        result = assess_comparability(
+            assessment_input(left, left_version, left_population),
+            assessment_input(right, right_version, right_population),
+        )
+        assessment_id = (
+            "comparison:"
+            + _stable_hash(
+                {
+                    "left": left.id,
+                    "right": right.id,
+                    "policy_version": "1.0.0",
+                    "requested_operation": "cross_company_comparison",
+                }
+            )[:32]
+        )
+        if session.get(ComparabilityAssessment, assessment_id) is None:
+            session.add(
+                ComparabilityAssessment(
+                    id=assessment_id,
+                    left_observation_id=left.id,
+                    right_observation_id=right.id,
+                    policy_version="1.0.0",
+                    requested_operation="cross_company_comparison",
+                    status=result.status.value,
+                    reasons=list(result.reasons),
+                    permitted_calculations=(
+                        ["difference", "percentage_change"]
+                        if result.status.value in {"comparable", "comparable_with_caveats"}
+                        else []
+                    ),
+                    assessed_at=known_at,
+                )
+            )
+
+
 def _write_stage_a(
     engine: Engine,
     *,
@@ -946,6 +1036,7 @@ def _write_stage_a(
                 "QUARANTINED": quarantine_count,
                 "FAILED": 0,
             }
+            _seed_comparability_assessments(session, known_at=known_at)
         session.commit()
     return inserted
 
@@ -954,7 +1045,7 @@ def prepare_stage_a(
     engine: Engine,
     *,
     config_dir: Path | None = None,
-    thread_id: str,
+    thread_id: str | None = None,
 ) -> dict[str, int]:
     """Persist catalogs, verified evidence, and quarantine before publication."""
     return _write_stage_a(
