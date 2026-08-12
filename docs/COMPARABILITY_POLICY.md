@@ -120,6 +120,12 @@ If scope equivalence cannot be demonstrated, the result is
 \`NOT_COMPARABLE\` or \`INSUFFICIENT_INFORMATION\`; the service does not choose the
 more convenient scope.
 
+Phase 3 cross-source rules may compare a specifically allowed SEC/regulatory
+scope pair only to test an exact economic reconciliation. Matching values validate
+the rule; any value or semantic mismatch quarantines the reconciliation. The rule
+never promotes a regulatory fact over an SEC fact, or vice versa, and it does not
+make the two reporting scopes generally interchangeable for company comparison.
+
 ## Time-series rules
 
 - Instant observations compare at verified period ends. A calendar label alone is

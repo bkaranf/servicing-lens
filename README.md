@@ -7,12 +7,12 @@ complete provenance. Opt-in SEC acquisition, SEC XBRL, FFIEC Call Report,
 FR Y-9C/NIC identity, and earnings-calendar adapters extend the closed Stage A
 recorded-data slice without changing its offline default.
 
-Stage A is intentionally narrow:
+The current governed universe remains intentionally narrow:
 
 - bank: Truist Financial Corporation (TFC);
 - nonbank: PennyMac Financial Services, Inc. (PFSI);
 - fiscal periods: Q3 2025, Q4 2025, Q1 2026, and Q2 2026; and
-- at least five useful servicing metrics where public disclosure supports them.
+- 53 Phase 3 metric IDs, populated only where the retained sources support them.
 
 Missing disclosure remains \`NOT_DISCLOSED\`. The application does not estimate a
 value to complete a comparison.
@@ -27,6 +27,11 @@ a read-only API and dashboard, an interruptible LangGraph review workflow, and a
 socket-blocked acceptance suite. Phase 2 wires the controlled SEC client to
 explicit `--live` commands, persists original HTTP responses and structured raw
 facts, and adds a two-issuer official-source calendar. Live access remains opt-in.
+Phase 3 deepens only TFC and PFSI across the same four quarters. Its complete
+424-cell disclosure assessment publishes 120 reported grid observations, 40
+supporting observations, and 43 exact derived observations; 222 cells remain
+`NOT_DISCLOSED` after their complete eligible source sets were checked. No
+missing value is estimated or filled.
 
 This is not production-ready, comprehensive issuer coverage, an industry ranking,
 an audit product, or investment advice.
@@ -96,6 +101,8 @@ uv run msi doctor --json
 uv run msi discover --company TFC
 uv run msi discover --live --company TFC
 uv run msi ingest
+uv run msi seed-phase3
+uv run msi ingest --phase3
 uv run msi ingest --live
 uv run msi calendar
 uv run msi validate

@@ -56,6 +56,7 @@ bytes.
 | \`metric_aliases\` | One source/issuer/scope/effective-dated raw label mapping to a definition version, with evidence and approval state |
 | \`metric_observations\` | One semantic metric/entity/scope/period/methodology observation revision |
 | \`observation_evidence\` | One observation-to-evidence link with locator, raw label/value, role, extraction and validation metadata |
+| \`derived_observation_inputs\` | One ordered link from a published derived observation to the exact published input revision, role, formula version, and Decimal value used |
 | \`observation_revisions\` | One attributable transition between observation revisions, with reason, run/review origin, valid and knowledge time |
 | \`comparability_assessments\` | One pairwise assessment for two observation revisions under a policy version; verdict, ordered reasons, caveats, exact calculation permission |
 
@@ -76,6 +77,12 @@ and source revision to raw regulatory facts; and actual-versus-inferred window
 semantics to earnings events. Required regulatory scope is non-null and references
 the configured reporter's scope. Adapter replay never converts authoritative
 numeric text through binary floating point.
+
+Migration `0003_phase3_derived_lineage` adds exact ordered derivation lineage.
+Both sides reference immutable observation revisions. The stored input value is a
+`NUMERIC` replay check, not a substitute for the referenced observation; a
+lineage link is rejected unless that input is numeric, published, validated, and
+exactly equal to the value used by the deterministic formula.
 
 ## Observation contract
 
