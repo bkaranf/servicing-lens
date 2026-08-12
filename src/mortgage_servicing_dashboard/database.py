@@ -328,13 +328,9 @@ class MetricObservation(Base):
     __tablename__ = "metric_observations"
     __table_args__ = (
         UniqueConstraint(
-            "metric_version_id",
-            "reporting_entity_id",
-            "reporting_scope_id",
-            "period_end",
-            "methodology",
+            "semantic_key_digest",
             "knowledge_from",
-            name="uq_observation_semantic_knowledge_key",
+            name="uq_observation_semantic_digest_knowledge",
         ),
         CheckConstraint(
             "(observation_state = 'NOT_DISCLOSED' AND value IS NULL) OR "
@@ -348,6 +344,10 @@ class MetricObservation(Base):
     metric_version_id: Mapped[str] = mapped_column(ForeignKey("metric_definition_versions.id"))
     reporting_entity_id: Mapped[str] = mapped_column(ForeignKey("reporting_entities.id"))
     reporting_scope_id: Mapped[str] = mapped_column(ForeignKey("reporting_scopes.id"))
+    fiscal_calendar_regime_id: Mapped[str] = mapped_column(ForeignKey("fiscal_calendar_regimes.id"))
+    accounting_policy_regime_id: Mapped[str] = mapped_column(
+        ForeignKey("accounting_policy_regimes.id")
+    )
     period_start: Mapped[date | None] = mapped_column(Date)
     period_end: Mapped[date] = mapped_column(Date)
     fiscal_year: Mapped[int] = mapped_column(Integer)
@@ -361,6 +361,7 @@ class MetricObservation(Base):
     reported_precision: Mapped[str] = mapped_column(String(128))
     observation_state: Mapped[str] = mapped_column(String(32))
     methodology: Mapped[str] = mapped_column(String(128))
+    dimensions: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
     evidence_locator: Mapped[str] = mapped_column(Text)
     extraction_method: Mapped[str] = mapped_column(String(64))
     parser_metadata: Mapped[dict[str, object]] = mapped_column(JSON)
@@ -412,6 +413,46 @@ class ObservationEvidence(Base):
     disclosed_scale: Mapped[str] = mapped_column(String(32))
     extraction_method: Mapped[str] = mapped_column(String(64))
     validation_status: Mapped[str] = mapped_column(String(32))
+
+
+class DerivedObservationInput(Base):
+    """Exact published input revision used by one derived observation."""
+
+    __tablename__ = "derived_observation_inputs"
+    __table_args__ = (
+        UniqueConstraint(
+            "derived_observation_id",
+            "input_ordinal",
+            name="uq_derived_observation_input_ordinal",
+        ),
+        CheckConstraint(
+            "input_ordinal >= 0",
+            name="ck_derived_observation_input_ordinal_nonnegative",
+        ),
+    )
+    derived_observation_id: Mapped[str] = mapped_column(
+        ForeignKey("metric_observations.id"), primary_key=True
+    )
+    input_observation_id: Mapped[str] = mapped_column(
+        ForeignKey("metric_observations.id"), primary_key=True
+    )
+    input_role: Mapped[str] = mapped_column(String(64))
+    input_ordinal: Mapped[int] = mapped_column(Integer)
+    formula_version: Mapped[str] = mapped_column(String(64))
+    input_value: Mapped[Decimal] = mapped_column(_MONEY)
+
+    @validates("input_value")
+    def reject_float_value(self, _: str, value: object) -> Decimal:
+        """Reject binary floats at the derived-lineage boundary."""
+        if isinstance(value, Decimal):
+            return value
+        if isinstance(value, str | int) and not isinstance(value, bool):
+            return Decimal(value)
+        if isinstance(value, float):
+            msg = "derived observation inputs cannot be binary floats"
+            raise TypeError(msg)
+        msg = "derived observation inputs must be Decimal, integer, or decimal text"
+        raise TypeError(msg)
 
 
 class ObservationRevision(Base):

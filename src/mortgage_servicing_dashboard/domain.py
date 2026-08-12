@@ -260,6 +260,7 @@ class ComparisonInput:
     methodology: str
     observation_state: ObservationState
     portfolio_population: str
+    dimensions: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -297,6 +298,8 @@ def assess_comparability(  # noqa: C901
         hard_mismatches.append("portfolio populations differ")
     if left.reporting_scope != right.reporting_scope:
         hard_mismatches.append("reporting scopes differ")
+    if left.dimensions != right.dimensions:
+        hard_mismatches.append("controlled metric dimensions differ")
     if hard_mismatches:
         return ComparisonResult(ComparabilityStatus.NOT_COMPARABLE, tuple(hard_mismatches))
     caveats: list[str] = []

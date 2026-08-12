@@ -1,0 +1,411 @@
+version: "phase3-tfc-sources-1.0.0"
+knowledge_at: "2026-08-12T13:05:58.153461Z"
+
+quarters:
+  - {label: "Q3 2025", fiscal_year: 2025, fiscal_quarter: 3, period_start: "2025-07-01", period_end: "2025-09-30"}
+  - {label: "Q4 2025", fiscal_year: 2025, fiscal_quarter: 4, period_start: "2025-10-01", period_end: "2025-12-31"}
+  - {label: "Q1 2026", fiscal_year: 2026, fiscal_quarter: 1, period_start: "2026-01-01", period_end: "2026-03-31"}
+  - {label: "Q2 2026", fiscal_year: 2026, fiscal_quarter: 2, period_start: "2026-04-01", period_end: "2026-06-30"}
+
+# Source keys are evidence identities. Each file is an exact SEC response body;
+# no source numeric value is authored in configuration.
+sources:
+  tfc_2025q3_qps:
+    company_id: tfc
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0000092230-25-000150"
+    native_id: ex992-qpsx3q25.htm
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223025000150/ex992-qpsx3q25.htm"
+    published_at: "2025-10-17T10:30:51Z"
+    period_end: "2025-09-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/tfc/sha256/36/360109f826f54d51b2f6828f0fe0c9504f61fcdcec91e0a3e7c9deb02ab72ab7.bin"
+    byte_length: 1700410
+    content_sha256: "360109f826f54d51b2f6828f0fe0c9504f61fcdcec91e0a3e7c9deb02ab72ab7"
+    locator: "Selected Mortgage Banking Information & Additional Information, As of/For the Quarter Ended table, Sept. 30 2025 column"
+    parser_name: phase3_tfc_servicing_table
+    parser_version: "1.0.0"
+    rows: &qps_rows
+      - metric_id: servicing_for_others_upb
+        raw_label: "Loans serviced for others"
+        period_type: instant
+        periods: ["2025-09-30"]
+        value_index: 0
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: reported_residential_servicing_for_others
+      - metric_id: bank_owned_loans_serviced_upb
+        raw_label: "Bank-owned loans serviced"
+        period_type: instant
+        periods: ["2025-09-30"]
+        value_index: 0
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: reported_bank_owned_residential_loans_serviced
+      - metric_id: total_servicing_upb
+        raw_label: "Total servicing portfolio"
+        period_type: instant
+        periods: ["2025-09-30"]
+        value_index: 0
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: issuer_reported_total_residential_servicing
+      - {metric_id: servicing_revenue, raw_label: "Residential mortgage servicing income before MSR valuation", period_type: duration, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: issuer_nonsegment_income}
+      - {metric_id: weighted_average_servicing_fee_bps, raw_label: "Weighted-average servicing fee on mortgage loans serviced for others", period_type: instant, periods: ["2025-09-30"], value_index: 0, reported_scale: percent, canonical_unit: basis_points, normalization: percent_to_basis_points, methodology: issuer_reported_rate_normalized_to_bps, dimensions: {portfolio_population: servicing_for_others}}
+
+  tfc_2025q4_qps:
+    company_id: tfc
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0000092230-26-000023"
+    native_id: ex992-qpsx4q25.htm
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000023/ex992-qpsx4q25.htm"
+    published_at: "2026-01-21T11:31:41Z"
+    period_end: "2025-12-31"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/tfc/sha256/ba/bae6bf3aad0a6cf73c7329a3dbc2e3937419cd2139cce3c774906458c2862bfc.bin"
+    byte_length: 1903230
+    content_sha256: "bae6bf3aad0a6cf73c7329a3dbc2e3937419cd2139cce3c774906458c2862bfc"
+    locator: "Selected Mortgage Banking Information & Additional Information, As of/For the Quarter Ended table, Dec. 31 2025 column"
+    parser_name: phase3_tfc_servicing_table
+    parser_version: "1.0.0"
+    rows:
+      - {metric_id: servicing_for_others_upb, raw_label: "Loans serviced for others", period_type: instant, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: reported_residential_servicing_for_others}
+      - {metric_id: bank_owned_loans_serviced_upb, raw_label: "Bank-owned loans serviced", period_type: instant, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: reported_bank_owned_residential_loans_serviced}
+      - {metric_id: total_servicing_upb, raw_label: "Total servicing portfolio", period_type: instant, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: issuer_reported_total_residential_servicing}
+      - {metric_id: servicing_revenue, raw_label: "Residential mortgage servicing income before MSR valuation", period_type: duration, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: issuer_nonsegment_income}
+      - {metric_id: weighted_average_servicing_fee_bps, raw_label: "Weighted-average servicing fee on mortgage loans serviced for others", period_type: instant, periods: ["2025-12-31"], value_index: 0, reported_scale: percent, canonical_unit: basis_points, normalization: percent_to_basis_points, methodology: issuer_reported_rate_normalized_to_bps, dimensions: {portfolio_population: servicing_for_others}}
+
+  tfc_2026q1_qps:
+    company_id: tfc
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0000092230-26-000039"
+    native_id: ex992-qpsx1q26.htm
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000039/ex992-qpsx1q26.htm"
+    published_at: "2026-04-17T10:30:46Z"
+    period_end: "2026-03-31"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/tfc/sha256/74/74005e113cfc1ea5622e65fc22bfd3b89cea2901fc3c91ef86c99008f386e03a.bin"
+    byte_length: 1447229
+    content_sha256: "74005e113cfc1ea5622e65fc22bfd3b89cea2901fc3c91ef86c99008f386e03a"
+    locator: "Selected Mortgage Banking Information & Additional Information, As of/For the Quarter Ended table, March 31 2026 column"
+    parser_name: phase3_tfc_servicing_table
+    parser_version: "1.0.0"
+    rows:
+      - {metric_id: servicing_for_others_upb, raw_label: "Loans serviced for others", period_type: instant, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: reported_residential_servicing_for_others}
+      - {metric_id: bank_owned_loans_serviced_upb, raw_label: "Bank-owned loans serviced", period_type: instant, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: reported_bank_owned_residential_loans_serviced}
+      - {metric_id: total_servicing_upb, raw_label: "Total servicing portfolio", period_type: instant, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: issuer_reported_total_residential_servicing}
+      - {metric_id: servicing_revenue, raw_label: "Residential mortgage servicing income before MSR valuation", period_type: duration, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: issuer_nonsegment_income}
+      - {metric_id: weighted_average_servicing_fee_bps, raw_label: "Weighted-average servicing fee on mortgage loans serviced for others", period_type: instant, periods: ["2026-03-31"], value_index: 0, reported_scale: percent, canonical_unit: basis_points, normalization: percent_to_basis_points, methodology: issuer_reported_rate_normalized_to_bps, dimensions: {portfolio_population: servicing_for_others}}
+
+  tfc_2026q2_qps:
+    company_id: tfc
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0000092230-26-000096"
+    native_id: ex992-qpsx2q26.htm
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000096/ex992-qpsx2q26.htm"
+    published_at: "2026-07-17T10:30:36Z"
+    period_end: "2026-06-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/tfc/sha256/7a/7a01b5c9ffc091aba54090357f372d971ea75bc42efde53e675260639ecf109e.bin"
+    byte_length: 1697274
+    content_sha256: "7a01b5c9ffc091aba54090357f372d971ea75bc42efde53e675260639ecf109e"
+    locator: "Selected Mortgage Banking Information & Additional Information, As of/For the Quarter Ended table, June 30 2026 column"
+    parser_name: phase3_tfc_servicing_table
+    parser_version: "1.0.0"
+    rows:
+      - {metric_id: servicing_for_others_upb, raw_label: "Loans serviced for others", period_type: instant, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: reported_residential_servicing_for_others}
+      - {metric_id: bank_owned_loans_serviced_upb, raw_label: "Bank-owned loans serviced", period_type: instant, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: reported_bank_owned_residential_loans_serviced}
+      - {metric_id: total_servicing_upb, raw_label: "Total servicing portfolio", period_type: instant, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: issuer_reported_total_residential_servicing}
+      - {metric_id: servicing_revenue, raw_label: "Residential mortgage servicing income before MSR valuation", period_type: duration, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: issuer_nonsegment_income}
+      - {metric_id: weighted_average_servicing_fee_bps, raw_label: "Weighted-average servicing fee on mortgage loans serviced for others", period_type: instant, periods: ["2026-06-30"], value_index: 0, reported_scale: percent, canonical_unit: basis_points, normalization: percent_to_basis_points, methodology: issuer_reported_rate_normalized_to_bps, dimensions: {portfolio_population: servicing_for_others}}
+
+  tfc_2025q3_10q: &q3_periodic
+    company_id: tfc
+    source_class: SEC_PERIODIC_FILING
+    accession: "0000092230-25-000157"
+    native_id: tfc-20250930.htm
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223025000157/tfc-20250930.htm"
+    published_at: "2025-10-30T20:32:57Z"
+    period_end: "2025-09-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/tfc/sha256/64/64abe6e278d99401268edbd714bd7f1ee7c3d9272a972a281ff1fdb98fecac96.bin"
+    byte_length: 6778627
+    content_sha256: "64abe6e278d99401268edbd714bd7f1ee7c3d9272a972a281ff1fdb98fecac96"
+    locator: "Note 7, Loan Servicing, Residential Mortgage Activities and residential MSR roll-forward, 2025 column"
+    parser_name: phase3_tfc_msr_rollforward
+    parser_version: "1.0.0"
+    rows:
+      - {metric_id: msr_beginning_balance, raw_label: "Residential MSRs, carrying value, January 1", period_type: instant, source_period_end: "2025-01-01", selected_quarter_cell: false, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: residential_msr_fair_value_rollforward}
+      - {metric_id: msr_purchases, raw_label: "Acquired", period_type: duration_ytd, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: issuer_acquired_residential_msr}
+      - {metric_id: msr_additions, raw_label: "Additions", period_type: duration_ytd, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: issuer_originated_residential_msr_additions}
+      - {metric_id: msr_sales, raw_label: "Sales", period_type: duration_ytd, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: reported_negative_to_positive_reduction_magnitude, dash_policy: PUBLISH_ZERO_ONLY_WHEN_ROW_PRESENTS_EM_DASH, methodology: residential_msr_sales_reduction}
+      - {metric_id: msr_fair_value_inputs_or_assumptions_change, raw_label: "Change in fair value due to changes in valuation inputs or assumptions", period_type: duration_ytd, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_reported_sign, methodology: combined_valuation_inputs_or_assumptions}
+      - {metric_id: msr_realization_passage_time_and_other, raw_label: "Realization of expected net servicing cash flows, passage of time, and other", period_type: duration_ytd, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: reported_negative_to_positive_reduction_magnitude, methodology: combined_realization_passage_time_and_other}
+      - {metric_id: msr_fair_value, raw_label: "Residential MSRs, carrying value, September 30", period_type: instant, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_balance, methodology: residential_msr_fair_value}
+      - {metric_id: msr_ending_balance, raw_label: "Residential MSRs, carrying value, September 30", period_type: instant, periods: ["2025-09-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_balance, methodology: residential_msr_fair_value_rollforward_ending}
+      - metric_id: servicing_fee_income
+        raw_label: "Servicing fees recognized from mortgage loans serviced for others"
+        raw_label_prefix: "Servicing fees recognized from mortgage loans serviced for others"
+        text_value_pattern: 'Servicing fees recognized from mortgage loans serviced for others were \$(?P<value>[\d,]+) million and \$[\d,]+ million for the three months ended September 30, 2025 and September&#160;30, 2024, respectively\.'
+        period_type: duration
+        periods: ["2025-09-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: issuer_reported_quarter
+
+  tfc_2025q4_10k:
+    <<: *q3_periodic
+    accession: "0000092230-26-000030"
+    native_id: tfc-20251231.htm
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000030/tfc-20251231.htm"
+    published_at: "2026-02-24T21:42:25Z"
+    period_end: "2025-12-31"
+    fixture_path: "recorded_evidence/phase3/tfc/sha256/76/7625955b56a2a89ac43a28e37c4d915b19159fb070b7e4350057f5b4b157350f.bin"
+    byte_length: 8116203
+    content_sha256: "7625955b56a2a89ac43a28e37c4d915b19159fb070b7e4350057f5b4b157350f"
+    locator: "Note 8, Loan Servicing, Residential Mortgage Activities and residential MSR roll-forward, 2025 column"
+    rows:
+      - {metric_id: msr_beginning_balance, raw_label: "Residential MSRs, carrying value, January 1", period_type: instant, source_period_end: "2025-01-01", selected_quarter_cell: false, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: residential_msr_fair_value_rollforward}
+      - {metric_id: msr_purchases, raw_label: "Acquired", period_type: duration_annual, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: issuer_acquired_residential_msr}
+      - {metric_id: msr_additions, raw_label: "Additions", period_type: duration_annual, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: issuer_originated_residential_msr_additions}
+      - {metric_id: msr_sales, raw_label: "Sales", period_type: duration_annual, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: reported_negative_to_positive_reduction_magnitude, dash_policy: PUBLISH_ZERO_ONLY_WHEN_ROW_PRESENTS_EM_DASH, methodology: residential_msr_sales_reduction}
+      - {metric_id: msr_fair_value_inputs_or_assumptions_change, raw_label: "Change in fair value due to changes in valuation inputs or assumptions(1)", period_type: duration_annual, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_reported_sign, methodology: combined_valuation_inputs_or_assumptions}
+      - {metric_id: msr_realization_passage_time_and_other, raw_label: "Realization of expected net servicing cash flows, passage of time, and other", period_type: duration_annual, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: reported_negative_to_positive_reduction_magnitude, methodology: combined_realization_passage_time_and_other}
+      - {metric_id: msr_fair_value, raw_label: "Residential MSRs, carrying value, December 31", period_type: instant, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_balance, methodology: residential_msr_fair_value}
+      - {metric_id: msr_ending_balance, raw_label: "Residential MSRs, carrying value, December 31", period_type: instant, periods: ["2025-12-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_balance, methodology: residential_msr_fair_value_rollforward_ending}
+
+  tfc_2026q1_10q:
+    <<: *q3_periodic
+    accession: "0000092230-26-000062"
+    native_id: tfc-20260331.htm
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000062/tfc-20260331.htm"
+    published_at: "2026-05-01T20:41:09Z"
+    period_end: "2026-03-31"
+    fixture_path: "recorded_evidence/phase3/tfc/sha256/54/5450b5989374b8ed3d330071492fb10f351d74e9af51b5ff22fe07bcc8be077a.bin"
+    byte_length: 5399572
+    content_sha256: "5450b5989374b8ed3d330071492fb10f351d74e9af51b5ff22fe07bcc8be077a"
+    locator: "Note 6, Loan Servicing, Residential Mortgage Activities and residential MSR roll-forward, 2026 column"
+    rows:
+      - {metric_id: msr_beginning_balance, raw_label: "Residential MSRs, carrying value, January 1", period_type: instant, source_period_end: "2026-01-01", selected_quarter_cell: false, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: residential_msr_fair_value_rollforward}
+      - {metric_id: msr_purchases, raw_label: "Acquired", period_type: duration, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: issuer_acquired_residential_msr}
+      - {metric_id: msr_additions, raw_label: "Additions", period_type: duration, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: issuer_originated_residential_msr_additions}
+      - {metric_id: msr_fair_value_inputs_or_assumptions_change, raw_label: "Change in fair value due to changes in valuation inputs or assumptions", period_type: duration, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_reported_sign, methodology: combined_valuation_inputs_or_assumptions}
+      - {metric_id: msr_realization_passage_time_and_other, raw_label: "Realization of expected net servicing cash flows, passage of time, and other", period_type: duration, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: reported_negative_to_positive_reduction_magnitude, methodology: combined_realization_passage_time_and_other}
+      - {metric_id: msr_fair_value, raw_label: "Residential MSRs, carrying value, March 31", period_type: instant, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_balance, methodology: residential_msr_fair_value}
+      - {metric_id: msr_ending_balance, raw_label: "Residential MSRs, carrying value, March 31", period_type: instant, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_balance, methodology: residential_msr_fair_value_rollforward_ending}
+      - {metric_id: servicing_fee_income, raw_label: "Servicing fees recognized from mortgage loans serviced for others", period_type: duration, periods: ["2026-03-31"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, methodology: issuer_reported_quarter}
+
+  tfc_2026q2_10q:
+    <<: *q3_periodic
+    accession: "0000092230-26-000099"
+    native_id: tfc-20260630.htm
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm"
+    published_at: "2026-07-31T20:44:07Z"
+    period_end: "2026-06-30"
+    fixture_path: "recorded_evidence/phase3/tfc/sha256/f3/f3427a0aa6bd379fe484d81179d40f62d6f7d9fd7d17fdf26ae2f626ba60d5bb.bin"
+    byte_length: 6452567
+    content_sha256: "f3427a0aa6bd379fe484d81179d40f62d6f7d9fd7d17fdf26ae2f626ba60d5bb"
+    locator: "Note 6, Loan Servicing, Residential Mortgage Activities and residential MSR roll-forward, 2026 column"
+    rows:
+      - {metric_id: msr_beginning_balance, raw_label: "Residential MSRs, carrying value, January 1", period_type: instant, source_period_end: "2026-01-01", selected_quarter_cell: false, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: residential_msr_fair_value_rollforward}
+      - {metric_id: msr_purchases, raw_label: "Acquired", period_type: duration_ytd, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: issuer_acquired_residential_msr}
+      - {metric_id: msr_additions, raw_label: "Additions", period_type: duration_ytd, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_increase, methodology: issuer_originated_residential_msr_additions}
+      - {metric_id: msr_fair_value_inputs_or_assumptions_change, raw_label: "Change in fair value due to changes in valuation inputs or assumptions", period_type: duration_ytd, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_reported_sign, methodology: combined_valuation_inputs_or_assumptions}
+      - {metric_id: msr_realization_passage_time_and_other, raw_label: "Realization of expected net servicing cash flows, passage of time, and other", period_type: duration_ytd, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: reported_negative_to_positive_reduction_magnitude, methodology: combined_realization_passage_time_and_other}
+      - {metric_id: msr_fair_value, raw_label: "Residential MSRs, carrying value, June 30", period_type: instant, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_balance, methodology: residential_msr_fair_value}
+      - {metric_id: msr_ending_balance, raw_label: "Residential MSRs, carrying value, June 30", period_type: instant, periods: ["2026-06-30"], value_index: 0, reported_scale: millions, canonical_unit: USD, normalization: usd_from_millions, sign_normalization: preserve_positive_balance, methodology: residential_msr_fair_value_rollforward_ending}
+
+parser_requirements:
+  - Select an exact row inside a qualified table/section, not by document-wide label alone.
+  - Select an explicit zero-based value_index after numeric-cell normalization.
+  - Preserve raw parenthetical signs and em dashes in evidence before controlled sign normalization.
+  - Resolve period_type from the recipe; never publish YTD roll-forward rows as standalone quarters.
+  - Reconcile every roll-forward exactly as beginning + acquired + additions - sales + valuation change - realization = ending; quarantine any residual.
+  - For 2026 Q1 and Q2, do not synthesize an absent Sales row; no msr_sales observation exists for those cells.
+
+eligible_source_assessment:
+  assessment_version: "2.0.0"
+  eligible_source_sets:
+    "2025-09-30": [tfc_2025q3_qps, tfc_2025q3_10q]
+    "2025-12-31": [tfc_2025q4_qps, tfc_2025q4_10k]
+    "2026-03-31": [tfc_2026q1_qps, tfc_2026q1_10q]
+    "2026-06-30": [tfc_2026q2_qps, tfc_2026q2_10q]
+  source_set_scope: >-
+    Filed earnings exhibit plus same-period periodic filing. Issuer IR is not a
+    separate eligible source because the filed equivalents are retained. Phase 2
+    regulatory facts belong to different BHC/depository scopes and are excluded
+    from SEC registrant residential-servicing missingness.
+  cells:
+    # Delinquency: the checked documents contain owned-loan credit quality and
+    # foreclosure balances, but no servicing-portfolio rate under MBA, OTS, UPB,
+    # or count methodology. Owned-loan rows are explicit scope exclusions.
+    delinquency_30_plus_count_rate: &not_disclosed_cells
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS document-wide scoped label check", "10-Q Note 7 plus document-wide scoped label check"], reason_code: SERVICING_PORTFOLIO_METRIC_NOT_DISCLOSED}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS document-wide scoped label check", "10-K Note 8 plus document-wide scoped label check"], reason_code: SERVICING_PORTFOLIO_METRIC_NOT_DISCLOSED}
+      "2026-03-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q1_qps, tfc_2026q1_10q], checked_locators: ["QPS document-wide scoped label check", "10-Q Note 6 plus document-wide scoped label check"], reason_code: SERVICING_PORTFOLIO_METRIC_NOT_DISCLOSED}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS document-wide scoped label check", "10-Q Note 6 plus document-wide scoped label check"], reason_code: SERVICING_PORTFOLIO_METRIC_NOT_DISCLOSED}
+    delinquency_60_plus_count_rate: *not_disclosed_cells
+    delinquency_90_plus_count_rate: *not_disclosed_cells
+
+    servicing_operating_expense: &expense_not_disclosed_cells
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS selected mortgage banking table", "10-Q Note 7 and expense disclosures"], reason_code: STANDALONE_SERVICING_EXPENSE_NOT_DISCLOSED}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS selected mortgage banking table", "10-K Note 8 and expense disclosures"], reason_code: STANDALONE_SERVICING_EXPENSE_NOT_DISCLOSED}
+      "2026-03-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q1_qps, tfc_2026q1_10q], checked_locators: ["QPS selected mortgage banking table", "10-Q Note 6 and expense disclosures"], reason_code: STANDALONE_SERVICING_EXPENSE_NOT_DISCLOSED}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS selected mortgage banking table", "10-Q Note 6 and expense disclosures"], reason_code: STANDALONE_SERVICING_EXPENSE_NOT_DISCLOSED}
+    servicing_loan_count: *expense_not_disclosed_cells
+    cost_to_service_per_loan: *expense_not_disclosed_cells
+
+    msr_fair_value: &msr_found_cells
+      "2025-09-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q3_10q, locator: "Note 7 residential MSR roll-forward, ending row, 2025 column"}
+      "2025-12-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q4_10k, locator: "Note 8 residential MSR roll-forward, ending row, 2025 column"}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_10q, locator: "Note 6 residential MSR roll-forward, ending row, 2026 column"}
+      "2026-06-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q2_10q, locator: "Note 6 residential MSR roll-forward, ending row, 2026 column"}
+    msr_fair_value_multiple_of_related_upb: &msr_derived_cells
+      "2025-09-30": {assessment_status: DISCLOSURE_FOUND, result_state: DERIVED, source_keys: [tfc_2025q3_10q, tfc_2025q3_qps], formula_version: "1.0.0"}
+      "2025-12-31": {assessment_status: DISCLOSURE_FOUND, result_state: DERIVED, source_keys: [tfc_2025q4_10k, tfc_2025q4_qps], formula_version: "1.0.0"}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: DERIVED, source_keys: [tfc_2026q1_10q, tfc_2026q1_qps], formula_version: "1.0.0"}
+      "2026-06-30": {assessment_status: DISCLOSURE_FOUND, result_state: DERIVED, source_keys: [tfc_2026q2_10q, tfc_2026q2_qps], formula_version: "1.0.0"}
+    msr_fair_value_bps_of_related_upb: *msr_derived_cells
+
+    msr_beginning_balance:
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS mortgage-banking and MSR tables complete scoped check", "Note 7 residential MSR roll-forward January 1 opening anchor; not a September 30 instant"], reason_code: OPENING_BALANCE_IS_NOT_PERIOD_END_INSTANT}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS mortgage-banking and MSR tables complete scoped check", "Note 8 residential MSR roll-forward January 1 opening anchor; not a December 31 instant"], reason_code: OPENING_BALANCE_IS_NOT_PERIOD_END_INSTANT}
+      "2026-03-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q1_qps, tfc_2026q1_10q], checked_locators: ["QPS mortgage-banking and MSR tables complete scoped check", "Note 6 residential MSR roll-forward January 1 opening anchor; not a March 31 instant"], reason_code: OPENING_BALANCE_IS_NOT_PERIOD_END_INSTANT}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS mortgage-banking and MSR tables complete scoped check", "Note 6 residential MSR roll-forward January 1 opening anchor; not a June 30 instant"], reason_code: OPENING_BALANCE_IS_NOT_PERIOD_END_INSTANT}
+    msr_additions:
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS complete scoped MSR additions check", "Note 7 Additions row is year-to-date from January 1, not standalone Q3"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS complete scoped MSR additions check", "Note 8 Additions row is annual, not standalone Q4"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_10q, locator: "Note 6 residential MSR roll-forward, Additions row, 2026 column"}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS complete scoped MSR additions check", "Note 6 Additions row is year-to-date from January 1, not standalone Q2"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+    msr_purchases:
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS complete scoped MSR acquisition check", "Note 7 Acquired row is year-to-date from January 1, not standalone Q3"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS complete scoped MSR acquisition check", "Note 8 Acquired row is annual, not standalone Q4"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_10q, locator: "Note 6 residential MSR roll-forward, Acquired row, 2026 column"}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS complete scoped MSR acquisition check", "Note 6 Acquired row is year-to-date from January 1, not standalone Q2"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+    msr_sales:
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS complete scoped MSR sales check", "Note 7 Sales row is year-to-date from January 1, not standalone Q3"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS complete scoped MSR sales check", "Note 8 Sales row is annual, not standalone Q4"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2026-03-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q1_qps, tfc_2026q1_10q], checked_locators: ["QPS selected mortgage banking table", "10-Q Note 6 complete residential MSR roll-forward"], reason_code: MSR_SALES_ROW_NOT_DISCLOSED}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS selected mortgage banking table", "10-Q Note 6 complete residential MSR roll-forward"], reason_code: MSR_SALES_ROW_NOT_DISCLOSED}
+    msr_hedging_result:
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS document-wide scoped label check", "10-Q derivatives table, MSRs and mortgage banking combined"], reason_code: MSR_HEDGE_RESULT_NOT_SEPARATELY_REPORTED}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS document-wide scoped label check", "10-K derivatives table, MSRs and mortgage banking combined"], reason_code: MSR_HEDGE_RESULT_NOT_SEPARATELY_REPORTED}
+      "2026-03-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q1_qps, tfc_2026q1_10q], checked_locators: ["QPS document-wide scoped label check", "10-Q derivatives table, MSRs and mortgage banking combined"], reason_code: MSR_HEDGE_RESULT_NOT_SEPARATELY_REPORTED}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS document-wide scoped label check", "10-Q derivatives table, MSRs and mortgage banking combined"], reason_code: MSR_HEDGE_RESULT_NOT_SEPARATELY_REPORTED}
+
+    # The issuer reports a combined valuation-inputs-or-assumptions row and a
+    # combined realization/passage-time/other row. Those exact combined metrics
+    # are disclosed; narrower legacy catalog meanings remain absent.
+    msr_fair_value_market_change: &generic_not_disclosed_cells
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS complete scoped check", "10-Q Note 7 complete residential MSR roll-forward"], reason_code: EXACT_METRIC_NOT_DISCLOSED_IN_COMPLETE_SOURCE_SET}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS complete scoped check", "10-K Note 8 complete residential MSR roll-forward"], reason_code: EXACT_METRIC_NOT_DISCLOSED_IN_COMPLETE_SOURCE_SET}
+      "2026-03-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q1_qps, tfc_2026q1_10q], checked_locators: ["QPS complete scoped check", "10-Q Note 6 complete residential MSR roll-forward"], reason_code: EXACT_METRIC_NOT_DISCLOSED_IN_COMPLETE_SOURCE_SET}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS complete scoped check", "10-Q Note 6 complete residential MSR roll-forward"], reason_code: EXACT_METRIC_NOT_DISCLOSED_IN_COMPLETE_SOURCE_SET}
+    msr_fair_value_assumption_change: *generic_not_disclosed_cells
+    msr_realization_or_amortization: *generic_not_disclosed_cells
+    fha_servicing_upb: *generic_not_disclosed_cells
+    va_servicing_upb: *generic_not_disclosed_cells
+    usda_servicing_upb: *generic_not_disclosed_cells
+    closed_end_second_lien_servicing_upb: *generic_not_disclosed_cells
+    other_servicing_upb: *generic_not_disclosed_cells
+    owned_msr_msl_upb: *generic_not_disclosed_cells
+    msr_additions_related_upb: *generic_not_disclosed_cells
+    delinquency_30_to_89_upb: *generic_not_disclosed_cells
+    delinquency_90_plus_upb: *generic_not_disclosed_cells
+    foreclosure_upb: *generic_not_disclosed_cells
+    msr_fair_value_inputs_or_assumptions_change:
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS complete scoped valuation-change check", "Note 7 valuation-input-change row is year-to-date, not standalone Q3"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS complete scoped valuation-change check", "Note 8 valuation-input-change row is annual, not standalone Q4"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_10q, locator: "Note 6 residential MSR roll-forward, Change in fair value due to changes in valuation inputs or assumptions row, 2026 column"}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS complete scoped valuation-change check", "Note 6 valuation-input-change row is year-to-date, not standalone Q2"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+    msr_realization_passage_time_and_other:
+      "2025-09-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q3_qps, tfc_2025q3_10q], checked_locators: ["QPS complete scoped MSR realization check", "Note 7 realization/passage/other row is year-to-date, not standalone Q3"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS complete scoped MSR realization check", "Note 8 realization/passage/other row is annual, not standalone Q4"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_10q, locator: "Note 6 residential MSR roll-forward, Realization of expected net servicing cash flows passage of time and other row, 2026 column"}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS complete scoped MSR realization check", "Note 6 realization/passage/other row is year-to-date, not standalone Q2"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+    msr_ending_balance: *msr_found_cells
+    capitalized_servicing_rate_on_additions: *generic_not_disclosed_cells
+
+    servicing_for_others_upb:
+      "2025-09-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q3_qps, locator: "Loans serviced for others row, Sept. 30 2025 column"}
+      "2025-12-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q4_qps, locator: "Loans serviced for others row, Dec. 31 2025 column"}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_qps, locator: "Loans serviced for others row, March 31 2026 column"}
+      "2026-06-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q2_qps, locator: "Loans serviced for others row, June 30 2026 column"}
+    bank_owned_loans_serviced_upb:
+      "2025-09-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q3_qps, locator: "Bank-owned loans serviced row, Sept. 30 2025 column"}
+      "2025-12-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q4_qps, locator: "Bank-owned loans serviced row, Dec. 31 2025 column"}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_qps, locator: "Bank-owned loans serviced row, March 31 2026 column"}
+      "2026-06-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q2_qps, locator: "Bank-owned loans serviced row, June 30 2026 column"}
+    total_servicing_upb:
+      "2025-09-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q3_qps, corroborating_source_key: tfc_2025q3_10q, reconciliation: EXACT_MATCH}
+      "2025-12-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q4_qps, corroborating_source_key: tfc_2025q4_10k, reconciliation: EXACT_MATCH}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_qps, corroborating_source_key: tfc_2026q1_10q, reconciliation: EXACT_MATCH}
+      "2026-06-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q2_qps, corroborating_source_key: tfc_2026q2_10q, reconciliation: EXACT_MATCH}
+
+    servicing_revenue:
+      "2025-09-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q3_qps, locator: "Residential mortgage servicing income before MSR valuation row, Sept. 30 2025 column"}
+      "2025-12-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q4_qps, locator: "Residential mortgage servicing income before MSR valuation row, Dec. 31 2025 column"}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_qps, locator: "Residential mortgage servicing income before MSR valuation row, March 31 2026 column"}
+      "2026-06-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q2_qps, locator: "Residential mortgage servicing income before MSR valuation row, June 30 2026 column"}
+    weighted_average_servicing_fee_bps:
+      "2025-09-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q3_qps, locator: "Weighted-average servicing fee row, Sept. 30 2025 column"}
+      "2025-12-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q4_qps, locator: "Weighted-average servicing fee row, Dec. 31 2025 column"}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_qps, locator: "Weighted-average servicing fee row, March 31 2026 column"}
+      "2026-06-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q2_qps, locator: "Weighted-average servicing fee row, June 30 2026 column"}
+    servicing_fee_income:
+      "2025-09-30": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2025q3_10q, locator: "Note 7 Residential Mortgage Activities footnote 1, three months ended Sept. 30 2025"}
+      "2025-12-31": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2025q4_qps, tfc_2025q4_10k], checked_locators: ["QPS complete scoped check", "10-K Note 8 annual servicing-fees row"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+      "2026-03-31": {assessment_status: DISCLOSURE_FOUND, result_state: REPORTED, source_key: tfc_2026q1_10q, locator: "Note 6 Servicing fees recognized row, three months ended March 31 2026"}
+      "2026-06-30": {assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [tfc_2026q2_qps, tfc_2026q2_10q], checked_locators: ["QPS complete scoped check", "10-Q Note 6 six-month servicing-fees row and complete Residential Mortgage Activities note"], reason_code: STANDALONE_QUARTER_NOT_DISCLOSED_NO_YTD_SUBTRACTION}
+
+    owned_msr_upb: *generic_not_disclosed_cells
+    subservicing_upb: *generic_not_disclosed_cells
+    interim_servicing_upb: *generic_not_disclosed_cells
+    ancillary_servicing_income: *generic_not_disclosed_cells
+    servicing_pretax_income: *generic_not_disclosed_cells
+    servicing_adjusted_pretax_income: *generic_not_disclosed_cells
+
+    # Portfolio mix is qualitative only ("primarily agency conforming fixed
+    # rate"). No exact government/conventional/GNMA/FNMA/FHLMC split is present.
+    government_servicing_upb: *not_disclosed_cells
+    conventional_servicing_upb: *not_disclosed_cells
+    gnma_servicing_upb: *not_disclosed_cells
+    fnma_servicing_upb: *not_disclosed_cells
+    fhlmc_servicing_upb: *not_disclosed_cells
+    delinquency_30_plus_upb_rate: *generic_not_disclosed_cells
+    delinquency_60_plus_upb_rate: *generic_not_disclosed_cells
+    delinquency_90_plus_upb_rate: *generic_not_disclosed_cells
+    foreclosure_upb_rate: *generic_not_disclosed_cells
+    reo_upb: *generic_not_disclosed_cells
+
+derived_recipes:
+  - metric_id: msr_fair_value_multiple_of_related_upb
+    formula_version: "1.0.0"
+    formula: msr_fair_value / servicing_for_others_upb
+    output_unit: multiple
+    quantize: "0.000001"
+    rounding: ROUND_HALF_EVEN
+    require_same_instant_period: true
+    require_published_input_observation_ids: true
+  - metric_id: msr_fair_value_bps_of_related_upb
+    formula_version: "1.0.0"
+    formula: (msr_fair_value / servicing_for_others_upb) * 10000
+    output_unit: basis_points
+    quantize: "0.01"
+    rounding: ROUND_HALF_EVEN
+    require_same_instant_period: true
+    require_published_input_observation_ids: true

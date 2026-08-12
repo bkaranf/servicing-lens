@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import replace
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, cast
 
@@ -40,6 +41,8 @@ from mortgage_servicing_dashboard.sources import (
     RecordedSourceDefinition,
     StageARecordedDocumentParser,
     TransientPublicSourceError,
+    _qualified_row_matches,
+    _TableRows,
 )
 
 
@@ -133,6 +136,92 @@ def test_recorded_evidence_integrity_fails_closed(tmp_path: Path) -> None:
     corrupted = replace(source, fixture_path=corrupted_path)
     with pytest.raises(PublicSourceError, match="integrity mismatch"):
         RecordedEvidenceAcquirer().acquire(corrupted)
+
+
+def test_recorded_parser_supports_explicit_columns_and_reduction_signs() -> None:
+    parser = StageARecordedDocumentParser()
+    row = ("Realization of expected cash flows", "(12.5)", "9.0", "(7.5)")
+    recipe: dict[str, Any] = {"value_indices": [2, 0]}
+    first = parser._configured_row_value(
+        row=row,
+        recipe=recipe,
+        period_index=0,
+        raw_label=row[0],
+    )
+    second = parser._configured_row_value(
+        row=row,
+        recipe=recipe,
+        period_index=1,
+        raw_label=row[0],
+    )
+    assert (first, second) == ("(7.5)", "(12.5)")
+    assert parser._apply_sign_normalization(
+        first,
+        rule="usd_from_millions:positive_reduction_magnitude",
+    ) == Decimal("7500000.0")
+    assert parser._apply_sign_normalization(
+        second,
+        rule="usd_from_millions:positive_reduction_magnitude",
+    ) == Decimal("12500000.0")
+    with pytest.raises(PublicSourceError, match="sign normalization"):
+        parser._apply_sign_normalization(
+            first,
+            rule="usd_from_millions:guess_sign",
+        )
+
+
+def test_recorded_parser_qualifies_duplicate_labels_by_anchor_and_headers() -> None:
+    collector = _TableRows()
+    collector.feed(
+        "<table><tr><th>Wrong table</th></tr><tr><th>2024</th></tr>"
+        "<tr><td>Ending balance</td><td>1</td></tr></table>"
+        "<table><tr><th>MSR roll-forward</th></tr><tr><th>2026</th></tr>"
+        "<tr><td>Ending balance</td><td>2</td></tr></table>"
+    )
+    matches = _qualified_row_matches(
+        collector,
+        raw_label="Ending balance",
+        recipe={"table_anchor": "MSR roll-forward", "column_headers": ["2026"]},
+    )
+    assert matches == [("Ending balance", "2")]
+
+
+def test_recorded_parser_preserves_reported_dash_column_alignment() -> None:
+    parser = StageARecordedDocumentParser()
+    row = ("Sales", "1", "—", "3")
+    assert (
+        parser._configured_row_value(
+            row=row,
+            recipe={"value_index": 1},
+            period_index=0,
+            raw_label="Sales",
+        )
+        == "—"
+    )
+
+
+def test_recorded_parser_extracts_bounded_narrative_value() -> None:
+    parser = StageARecordedDocumentParser()
+    recipe: dict[str, Any] = {
+        "raw_label_prefix": "Servicing fees recognized",
+        "text_value_pattern": (
+            r"Servicing fees recognized were \$(?P<value>[\d,]+) million for the three months"
+        ),
+    }
+    assert (
+        parser._configured_text_value(
+            text="Servicing fees recognized were $155 million for the three months ended.",
+            recipe=recipe,
+            raw_label="Servicing fees recognized",
+        )
+        == "155"
+    )
+    with pytest.raises(PublicSourceError, match="not uniquely selected"):
+        parser._configured_text_value(
+            text="Servicing fees recognized were unavailable.",
+            recipe=recipe,
+            raw_label="Servicing fees recognized",
+        )
 
 
 def _migration_config(engine: Any) -> Config:

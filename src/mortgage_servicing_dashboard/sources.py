@@ -12,6 +12,7 @@ from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, replace
 from dataclasses import field as dataclass_field
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Self, cast
@@ -36,6 +37,7 @@ _MAX_SEC_RESPONSE_BYTES = 25_000_000
 _MAX_DISCOVERED_FILINGS = 256
 _MAX_CIK_DIGITS = 10
 _HTTP_NOT_MODIFIED = 304
+_REPORTED_DASHES = frozenset({"-", "\u2014", "\u2013", "\u2212"})
 
 
 def _utc_now() -> datetime:
@@ -328,8 +330,10 @@ class _TableRows(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.rows: list[tuple[str, ...]] = []
+        self.qualified_rows: list[tuple[tuple[tuple[str, ...], ...], tuple[str, ...]]] = []
         self._row: list[str] | None = None
         self._cell: list[str] | None = None
+        self._prior_rows: list[tuple[str, ...]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Start row and cell buffers."""
@@ -349,6 +353,8 @@ class _TableRows(HTMLParser):
             nonempty = tuple(cell for cell in self._row if cell)
             if nonempty:
                 self.rows.append(nonempty)
+                self.qualified_rows.append((tuple(self._prior_rows), nonempty))
+                self._prior_rows.append(nonempty)
             self._row = None
 
     def handle_data(self, data: str) -> None:
@@ -363,14 +369,46 @@ def _reported_numbers(cells: tuple[str, ...]) -> tuple[str, ...]:
         candidate = cell.strip().replace("\N{MINUS SIGN}", "-")
         if not _NUMERIC_CELL.fullmatch(candidate):
             continue
-        negative = candidate.startswith("(") and candidate.endswith(")")
-        candidate = candidate.strip("()")
-        values.append(f"-{candidate}" if negative else candidate)
+        values.append(candidate)
+    return tuple(values)
+
+
+def _reported_numeric_or_dash_cells(cells: tuple[str, ...]) -> tuple[str, ...]:
+    values: list[str] = []
+    for cell in cells[1:]:
+        candidate = cell.strip().replace("\N{MINUS SIGN}", "-")
+        if candidate in _REPORTED_DASHES:
+            values.append(cell.strip())
+            continue
+        if not _NUMERIC_CELL.fullmatch(candidate):
+            continue
+        values.append(candidate)
     return tuple(values)
 
 
 def _quarter_map(quarters: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {str(quarter["period_end"]): quarter for quarter in quarters}
+
+
+def _qualified_row_matches(
+    collector: _TableRows,
+    *,
+    raw_label: str,
+    recipe: dict[str, Any],
+) -> list[tuple[str, ...]]:
+    table_anchor = str(recipe.get("table_anchor", "")).strip()
+    column_headers = tuple(str(value) for value in recipe.get("column_headers", []))
+    matches: list[tuple[str, ...]] = []
+    for prior_rows, row in collector.qualified_rows:
+        if row[0] != raw_label:
+            continue
+        prior_text = " | ".join(" | ".join(item) for item in prior_rows)
+        if table_anchor and all(part not in prior_text for part in table_anchor.split(" | ")):
+            continue
+        if column_headers and any(header not in prior_text for header in column_headers):
+            continue
+        matches.append(row)
+    return matches
 
 
 class StageARecordedDocumentParser:
@@ -410,6 +448,84 @@ class StageARecordedDocumentParser:
             msg = f"configured source row was not found: {raw_label}"
             raise PublicSourceError(msg) from error
 
+    @staticmethod
+    def _configured_text_value(
+        *,
+        text: str,
+        recipe: dict[str, Any],
+        raw_label: str,
+    ) -> str | None:
+        pattern = recipe.get("text_value_pattern")
+        if pattern is None:
+            return None
+        label_prefix = str(recipe.get("raw_label_prefix", "")).strip()
+        if not label_prefix or label_prefix != raw_label or label_prefix not in text:
+            msg = f"configured text label prefix was not found: {raw_label}"
+            raise PublicSourceError(msg)
+        compiled = re.compile(str(pattern), flags=re.IGNORECASE)
+        matches = list(compiled.finditer(text))
+        occurrence = int(recipe.get("text_occurrence", 0))
+        try:
+            matched = matches[occurrence]
+            value = matched.group("value")
+        except (IndexError, KeyError) as error:
+            msg = f"configured text value was not uniquely selected: {raw_label}"
+            raise PublicSourceError(msg) from error
+        if not _NUMERIC_CELL.fullmatch(value):
+            msg = f"configured text value is not exact numeric text: {raw_label}"
+            raise PublicSourceError(msg)
+        return value
+
+    @staticmethod
+    def _configured_row_value(
+        *,
+        row: tuple[str, ...],
+        recipe: dict[str, Any],
+        period_index: int,
+        raw_label: str,
+    ) -> str:
+        values = _reported_numeric_or_dash_cells(row)
+        configured_indices = recipe.get("value_indices")
+        if configured_indices is not None:
+            indices = cast("list[int]", configured_indices)
+            try:
+                value_index = indices[period_index]
+            except IndexError as error:
+                msg = f"configured value index is absent for source row: {raw_label}"
+                raise PublicSourceError(msg) from error
+        else:
+            explicit_index = recipe.get("value_index")
+            if explicit_index is not None:
+                value_index = int(explicit_index)
+            else:
+                offset = int(recipe.get("value_offset", 0))
+                value_index = period_index + offset
+        try:
+            return values[value_index]
+        except IndexError as error:
+            msg = f"source row has fewer selected values than configured periods: {raw_label}"
+            raise PublicSourceError(msg) from error
+
+    @staticmethod
+    def _apply_sign_normalization(raw_value: str, *, rule: str) -> Decimal:
+        normalization_rule, _, sign_rule = rule.partition(":")
+        normalized = normalize_reported_value(raw_value, rule=normalization_rule)
+        if sign_rule in {
+            "positive_reduction_magnitude",
+            "reported_negative_to_positive_reduction_magnitude",
+        }:
+            return abs(normalized)
+        if sign_rule in {
+            "",
+            "preserve",
+            "preserve_positive_balance",
+            "preserve_positive_increase",
+            "preserve_reported_sign",
+        }:
+            return normalized
+        msg = f"unsupported sign normalization rule: {sign_rule}"
+        raise PublicSourceError(msg)
+
     def parse(
         self,
         *,
@@ -443,31 +559,60 @@ class StageARecordedDocumentParser:
         extracted: list[ParsedObservationCandidate] = []
         for recipe in source.rows:
             raw_label = str(recipe["raw_label"])
-            matches = [row for row in collector.rows if row[0] == raw_label]
-            if not matches:
-                msg = f"configured source row was not found: {raw_label}"
-                raise PublicSourceError(msg)
-            occurrence = int(recipe.get("row_occurrence", 0))
-            try:
-                row = matches[occurrence]
-            except IndexError as error:
-                msg = f"configured source-row occurrence was not found: {raw_label}"
-                raise PublicSourceError(msg) from error
-            values = _reported_numbers(row)
+            text_value = self._configured_text_value(
+                text=text,
+                recipe=recipe,
+                raw_label=raw_label,
+            )
+            row: tuple[str, ...] | None = None
+            if text_value is None:
+                matches = _qualified_row_matches(
+                    collector,
+                    raw_label=raw_label,
+                    recipe=recipe,
+                )
+                if not matches:
+                    msg = f"configured source row was not found: {raw_label}"
+                    raise PublicSourceError(msg)
+                occurrence = int(recipe.get("row_occurrence", 0))
+                try:
+                    row = matches[occurrence]
+                except IndexError as error:
+                    msg = f"configured source-row occurrence was not found: {raw_label}"
+                    raise PublicSourceError(msg) from error
             periods = cast("list[str]", recipe["periods"])
-            if len(values) < len(periods):
-                msg = f"source row has fewer values than configured periods: {raw_label}"
-                raise PublicSourceError(msg)
             for index, period_end_text in enumerate(periods):
                 quarter = by_period.get(period_end_text)
                 if quarter is None:
                     msg = f"source recipe references an unconfigured period: {period_end_text}"
                     raise PublicSourceError(msg)
-                raw_value = values[index]
-                normalized_value = normalize_reported_value(
-                    raw_value,
-                    rule=str(recipe["normalization"]),
+                raw_value = (
+                    text_value
+                    if text_value is not None
+                    else self._configured_row_value(
+                        row=cast("tuple[str, ...]", row),
+                        recipe=recipe,
+                        period_index=index,
+                        raw_label=raw_label,
+                    )
                 )
+                normalization = str(recipe["normalization"])
+                sign_rule = str(recipe.get("sign_normalization", "preserve"))
+                if raw_value in _REPORTED_DASHES:
+                    dash_policy = recipe.get("dash_policy")
+                    dash_normalization = recipe.get("dash_normalization")
+                    if (
+                        dash_policy != "PUBLISH_ZERO_ONLY_WHEN_ROW_PRESENTS_EM_DASH"
+                        and dash_normalization != "exact_reported_zero"
+                    ):
+                        msg = f"reported dash lacks an explicit measured-zero policy: {raw_label}"
+                        raise PublicSourceError(msg)
+                    normalized_value = Decimal(0)
+                else:
+                    normalized_value = self._apply_sign_normalization(
+                        raw_value,
+                        rule=f"{normalization}:{sign_rule}",
+                    )
                 metric_id = str(recipe["metric_id"])
                 candidate_material = (
                     f"{source.content_sha256}:{metric_id}:{period_end_text}:{raw_value}"

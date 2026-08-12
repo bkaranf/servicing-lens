@@ -1,4 +1,4 @@
-"""Bounded read API and server-rendered Stage A intelligence dashboard."""
+"""Bounded read API and server-rendered public-servicing intelligence dashboard."""
 
 from __future__ import annotations
 
@@ -43,6 +43,7 @@ from mortgage_servicing_dashboard.repository import (
     IntelligenceRepository,
     ObservationRecord,
     config_directory,
+    seed_phase3,
     seed_stage_a,
 )
 
@@ -191,6 +192,8 @@ class ObservationResponse(ReadResponse):
     methodology: str
     reporting_entity_id: str
     reporting_scope_id: str
+    fiscal_calendar_regime_id: str
+    accounting_policy_regime_id: str
     portfolio_population: str
     reported_label: str
     reported_value: str
@@ -213,6 +216,9 @@ class ObservationResponse(ReadResponse):
     knowledge_from: str
     knowledge_to: str | None
     revision_history: list[dict[str, object]]
+    derivation_inputs: list[dict[str, object]]
+    evidence_links: list[dict[str, object]]
+    dimensions: dict[str, str]
 
 
 class ObservationDetailResponse(ObservationResponse):
@@ -752,12 +758,23 @@ def create_app(  # noqa: C901, PLR0915
     *,
     database_url: str | None = None,
     repository: IntelligenceRepository | None = None,
+    bootstrap_phase3: bool = True,
 ) -> FastAPI:
-    """Create the read-only application with dependency-injectable persistence."""
+    """Create the read-only application with dependency-injectable persistence.
+
+    Args:
+        database_url: Optional database URL used when no repository is injected.
+        repository: Optional preconfigured bounded read repository.
+        bootstrap_phase3: Seed the governed retained Phase 3 layer for a newly
+            constructed local repository. Injected repositories are never mutated.
+    """
     active_repository = repository
     if active_repository is None:
         engine = create_database_engine(database_url or default_database_url())
-        seed_stage_a(engine)
+        if bootstrap_phase3:
+            seed_phase3(engine)
+        else:
+            seed_stage_a(engine)
         active_repository = IntelligenceRepository(engine)
 
     @asynccontextmanager

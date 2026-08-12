@@ -1,0 +1,181 @@
+manifest_version: "1.0.0"
+issuer_id: tfc
+cik: "0000092230"
+classification: PUBLIC_CORPORATE_DOCUMENT
+retention_policy: IMMUTABLE_CONTENT_ADDRESSED
+
+# These are exact SEC HTTP response bodies acquired by the controlled SecClient.
+# The identifying User-Agent contact was supplied only at runtime and is not retained.
+sources:
+  - evidence_id: phase3-tfc-sec-submissions-20260812
+    source_class: SEC_SUBMISSIONS_INDEX
+    url: "https://data.sec.gov/submissions/CIK0000092230.json"
+    accession: null
+    native_id: "CIK0000092230"
+    published_at: null
+    retrieved_at: "2026-08-12T13:04:19.284948+00:00"
+    media_type: application/json
+    byte_length: 164190
+    sha256: "8d401889560035ad0470a0dd3dbc0f13bc1f12e26172360db4014c9ad121841f"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/8d/8d401889560035ad0470a0dd3dbc0f13bc1f12e26172360db4014c9ad121841f.bin
+    locators:
+      - "$.filings.recent[accessionNumber=0000092230-25-000157]"
+      - "$.filings.recent[accessionNumber=0000092230-26-000030]"
+      - "$.filings.recent[accessionNumber=0000092230-26-000062]"
+      - "$.filings.recent[accessionNumber=0000092230-26-000099]"
+
+  - &q3_qps
+    evidence_id: phase3-tfc-2025q3-qps
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2025Q3"
+    form: 8-K
+    document_type: EX-99.2
+    accession: "0000092230-25-000150"
+    native_id: ex992-qpsx3q25.htm
+    period_of_report: "2025-09-30"
+    filed_on: "2025-10-17"
+    accepted_at: "2025-10-17T10:30:51Z"
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223025000150/ex992-qpsx3q25.htm"
+    retrieved_at: "2026-08-12T13:05:57.414941+00:00"
+    media_type: text/html
+    byte_length: 1700410
+    sha256: "360109f826f54d51b2f6828f0fe0c9504f61fcdcec91e0a3e7c9deb02ab72ab7"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/36/360109f826f54d51b2f6828f0fe0c9504f61fcdcec91e0a3e7c9deb02ab72ab7.bin
+    locators:
+      - "Selected Mortgage Banking Information & Additional Information > As of/For the Quarter Ended > Sept. 30 2025 column"
+      - "document-wide scoped disclosure check for delinquency, servicing expense, MSR, and portfolio-mix labels"
+
+  - <<: *q3_qps
+    evidence_id: phase3-tfc-2025q4-qps
+    fiscal_period: "2025Q4"
+    accession: "0000092230-26-000023"
+    native_id: ex992-qpsx4q25.htm
+    period_of_report: "2025-12-31"
+    filed_on: "2026-01-21"
+    accepted_at: "2026-01-21T11:31:41Z"
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000023/ex992-qpsx4q25.htm"
+    retrieved_at: "2026-08-12T13:05:57.471278+00:00"
+    byte_length: 1903230
+    sha256: "bae6bf3aad0a6cf73c7329a3dbc2e3937419cd2139cce3c774906458c2862bfc"
+    path: sha256/ba/bae6bf3aad0a6cf73c7329a3dbc2e3937419cd2139cce3c774906458c2862bfc.bin
+    locators:
+      - "Selected Mortgage Banking Information & Additional Information > As of/For the Quarter Ended > Dec. 31 2025 column"
+      - "document-wide scoped disclosure check for delinquency, servicing expense, MSR, and portfolio-mix labels"
+
+  - <<: *q3_qps
+    evidence_id: phase3-tfc-2026q1-qps
+    fiscal_period: "2026Q1"
+    accession: "0000092230-26-000039"
+    native_id: ex992-qpsx1q26.htm
+    period_of_report: "2026-03-31"
+    filed_on: "2026-04-17"
+    accepted_at: "2026-04-17T10:30:46Z"
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000039/ex992-qpsx1q26.htm"
+    retrieved_at: "2026-08-12T13:05:57.740854+00:00"
+    byte_length: 1447229
+    sha256: "74005e113cfc1ea5622e65fc22bfd3b89cea2901fc3c91ef86c99008f386e03a"
+    path: sha256/74/74005e113cfc1ea5622e65fc22bfd3b89cea2901fc3c91ef86c99008f386e03a.bin
+    locators:
+      - "Selected Mortgage Banking Information & Additional Information > As of/For the Quarter Ended > March 31 2026 column"
+      - "document-wide scoped disclosure check for delinquency, servicing expense, MSR, and portfolio-mix labels"
+
+  - <<: *q3_qps
+    evidence_id: phase3-tfc-2026q2-qps
+    fiscal_period: "2026Q2"
+    accession: "0000092230-26-000096"
+    native_id: ex992-qpsx2q26.htm
+    period_of_report: "2026-06-30"
+    filed_on: "2026-07-17"
+    accepted_at: "2026-07-17T10:30:36Z"
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000096/ex992-qpsx2q26.htm"
+    retrieved_at: "2026-08-12T13:05:58.153461+00:00"
+    byte_length: 1697274
+    sha256: "7a01b5c9ffc091aba54090357f372d971ea75bc42efde53e675260639ecf109e"
+    path: sha256/7a/7a01b5c9ffc091aba54090357f372d971ea75bc42efde53e675260639ecf109e.bin
+    locators:
+      - "Selected Mortgage Banking Information & Additional Information > As of/For the Quarter Ended > June 30 2026 column"
+      - "document-wide scoped disclosure check for delinquency, servicing expense, MSR, and portfolio-mix labels"
+
+  - &q3_periodic
+    evidence_id: phase3-tfc-2025q3-10q
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2025Q3"
+    form: 10-Q
+    document_type: 10-Q
+    accession: "0000092230-25-000157"
+    native_id: tfc-20250930.htm
+    period_of_report: "2025-09-30"
+    filed_on: "2025-10-30"
+    accepted_at: "2025-10-30T20:32:57Z"
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223025000157/tfc-20250930.htm"
+    retrieved_at: "2026-08-12T13:01:22.004522+00:00"
+    media_type: text/html
+    byte_length: 6778627
+    sha256: "64abe6e278d99401268edbd714bd7f1ee7c3d9272a972a281ff1fdb98fecac96"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/64/64abe6e278d99401268edbd714bd7f1ee7c3d9272a972a281ff1fdb98fecac96.bin
+    locators:
+      - "Note 7, Loan Servicing > Residential Mortgage Activities"
+      - "Note 7 > Residential MSR carrying-value roll-forward, 2025 column"
+      - "document-wide scoped disclosure check for delinquency, servicing expense, MSR, and portfolio-mix labels"
+
+  - <<: *q3_periodic
+    evidence_id: phase3-tfc-2025q4-10k
+    fiscal_period: "2025Q4"
+    form: 10-K
+    document_type: 10-K
+    accession: "0000092230-26-000030"
+    native_id: tfc-20251231.htm
+    period_of_report: "2025-12-31"
+    filed_on: "2026-02-24"
+    accepted_at: "2026-02-24T21:42:25Z"
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000030/tfc-20251231.htm"
+    retrieved_at: "2026-08-12T13:01:22.156589+00:00"
+    byte_length: 8116203
+    sha256: "7625955b56a2a89ac43a28e37c4d915b19159fb070b7e4350057f5b4b157350f"
+    path: sha256/76/7625955b56a2a89ac43a28e37c4d915b19159fb070b7e4350057f5b4b157350f.bin
+    locators:
+      - "Note 8, Loan Servicing > Residential Mortgage Activities"
+      - "Note 8 > Residential MSR carrying-value roll-forward, 2025 column"
+      - "document-wide scoped disclosure check for delinquency, servicing expense, MSR, and portfolio-mix labels"
+
+  - <<: *q3_periodic
+    evidence_id: phase3-tfc-2026q1-10q
+    fiscal_period: "2026Q1"
+    accession: "0000092230-26-000062"
+    native_id: tfc-20260331.htm
+    period_of_report: "2026-03-31"
+    filed_on: "2026-05-01"
+    accepted_at: "2026-05-01T20:41:09Z"
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000062/tfc-20260331.htm"
+    retrieved_at: "2026-08-12T13:01:22.402502+00:00"
+    byte_length: 5399572
+    sha256: "5450b5989374b8ed3d330071492fb10f351d74e9af51b5ff22fe07bcc8be077a"
+    path: sha256/54/5450b5989374b8ed3d330071492fb10f351d74e9af51b5ff22fe07bcc8be077a.bin
+    locators:
+      - "Note 6, Loan Servicing > Residential Mortgage Activities"
+      - "Note 6 > Residential MSR carrying-value roll-forward, 2026 column"
+      - "document-wide scoped disclosure check for delinquency, servicing expense, MSR, and portfolio-mix labels"
+
+  - <<: *q3_periodic
+    evidence_id: phase3-tfc-2026q2-10q
+    fiscal_period: "2026Q2"
+    accession: "0000092230-26-000099"
+    native_id: tfc-20260630.htm
+    period_of_report: "2026-06-30"
+    filed_on: "2026-07-31"
+    accepted_at: "2026-07-31T20:44:07Z"
+    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm"
+    retrieved_at: "2026-08-12T13:01:22.643139+00:00"
+    byte_length: 6452567
+    sha256: "f3427a0aa6bd379fe484d81179d40f62d6f7d9fd7d17fdf26ae2f626ba60d5bb"
+    path: sha256/f3/f3427a0aa6bd379fe484d81179d40f62d6f7d9fd7d17fdf26ae2f626ba60d5bb.bin
+    locators:
+      - "Note 6, Loan Servicing > Residential Mortgage Activities"
+      - "Note 6 > Residential MSR carrying-value roll-forward, 2026 column"
+      - "document-wide scoped disclosure check for delinquency, servicing expense, MSR, and portfolio-mix labels"

@@ -41,7 +41,7 @@ def _bounded_limit(limit: int) -> int:
 class CapabilitySnapshot:
     """Non-customer capability metadata safe to expose to a model."""
 
-    phase: Literal["phase_2_acquisition"]
+    phase: Literal["phase_3_metric_deepening"]
     status: Literal["ready"]
     available: tuple[str, ...]
     unavailable: tuple[str, ...]
@@ -103,7 +103,7 @@ class StaticFoundationInformation:
             A deterministic readiness snapshot.
         """
         return CapabilitySnapshot(
-            phase="phase_2_acquisition",
+            phase="phase_3_metric_deepening",
             status="ready",
             available=(
                 "validated configuration",
@@ -119,6 +119,9 @@ class StaticFoundationInformation:
                 "opt-in original-response SEC acquisition",
                 "SEC XBRL and native-scope bank regulatory adapters",
                 "official-source earnings calendar",
+                "two-issuer profitability and expense metric deepening",
+                "exact derived-observation input lineage",
+                "versioned delinquency, MSR economics, and portfolio-mix semantics",
             ),
             unavailable=(
                 "customer or loan data access",
