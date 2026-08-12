@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · Servicing Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/dashboard.css') }}">
+  <script defer src="{{ url_for('static', path='/dashboard.js') }}"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Servicing Intelligence home">
+      <span class="brand-mark" aria-hidden="true">SI</span>
+      <span><strong>Servicing Intelligence</strong><small>Public filings · Stage A</small></span>
+    </a>
+    <div class="status"><span aria-hidden="true"></span> Data through {{ latest or "unavailable" }}</div>
+  </header>
+  <div class="shell">
+    <nav aria-label="Primary">
+      <p class="nav-label">Intelligence</p>
+      <a class="{{ 'active' if page == 'overview' else '' }}" href="/">Overview</a>
+      <a class="{{ 'active' if page == 'comparison' else '' }}" href="/comparison">Comparison</a>
+      <p class="nav-label">Coverage</p>
+      {% for company in companies %}
+      <a class="{{ 'active' if page == 'company' and title.startswith(company.ticker) else '' }}" href="/companies/{{ company.id }}">
+        {{ company.ticker }} <span>{{ company.classification }}</span>
+      </a>
+      {% endfor %}
+      <a class="{{ 'active' if page == 'quality' else '' }}" href="/data-quality">Data quality</a>
+      <a class="{{ 'active' if page == 'methodology' else '' }}" href="/methodology">Methodology</a>
+    </nav>
+    <main id="main">
+      <div class="eyebrow">PUBLIC MORTGAGE SERVICING INTELLIGENCE</div>
+      <div class="title-row">
+        <div><h1>{{ title }}</h1><p>Reported facts remain bound to issuer, scope, period, methodology, and source.</p></div>
+        <div class="mode-chip" title="AI is not required to render or query this dashboard">Deterministic mode</div>
+      </div>
+
+      {% if page == 'overview' %}
+      <section class="hero-grid" aria-label="Latest issuer highlights">
+        {% for company in companies %}
+        {% set latest_rows = featured | selectattr('company_id', 'equalto', company.id) | selectattr('period_end', 'equalto', latest) | list %}
+        <article class="issuer-card {{ company.classification }}">
+          <div class="card-head"><div><span class="ticker">{{ company.ticker }}</span><h2>{{ company.legal_name }}</h2></div><span class="class-chip">{{ company.classification }}</span></div>
+          {% for row in latest_rows[:3] %}
+          <div class="metric-line"><span>{{ row.metric_name }}</span><button class="value provenance-trigger" data-observation-id="{{ row.id }}">{% if row.value %}{{ "{:,.1f}".format(row.value|float) }}{% else %}—{% endif %}<small>{{ row.scale }}</small></button></div>
+          {% endfor %}
+          <a class="card-link" href="/companies/{{ company.id }}">Open issuer profile →</a>
+        </article>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {% if page in ['overview', 'company', 'metric'] %}
+      <section class="panel">
+        <div class="panel-head"><div><span class="kicker">FOUR-QUARTER VIEW</span><h2>Disclosed servicing indicators</h2></div><span class="legend"><i></i> Click any value for evidence</span></div>
+        <div class="table-wrap">
+        <table>
+          <thead><tr><th>Issuer</th><th>Metric</th><th>Quarter</th><th class="numeric">Value</th><th>State</th><th>Scope</th></tr></thead>
+          <tbody>
+          {% for row in featured %}
+          <tr>
+            <td><span class="issuer-dot {{ row.company_classification }}"></span>{{ row.ticker }}</td>
+            <td><a href="/metrics/{{ row.metric_id }}">{{ row.metric_name }}</a></td>
+            <td>Q{{ row.fiscal_quarter }} {{ row.fiscal_year }}</td>
+            <td class="numeric"><button class="table-value provenance-trigger" data-observation-id="{{ row.id }}">{% if row.value %}{{ "{:,.1f}".format(row.value|float) }}{% else %}Not disclosed{% endif %}</button></td>
+            <td><span class="state {{ row.state|lower }}">{{ row.state|replace('_', ' ') }}</span></td>
+            <td><code>{{ row.reporting_scope_id }}</code></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </section>
+      {% endif %}
+
+      {% if page == 'comparison' or page == 'overview' %}
+      <section class="panel comparison-panel">
+        <div class="panel-head"><div><span class="kicker">PAIRWISE · AS OF {{ latest }}</span><h2>Comparability is a result, not a flag</h2></div></div>
+        <div class="comparison-grid">
+        {% for comparison in comparisons %}
+          <article>
+            <div class="comparison-title"><a href="/metrics/{{ comparison.metric_id }}">{{ comparison.metric_id|replace('_', ' ')|title }}</a><span class="comparison-status {{ comparison.status }}">{{ comparison.status|replace('_', ' ') }}</span></div>
+            <div class="pair"><button class="provenance-trigger" data-observation-id="{{ comparison.left.id }}"><b>{{ comparison.left.ticker }}</b>{{ comparison.left.reported_value }}</button><span>↔</span><button class="provenance-trigger" data-observation-id="{{ comparison.right.id }}"><b>{{ comparison.right.ticker }}</b>{{ comparison.right.reported_value }}</button></div>
+            <ul>{% for reason in comparison.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+          </article>
+        {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {% if page == 'quality' %}
+      <section class="panel">
+        <div class="panel-head"><div><span class="kicker">EXPLICIT MISSINGNESS</span><h2>Disclosure coverage by issuer and quarter</h2></div></div>
+        <div class="coverage-grid">
+        {% for item in coverage %}
+          <article><strong>{{ item.company_id|upper }} · {{ item.period_end }}</strong><div class="coverage-bar" title="{{ item.reported }} of {{ item.total }} metrics disclosed"><span style="width: {{ (100 * item.reported / item.total)|round }}%"></span></div><p>{{ item.reported }} disclosed · {{ item.missing }} explicitly not disclosed</p></article>
+        {% endfor %}
+        </div>
+        <p class="callout">Not disclosed is never rendered as zero. Each missing cell retains the reviewed filing and period that support the missingness assertion.</p>
+      </section>
+      {% endif %}
+
+      {% if page == 'methodology' %}
+      <section class="panel">
+        <div class="panel-head"><div><span class="kicker">CATALOG VERSION 1.0.0</span><h2>Metric semantic contracts</h2></div><span>{{ metrics|length }} metrics</span></div>
+        <div class="catalog">
+        {% for metric in metrics %}
+          <details><summary><span>{{ metric.display_name }}</span><code>{{ metric.id }}</code></summary><p>{{ metric.business_meaning }}</p><dl><dt>Grain</dt><dd>{{ metric.grain }}</dd><dt>Unit</dt><dd>{{ metric.unit }}</dd><dt>Version</dt><dd>{{ metric.semantic_version }}</dd></dl></details>
+        {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    </main>
+  </div>
+
+  <dialog id="provenance-dialog" aria-labelledby="provenance-title">
+    <form method="dialog"><button class="close" aria-label="Close evidence panel">×</button></form>
+    <div id="provenance-content"><p>Loading evidence…</p></div>
+  </dialog>
+  <footer>Public-company intelligence only · No borrower, customer, or loan-level data · Model calls disabled</footer>
+</body>
+</html>

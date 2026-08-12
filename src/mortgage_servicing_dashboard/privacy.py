@@ -12,10 +12,13 @@ from langchain.agents.middleware import PIIMiddleware
 
 
 class DataClassification(StrEnum):
-    """Data classifications permitted to cross the model boundary."""
+    """Five explicit data classifications at the application boundary."""
 
-    PUBLIC = "public"
-    SYNTHETIC = "synthetic"
+    PUBLIC = "public_filing"
+    PUBLIC_REGULATORY = "public_regulatory"
+    ISSUER_PUBLIC = "issuer_public"
+    SYNTHETIC = "synthetic_test"
+    RESTRICTED_PRIVATE = "restricted_private"
 
 
 class SensitiveContentError(ValueError):
@@ -135,6 +138,13 @@ _SENSITIVE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 
+_PUBLIC_IDENTIFIER_PATTERN = re.compile(
+    r"(?i)(?:\bCIK\s*[:#]?\s*\d{10}\b|\baccession\s*[:#]?\s*\d{10}-\d{2}-\d{6}\b)"
+)
+_CORPORATE_CONTACT_LINE = re.compile(
+    r"(?im)^.*(?:investor relations|media contact|press contact).*(?:\r?\n|$)"
+)
+
 _CONTROL_CHARACTERS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _SECRET_ENV_MARKERS = ("API_KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL")
 _TRACING_ENV_NAMES = (
@@ -206,7 +216,11 @@ class PromptBoundary:
             msg = "classification must be DataClassification.PUBLIC or SYNTHETIC"
             raise TypeError(msg)
 
-        normalized_text = text.strip()
+        if classification is DataClassification.RESTRICTED_PRIVATE:
+            category = "restricted_private_data"
+            raise SensitiveContentError(category)
+
+        normalized_text = strip_corporate_contact_blocks(text).strip()
         if not normalized_text:
             category = "empty_input"
             raise SensitiveContentError(category)
@@ -217,8 +231,11 @@ class PromptBoundary:
             category = "control_character"
             raise SensitiveContentError(category)
 
+        screened_text = normalized_text
+        if classification is not DataClassification.SYNTHETIC:
+            screened_text = _PUBLIC_IDENTIFIER_PATTERN.sub("PUBLIC_IDENTIFIER", screened_text)
         for category, pattern in _SENSITIVE_PATTERNS:
-            if pattern.search(normalized_text):
+            if pattern.search(screened_text):
                 raise SensitiveContentError(category)
         if any(secret in normalized_text for secret in self._secret_values):
             category = "environment_secret"
@@ -229,6 +246,11 @@ class PromptBoundary:
             classification,
             _approval_token=_APPROVAL_TOKEN,
         )
+
+
+def strip_corporate_contact_blocks(text: str) -> str:
+    """Remove obvious public corporate contact headers before model use."""
+    return _CORPORATE_CONTACT_LINE.sub("", text)
 
 
 def assert_remote_tracing_disabled(
@@ -279,7 +301,7 @@ def build_privacy_middleware() -> tuple[PIIMiddleware[Any, Any], ...]:
         _blocking_pii_middleware("mac_address"),
     ]
     for category, pattern in _SENSITIVE_PATTERNS:
-        if category in {"email", "ip_address"}:
+        if category in {"email", "ip_address", "long_numeric_identifier"}:
             continue
         middleware.append(
             _blocking_pii_middleware(category, detector=pattern.pattern),

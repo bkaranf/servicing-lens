@@ -1,95 +1,174 @@
 # Quality and integration guide
 
-This guide is scoped to `mortgage_servicing_dashboard/`. The repository-level
-`AGENTS.md` remains authoritative, including its requirement to use `uv` and its
-Python, testing, documentation, and security standards.
+This guide applies to \`mortgage_servicing_dashboard/\`. The normal gate is
+deterministic, network-free, socket-blocked, credential-free, and fail-closed.
+Live source smoke tests are opt-in and never required for a normal local or CI
+pass.
 
-## Required local gate
+Stage A is not complete because a parser returns a number or a page renders. The
+gate covers the full evidence-to-UI path for TFC/PFSI, Q3 2025 through Q2 2026.
 
-Run these commands from this directory before handing off a change:
+## Core local gate
 
-```bash
+Run from this directory:
+
+\`\`\`bash
 uv sync --locked --group dev
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy src tests
 uv run pytest --cov=mortgage_servicing_dashboard --cov-report=term-missing
-uv run msd-foundation doctor --json
-```
+uv run msi doctor --json
+\`\`\`
 
-The locked sync must succeed without changing `uv.lock`. Pytest is configured to
-deny sockets, and the coverage command enforces the project-wide 90% branch-aware
-floor. The doctor command must remain deterministic, network-free, and limited to
-allow-listed readiness metadata.
+The locked sync must not change \`uv.lock\`. Ruff keeps \`select = [\"ALL\"]\`,
+Mypy remains strict, Pytest denies sockets, and branch-aware coverage remains at
+least 90%. The doctor command is deterministic and emits only allow-listed,
+non-secret configuration and readiness data.
 
-## Three-layer integration evidence
+\`msi doctor\` is the authoritative Stage A readiness command. The inherited
+\`msd-foundation\` entry point remains only as a compatibility alias.
 
-Dependencies alone do not prove integration. Preserve construction and behavior
-tests for the responsibilities described in the official
-[LangChain](https://docs.langchain.com/oss/python/langchain/overview),
-[LangGraph](https://docs.langchain.com/oss/python/langgraph/overview), and
-[Deep Agents](https://docs.langchain.com/oss/python/deepagents/overview)
-documentation.
+## Database and migration gate
 
-| Layer | Required credential-free evidence |
-| --- | --- |
-| LangChain | Construct `create_agent` with the local recording model, invoke its tool loop, and prove that only the two static foundation tools are bound. |
-| LangGraph | Compile and invoke the deterministic `StateGraph`, stop at mandatory human review, and prove an injected in-memory checkpointer receives the final metadata-only state. |
-| Deep Agents | Construct and invoke `create_deep_agent` with the local recording model, prove filesystem/delegation/execution tools are absent, and prove a fabricated forbidden tool call fails closed. |
+The quality suite must prove:
 
-The focused smoke files are `test_agent.py`, `test_orchestration.py`, and
-`test_deep_worker.py`. The GitHub Actions workflow runs them explicitly before the
-complete coverage suite on the minimum and newest declared Python versions.
+- Alembic upgrades an empty PostgreSQL database to head;
+- committed migrations and SQLAlchemy metadata agree;
+- required tables, constraints, indexes, enums, exact \`NUMERIC\` columns, and
+  foreign keys match the schema contract;
+- authoritative value paths reject floats;
+- downgrade policy is exercised as documented;
+- same semantic input is idempotent;
+- revisions and as-known-at history survive amendments/reviews; and
+- no migration seeds fabricated financial observations.
 
-## Security invariants
+Tests use an isolated disposable database or transaction. They never point at a
+shared or production database.
 
-- Use only independently generated, conspicuously **SYNTHETIC** or public test
-  material. Sanitized or sampled production borrower data is not test data.
-- Unit and smoke tests must need no provider key, external service, network access,
-  remote trace, persistent store, or production configuration.
-- Keep live model calls and all LangSmith or legacy LangChain remote tracing off in
-  local defaults and CI. Never solve a test failure by enabling them.
-- Keep prompts, model identifiers, tool arguments/results, credentials, and raw or
-  non-allow-listed environment values out of diagnostic output, application-authored
-  exceptions, snapshots, and test reports.
-- The LangChain and Deep Agents entry points must accept only prompts approved as
-  `public` or `synthetic`, retain blocking PII middleware on input/output/tool-result
-  surfaces, and reject active remote tracing before invocation.
-- The Deep Agents profile must exactly match the selected model. Keep the default
-  general-purpose subagent disabled, pass no subagents, exclude filesystem,
-  execution, task, and planning tools, retain deny-all filesystem permissions, and
-  enforce the independent runtime tool allowlist. Test both the visible tool set and
-  a fabricated forbidden call; permission configuration by itself is insufficient.
-- LangGraph checkpoints must be opt-in and injected. State and checkpoint tests may
-  contain only opaque correlation metadata and must always terminate at the human
-  review boundary, never an operational action.
-- Do not add a mutation route/tool, arbitrary SQL, filesystem or shell execution,
-  unrestricted MCP/network access, persistent model memory, autonomous delegation,
-  borrower communication, or mortgage calculation to this foundation.
+## Fixture and network policy
 
-## Dependency and review discipline
+Default fixtures are deterministic public/recorded or conspicuously synthetic and
+live under \`tests/fixtures/\`. Retain source identity, URL, retrieval/publication
+metadata, SHA-256, media type, and locator needed to reproduce expected results.
+Do not commit credentials or the real SEC contact string.
 
-Use `uv` for every dependency operation. When dependencies change, update both
-`pyproject.toml` and `uv.lock`, then inspect the lock diff for unexpected provider
-SDKs, code-execution/sandbox extras, MCP clients, telemetry, or persistence packages.
-Do not use `pip`, manually edit resolved lock entries, or leave an unlocked install
-path in documentation or CI.
+Fixture coverage includes:
 
-Add deterministic tests for every behavior change, including failure and refusal
-paths. Do not lower coverage, relax Ruff or Mypy, remove socket blocking, or broaden a
-tool/data allowlist merely to make a gate pass. Changes to privacy screening,
-middleware order, model/profile selection, tool visibility, tracing, persistence,
-checkpointing, or the human-review boundary require explicit security-focused review.
+- SEC submissions and company facts;
+- filing HTML and inline XBRL;
+- filed earnings-release tables;
+- investor-presentation PDF text;
+- FFIEC/FR Y-9C/NIC-style regulatory records; and
+- amendment, corporate-action, and name-change scenarios.
 
-Keep implementation, tests, safe readiness claims, `.env.example`, and documentation
-in sync. A reviewer should be able to distinguish deterministic facts, model-authored
-drafts, technical review pauses, and authoritative human decisions without inference.
+No unit/default test opens a socket. An opt-in live test uses explicit markers,
+bounded source access, no committed secret, and cannot be a prerequisite for the
+normal gate.
 
-## CI scope
+## Financial correctness and provenance
 
-`.github/workflows/mortgage-servicing-dashboard.yml` is deliberately path-scoped to
-this subtree and itself. It has read-only repository permissions, uses SHA-pinned
-external actions through the repository's `uv` setup, provides no secrets, and forces
-model calls, Deep Agents execution, LangGraph persistence, and remote tracing off. New
-checks belong there only when they validate this application; do not couple the project
-to unrelated monorepo release workflows.
+Required tests cover:
+
+- exact Decimal parsing, negative/parenthetical values, unit/scale normalization,
+  and reported precision;
+- instant versus duration and fiscal-period resolution;
+- metric aliases and deterministic table qualification;
+- reporting-entity/scope and bank subsidiary/holding-company separation;
+- missing disclosure versus measured zero;
+- duplicate resolution, revisions, and bitemporal queries;
+- MSR roll-forward and disclosed-total reconciliation;
+- pairwise comparability and stable reasons;
+- corporate-action boundaries;
+- source/locator integrity; and
+- derived formulas with exact input observation IDs.
+
+Expected values are authored independently from production extraction/formula
+code. Deliberately breaking a formula, locator, scale, scope, or sign must make a
+test fail.
+
+## Pipeline and review
+
+Tests prove:
+
+- identical reruns publish no duplicate observation;
+- immutable raw hashes are stable;
+- transient retry is bounded and deterministic failures do not loop;
+- every terminal status reports published, not disclosed, quarantined, and failed
+  cells explicitly;
+- one deliberate ambiguity enters quarantine;
+- quarantined values are absent from public reads;
+- approve/reject uses the same opaque thread, records the reviewer decision, and
+  revalidates before any publication; and
+- rejected and superseded history remains recoverable.
+
+## API, UI, and accessibility
+
+Contract tests cover all eight required \`/v1\` GET resources, strict filters,
+bounded pagination/results, exact string serialization, safe errors, evidence
+links, and schema stability.
+
+A generated route inventory must prove public routes are read-only. No public
+\`PUT\`, \`PATCH\`, \`DELETE\`, observation publication, or candidate-review
+operation is allowed.
+
+UI tests cover:
+
+- data-as-of and observation-state labels;
+- coverage, comparison, company detail, methodology, and evidence drawer;
+- observation/evidence IDs and resolvable locators for every number;
+- identical chart and table semantics;
+- keyboard navigation, focus, headings, landmarks, labels, announcements,
+  reflow, and no color-only meaning;
+- no external CDN asset; and
+- empty, stale, partial, conflicted, quarantined, and unavailable states.
+
+The UI/API must operate with model calls, Deep Agents, remote tracing, and optional
+LangGraph persistence disabled.
+
+## Agent and tool boundary
+
+Construction and negative tests prove:
+
+- LangChain exposes only the eleven typed read tools documented in
+  \`docs/ORCHESTRATION.md\`;
+- no generic SQL, HTTP, browser, filesystem, shell, execution, unrestricted
+  retriever, mutation, publication, or approval tool is visible;
+- model-generated values absent from tool results cannot appear as authoritative
+  output;
+- comparability comes from the deterministic service;
+- Deep Agents have bounded tasks, tools, recursion/subagents, tokens, runtime, and
+  result size;
+- Deep Agents have no network, unrestricted MCP, shell, filesystem mutation,
+  persistent memory, publication, or approval capability; and
+- all framework switches fail closed independently.
+
+## Dependency, secret, and generated-artifact checks
+
+Every dependency change updates \`pyproject.toml\` and \`uv.lock\` together.
+Review the lock diff for unexpected provider SDKs, execution/sandbox packages,
+MCP clients, telemetry, persistence backends, or duplicate stacks. Editable
+\`../libs/\` sources are prohibited.
+
+CI scans for credentials, private keys, tokens, real SEC contacts, restricted
+data, accidental borrower/customer fixtures, and unsafe logging. Expected
+synthetic detector strings require explicit test-only allowlisting.
+
+Generated artifacts—including API/schema snapshots, route/tool inventories,
+metric/universe compiled forms, and vendored static-asset manifests—must be
+reproducible and clean after regeneration. Local chart assets retain license and
+hash metadata.
+
+## Documentation and release audit
+
+Before handoff:
+
+1. Run \`git diff --check\` and inspect the entire diff.
+2. Confirm upstream \`libs/\` is unchanged.
+3. Verify documentation labels incomplete behavior as planned and uses only TFC,
+   PFSI, and Q3 2025–Q2 2026 for Stage A.
+4. Verify no production-ready, comprehensive-coverage, investment-advice, or
+   industry-ranking claim exists.
+5. Retain exact command output, migration results, provenance/reconciliation
+   evidence, route/tool inventories, accessibility evidence, and screenshots.
+6. Open a draft PR only after every Stage A gate passes; do not merge master.

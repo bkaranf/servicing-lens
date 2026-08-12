@@ -21,15 +21,20 @@ from mortgage_servicing_dashboard.privacy import (
     assert_remote_tracing_disabled,
     build_privacy_middleware,
 )
+from mortgage_servicing_dashboard.repository import IntelligenceRepository
 from mortgage_servicing_dashboard.state import DashboardAgentState, DashboardContext
-from mortgage_servicing_dashboard.tools import FoundationInformationPort, build_foundation_tools
+from mortgage_servicing_dashboard.tools import (
+    FoundationInformationPort,
+    build_foundation_tools,
+    build_intelligence_tools,
+)
 
-_SYSTEM_PROMPT = """You are the foundation assistant for a future mortgage servicing dashboard.
+_SYSTEM_PROMPT = """You are the public mortgage servicing intelligence assistant.
 Operate only on public or synthetic, de-identified text. Never request customer, borrower,
-loan, payment, authentication, or other sensitive data. The only available tools describe
-application readiness and guardrails. Do not perform or invent mortgage calculations,
-servicing decisions, recommendations, account actions, or claims about customer records.
-State plainly when a requested capability is not implemented."""
+loan, payment, authentication, or other sensitive data. Use only the supplied typed,
+read-only tools. Never invent a value, source, scope, comparison, mortgage calculation,
+servicing decision, recommendation, or account action. Explain missing and incomparable
+results plainly and retain source caveats."""
 
 
 class AgentConfigurationError(RuntimeError):
@@ -127,7 +132,7 @@ class DashboardAgent:
 
         request_id = uuid4().hex
         classification: Literal["public", "synthetic"] = (
-            "public" if prompt.classification is DataClassification.PUBLIC else "synthetic"
+            "synthetic" if prompt.classification is DataClassification.SYNTHETIC else "public"
         )
         state = DashboardAgentState(
             messages=[HumanMessage(content=prompt.text)],
@@ -167,6 +172,7 @@ def create_dashboard_agent(
     *,
     model: str | BaseChatModel | None = None,
     information: FoundationInformationPort | None = None,
+    repository: IntelligenceRepository | None = None,
     prompt_boundary: PromptBoundary | None = None,
 ) -> DashboardAgent:
     """Compile the provider-neutral foundation agent with safe defaults.
@@ -175,6 +181,7 @@ def create_dashboard_agent(
         settings: Validated application settings.
         model: Optional injected chat model. Tests use a local fake model.
         information: Optional static foundation-information port.
+        repository: Optional authoritative public-intelligence read repository.
         prompt_boundary: Optional input boundary for dependency injection.
 
     Returns:
@@ -192,9 +199,14 @@ def create_dashboard_agent(
         "tuple[AgentMiddleware[DashboardAgentState, DashboardContext, Any], ...]",
         build_privacy_middleware(),
     )
+    tools = (
+        build_intelligence_tools(repository)
+        if repository is not None
+        else build_foundation_tools(information)
+    )
     graph = create_agent(
         model=resolved_model,
-        tools=list(build_foundation_tools(information)),
+        tools=list(tools),
         system_prompt=_SYSTEM_PROMPT,
         middleware=middleware,
         state_schema=DashboardAgentState,
@@ -202,7 +214,7 @@ def create_dashboard_agent(
         checkpointer=None,
         store=None,
         debug=False,
-        name="mortgage_servicing_dashboard_foundation",
+        name="public_mortgage_servicing_intelligence",
     )
     active_boundary = prompt_boundary or PromptBoundary(max_chars=settings.max_prompt_chars)
     return DashboardAgent(

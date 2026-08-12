@@ -1,0 +1,19 @@
+version: "stage-a-2026-08-11"
+display_name: "Selected publicly traded U.S. mortgage servicers"
+companies:
+  - id: tfc
+    legal_name: "Truist Financial Corporation"
+    ticker: TFC
+    cik: "0000092230"
+    classification: bank
+    fiscal_year_end: "12-31"
+    reporting_entity: tfc_registrant
+    reporting_scope: tfc_consolidated_residential_mortgage_servicing
+  - id: pfsi
+    legal_name: "PennyMac Financial Services, Inc."
+    ticker: PFSI
+    cik: "0001745916"
+    classification: nonbank
+    fiscal_year_end: "12-31"
+    reporting_entity: pfsi_registrant
+    reporting_scope: pfsi_servicing_segment

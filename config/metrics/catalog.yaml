@@ -1,0 +1,51 @@
+catalog_version: "1.0.0"
+effective_period: "2025-07-01/open"
+defaults: &defaults
+  semantic_version: "1.0.0"
+  grain: "reporting entity, reporting scope, fiscal period"
+  numerator: null
+  denominator: null
+  permitted_reporting_scopes: ["explicit issuer-disclosed scope"]
+  currency: USD
+  methodology_variants: ["reported", "deterministically derived"]
+  source_labels_and_aliases: []
+  inclusion_rules: ["include only the population named by the source"]
+  exclusion_rules: ["exclude silently substituted populations"]
+  derivation_formula: null
+  required_evidence: ["authoritative source", "bounded locator", "reported label"]
+  reconciliation_rules: ["reconcile totals and roll-forwards when components exist"]
+  comparability_rules: ["assess pairwise using entity, scope, period, unit, methodology, and population"]
+  prohibited_interpretations: ["missing is not zero", "a similarly named metric is not a substitute"]
+metrics:
+  - {id: servicing_for_others_upb, category: portfolio, business_meaning: "Period-end UPB serviced for third-party owners in the disclosed population.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: total_servicing_upb, category: portfolio, business_meaning: "Issuer-defined period-end total servicing portfolio UPB.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: owned_msr_upb, category: portfolio, business_meaning: "UPB underlying servicing rights owned by the reporting entity.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: servicing_loan_count, category: portfolio, business_meaning: "Count of loans in the explicitly disclosed servicing population.", unit: count, scale: ones, period_semantics: instant, <<: *defaults}
+  - {id: subservicing_upb, category: portfolio, business_meaning: "UPB serviced without ownership of the associated servicing right.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: bank_owned_loans_serviced_upb, category: portfolio, business_meaning: "UPB of loans owned by a bank and serviced by it.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: interim_servicing_upb, category: portfolio, business_meaning: "UPB temporarily serviced before sale or transfer.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: servicing_revenue, category: servicing_economics, business_meaning: "Revenue from the issuer-defined servicing activity and scope.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: servicing_fee_income, category: servicing_economics, business_meaning: "Contractual servicing and subservicing fee income.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: ancillary_servicing_income, category: servicing_economics, business_meaning: "Disclosed ancillary income attributable to servicing.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: servicing_operating_expense, category: servicing_economics, business_meaning: "Operating expense attributable to the disclosed servicing scope.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: servicing_pretax_income, category: servicing_economics, business_meaning: "GAAP pretax income of an explicit servicing segment.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: servicing_adjusted_pretax_income, category: servicing_economics, business_meaning: "Issuer-defined non-GAAP servicing pretax result with reconciliation.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: cost_to_service_per_loan, category: servicing_economics, business_meaning: "Issuer-disclosed cost to service per loan for a named population.", unit: USD_per_loan, scale: ones, period_semantics: duration, <<: *defaults}
+  - {id: weighted_average_servicing_fee_bps, category: servicing_economics, business_meaning: "Weighted-average contractual servicing fee in basis points.", unit: basis_points, scale: basis_points, period_semantics: instant, <<: *defaults}
+  - {id: msr_fair_value, category: msr, business_meaning: "Carrying fair value of mortgage servicing rights.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: msr_beginning_balance, category: msr, business_meaning: "Beginning balance in an MSR roll-forward.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: msr_additions, category: msr, business_meaning: "MSRs added through retained production or other disclosed creation.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: msr_purchases, category: msr, business_meaning: "MSRs acquired through purchases.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: msr_sales, category: msr, business_meaning: "MSR carrying value removed through sales.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: msr_realization_or_amortization, category: msr, business_meaning: "MSR reduction from realized cash flows or amortization.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: msr_fair_value_market_change, category: msr, business_meaning: "MSR fair-value change attributed to market movement.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: msr_fair_value_assumption_change, category: msr, business_meaning: "MSR fair-value change attributed to model inputs or assumptions.", unit: USD, scale: millions, period_semantics: duration, <<: *defaults}
+  - {id: msr_ending_balance, category: msr, business_meaning: "Ending balance in an MSR roll-forward.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: delinquency_30_plus_count_rate, category: portfolio_quality, business_meaning: "Share of disclosed loan count at least 30 days delinquent.", unit: percent, scale: percent, period_semantics: instant, <<: *defaults}
+  - {id: delinquency_60_plus_count_rate, category: portfolio_quality, business_meaning: "Share of disclosed loan count at least 60 days delinquent.", unit: percent, scale: percent, period_semantics: instant, <<: *defaults}
+  - {id: delinquency_90_plus_count_rate, category: portfolio_quality, business_meaning: "Share of disclosed loan count at least 90 days delinquent.", unit: percent, scale: percent, period_semantics: instant, <<: *defaults}
+  - {id: government_servicing_upb, category: portfolio_quality, business_meaning: "Servicing UPB in government-insured or guaranteed programs.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: conventional_servicing_upb, category: portfolio_quality, business_meaning: "Servicing UPB in the issuer-defined conventional population.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: gnma_servicing_upb, category: portfolio_quality, business_meaning: "UPB of Ginnie Mae servicing in the disclosed scope.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: fnma_servicing_upb, category: portfolio_quality, business_meaning: "UPB of Fannie Mae servicing in the disclosed scope.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+  - {id: fhlmc_servicing_upb, category: portfolio_quality, business_meaning: "UPB of Freddie Mac servicing in the disclosed scope.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
