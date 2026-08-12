@@ -16,6 +16,7 @@ from sqlalchemy import Engine, update
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from mortgage_servicing_dashboard.api import (
+    CalendarResponse,
     CoverageResponse,
     EvidenceResponse,
     FreshnessResponse,
@@ -161,7 +162,7 @@ class _RenderedContractParser(HTMLParser):
             self._region = self._regions.pop()
 
 
-def test_read_api_is_bounded_exact_strict_and_read_only(
+def test_read_api_is_bounded_exact_strict_and_read_only(  # noqa: PLR0915
     repository: IntelligenceRepository,
 ) -> None:
     app = create_app(repository=repository)
@@ -181,6 +182,7 @@ def test_read_api_is_bounded_exact_strict_and_read_only(
         "/api/v1/coverage": {"GET"},
         "/api/v1/evidence/{evidence_id}": {"GET"},
         "/api/v1/earnings-events": {"GET"},
+        "/api/v1/calendar": {"GET"},
         "/api/v1/pipeline/freshness": {"GET"},
     }
 
@@ -209,6 +211,11 @@ def test_read_api_is_bounded_exact_strict_and_read_only(
     FreshnessResponse.model_validate(freshness)
     assert freshness["source_not_checked_count"] == 220
     assert freshness["coverage_state"] == "partial"
+    assert freshness["calendar_freshness_state"] == "NOT_YET_EXPECTED"
+    calendar = _endpoint(app, "/api/v1/calendar")(repository)
+    TypeAdapter(list[CalendarResponse]).validate_python(calendar)
+    assert {item["company_id"] for item in calendar} == {"tfc", "pfsi"}
+    assert all(item["next_expected_report_window"]["is_inferred"] is True for item in calendar)
     with pytest.raises(HTTPException) as invalid_limit:
         _endpoint(app, "/api/v1/observations")(
             repository,

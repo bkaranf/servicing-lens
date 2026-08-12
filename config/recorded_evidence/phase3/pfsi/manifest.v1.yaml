@@ -1,0 +1,223 @@
+manifest_version: "1.0.0"
+issuer_id: pfsi
+cik: "0001745916"
+classification: PUBLIC_CORPORATE_DOCUMENT
+retention_policy: IMMUTABLE_CONTENT_ADDRESSED
+
+# Exact SEC HTTP response bodies. The runtime identifying contact is not retained.
+sources:
+  - evidence_id: phase3-pfsi-2025q3-earnings
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2025Q3"
+    form: 8-K
+    document_type: EX-99.1
+    accession: "0001104659-25-101260"
+    accepted_at: "2025-10-21T20:30:40Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925101260/tm2529157d1_ex99-1.htm"
+    retrieved_at: "2026-08-12T13:04:11.061627+00:00"
+    last_modified: "Tue, 21 Oct 2025 20:31:11 GMT"
+    media_type: text/html
+    byte_length: 198093
+    sha256: "28475f12dc2a04264559278c78fcec4b55ed2fe9e55e950bfc8a972baf8a206a"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/28/28475f12dc2a04264559278c78fcec4b55ed2fe9e55e950bfc8a972baf8a206a.bin
+    locators: ["document-wide eligible-source check; servicing five-quarter results and key metrics"]
+
+  - evidence_id: phase3-pfsi-2025q3-presentation
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2025Q3"
+    form: 8-K
+    document_type: EX-99.2
+    accession: "0001104659-25-101260"
+    accepted_at: "2025-10-21T20:30:40Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925101260/tm2529157d1_ex99-2.htm"
+    retrieved_at: "2026-08-12T13:04:11.156776+00:00"
+    last_modified: "Tue, 21 Oct 2025 20:31:11 GMT"
+    media_type: text/html
+    byte_length: 62338
+    sha256: "3b514facbfcf9f08884b1d1da07386b9732458daeb11e816c30e0e03c1d9897d"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/3b/3b514facbfcf9f08884b1d1da07386b9732458daeb11e816c30e0e03c1d9897d.bin
+    locators: ["slides 14-16 and 27; servicing results, valuation/hedge attribution, and expense methodology"]
+
+  - evidence_id: phase3-pfsi-2025q3-10q
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2025Q3"
+    form: 10-Q
+    document_type: 10-Q
+    accession: "0001104659-25-103162"
+    accepted_at: "2025-10-28T20:07:10Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925103162/pfsi-20250930x10q.htm"
+    retrieved_at: "2026-08-12T13:04:11.359236+00:00"
+    last_modified: "Tue, 28 Oct 2025 20:07:46 GMT"
+    media_type: text/html
+    byte_length: 7409519
+    sha256: "47fc21275c552a0fd973a05396f716641f525a75858f359d3dcc7f3127c6b29b"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/47/47fc21275c552a0fd973a05396f716641f525a75858f359d3dcc7f3127c6b29b.bin
+    locators: ["Note 11, Mortgage Servicing Rights and Mortgage Servicing Liabilities", "Note 26, Segment Reporting"]
+
+  - evidence_id: phase3-pfsi-2025q4-earnings
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2025Q4"
+    form: 8-K
+    document_type: EX-99.1
+    accession: "0001104659-26-008004"
+    accepted_at: "2026-01-29T21:30:41Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926008004/tm264391d1_ex99-1.htm"
+    retrieved_at: "2026-08-12T13:04:11.512665+00:00"
+    last_modified: "Thu, 29 Jan 2026 21:31:11 GMT"
+    media_type: text/html
+    byte_length: 274619
+    sha256: "307aaa67b2536d9e514bf4a8b9557479714e660bce60f7fb515aee3b7bc784a2"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/30/307aaa67b2536d9e514bf4a8b9557479714e660bce60f7fb515aee3b7bc784a2.bin
+    locators: ["document-wide eligible-source check; servicing results and key metrics"]
+
+  - evidence_id: phase3-pfsi-2025q4-presentation
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2025Q4"
+    form: 8-K
+    document_type: EX-99.2
+    accession: "0001104659-26-008004"
+    accepted_at: "2026-01-29T21:30:41Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926008004/tm264391d1_ex99-2.htm"
+    retrieved_at: "2026-08-12T13:04:11.706560+00:00"
+    last_modified: "Thu, 29 Jan 2026 21:31:12 GMT"
+    media_type: text/html
+    byte_length: 64339
+    sha256: "32cbd3979dd7d1ddc9e1dee834029f9d3b770b776fa10ee0cf543a19e4d870af"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/32/32cbd3979dd7d1ddc9e1dee834029f9d3b770b776fa10ee0cf543a19e4d870af.bin
+    locators: ["slides 14-16 and 27; servicing results, valuation/hedge attribution, and expense methodology"]
+
+  - evidence_id: phase3-pfsi-2025q4-10k
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2025Q4"
+    form: 10-K
+    document_type: 10-K
+    accession: "0001104659-26-018142"
+    accepted_at: "2026-02-20T21:08:00Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926018142/pfsi-20251231x10k.htm"
+    retrieved_at: "2026-08-12T13:04:11.981823+00:00"
+    last_modified: "Fri, 20 Feb 2026 21:08:41 GMT"
+    media_type: text/html
+    byte_length: 8621465
+    sha256: "3b26058f99a7166c5c9253a3d9ec4a97bcb4cca0767ffa888ea959dad4282874"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/3b/3b26058f99a7166c5c9253a3d9ec4a97bcb4cca0767ffa888ea959dad4282874.bin
+    locators: ["Note 10, Mortgage Servicing Rights and Mortgage Servicing Liabilities", "Note 25, Segment Reporting"]
+
+  - evidence_id: phase3-pfsi-2026q1-earnings
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2026Q1"
+    form: 8-K
+    document_type: EX-99.1
+    accession: "0001104659-26-055670"
+    accepted_at: "2026-05-05T20:30:34Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926055670/tm2613557d1_ex99-1.htm"
+    retrieved_at: "2026-08-12T13:04:12.099242+00:00"
+    last_modified: "Tue, 05 May 2026 20:31:04 GMT"
+    media_type: text/html
+    byte_length: 238408
+    sha256: "9115d6bd19a9d4f09aa1775df17a4228482cbfd7057a12259fc75008a53249e1"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/91/9115d6bd19a9d4f09aa1775df17a4228482cbfd7057a12259fc75008a53249e1.bin
+    locators: ["document-wide eligible-source check; servicing results and key metrics"]
+
+  - evidence_id: phase3-pfsi-2026q1-presentation
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2026Q1"
+    form: 8-K
+    document_type: EX-99.2
+    accession: "0001104659-26-055670"
+    accepted_at: "2026-05-05T20:30:34Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926055670/tm2613557d1_ex99-2.htm"
+    retrieved_at: "2026-08-12T13:04:12.299262+00:00"
+    last_modified: "Tue, 05 May 2026 20:31:04 GMT"
+    media_type: text/html
+    byte_length: 53264
+    sha256: "baf849bf5e7be96d7df64c9a85e3d4a32dbeadf9a512dff09f612f0460c22877"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/ba/baf849bf5e7be96d7df64c9a85e3d4a32dbeadf9a512dff09f612f0460c22877.bin
+    locators: ["slides 13-15 and 21; servicing results, valuation/hedge attribution, and expense methodology"]
+
+  - evidence_id: phase3-pfsi-2026q1-10q
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2026Q1"
+    form: 10-Q
+    document_type: 10-Q
+    accession: "0001104659-26-055690"
+    accepted_at: "2026-05-05T20:42:59Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926055690/pfsi-20260331x10q.htm"
+    retrieved_at: "2026-08-12T13:04:12.566345+00:00"
+    last_modified: "Tue, 05 May 2026 20:43:43 GMT"
+    media_type: text/html
+    byte_length: 5515504
+    sha256: "5978634ae98ca275d5667d27c6dd6362507dd3251ffbd3c6d2eae4316ffff66d"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/59/5978634ae98ca275d5667d27c6dd6362507dd3251ffbd3c6d2eae4316ffff66d.bin
+    locators: ["Note 11, Mortgage Servicing Rights and Mortgage Servicing Liabilities", "Note 26, Segment Reporting"]
+
+  - evidence_id: phase3-pfsi-2026q2-earnings
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2026Q2"
+    form: 8-K
+    document_type: EX-99.1
+    accession: "0001104659-26-088174"
+    accepted_at: "2026-07-29T20:31:12Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926088174/tm2621541d1_ex99-1.htm"
+    retrieved_at: "2026-08-12T13:04:12.794944+00:00"
+    last_modified: "Wed, 29 Jul 2026 20:31:50 GMT"
+    media_type: text/html
+    byte_length: 741162
+    sha256: "55bbe562574a015979ce480aa794d0a8ff7b09e05972d7adfd49b351dd932bd2"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/55/55bbe562574a015979ce480aa794d0a8ff7b09e05972d7adfd49b351dd932bd2.bin
+    locators: ["Servicing Segment Profitability and Key Metrics, pages 12-13; five-quarter table"]
+
+  - evidence_id: phase3-pfsi-2026q2-presentation
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2026Q2"
+    form: 8-K
+    document_type: EX-99.2
+    accession: "0001104659-26-088174"
+    accepted_at: "2026-07-29T20:31:12Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926088174/tm2621541d1_ex99-2.htm"
+    retrieved_at: "2026-08-12T13:04:12.900896+00:00"
+    last_modified: "Wed, 29 Jul 2026 20:31:50 GMT"
+    media_type: text/html
+    byte_length: 51816
+    sha256: "733cd93061cc6144408dce0e81ce164dcd7550021064f30f9715b5cdaaee3935"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/73/733cd93061cc6144408dce0e81ce164dcd7550021064f30f9715b5cdaaee3935.bin
+    locators: ["slides 13-15, 22, and 25; servicing results, delinquency methodology, and valuation/hedge attribution"]
+
+  - evidence_id: phase3-pfsi-2026q2-10q
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2026Q2"
+    form: 10-Q
+    document_type: 10-Q
+    accession: "0001104659-26-090486"
+    accepted_at: "2026-08-04T21:12:17Z"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm"
+    retrieved_at: "2026-08-12T13:02:32.242736+00:00"
+    last_modified: "Tue, 04 Aug 2026 21:13:01 GMT"
+    media_type: text/html
+    byte_length: 7492216
+    sha256: "b6f9b49698a0880b0d923af793c2b665330dd17232f0da220717bea6ae74a0bc"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/b6/b6f9b49698a0880b0d923af793c2b665330dd17232f0da220717bea6ae74a0bc.bin
+    locators: ["Note 11, Mortgage Servicing Rights and Mortgage Servicing Liabilities", "Note 26, Segment Reporting"]

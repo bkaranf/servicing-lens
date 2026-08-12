@@ -5,8 +5,10 @@ deterministic, network-free, socket-blocked, credential-free, and fail-closed.
 Live source smoke tests are opt-in and never required for a normal local or CI
 pass.
 
-Stage A is not complete because a parser returns a number or a page renders. The
-gate covers the full evidence-to-UI path for TFC/PFSI, Q3 2025 through Q2 2026.
+A phase is not complete because a parser returns a number or a page renders. The
+gate covers the full governed evidence-to-public-read path. Phase 3 additionally
+requires exact retained-source disclosure maps and derived-observation lineage
+for TFC/PFSI across Q3 2025 through Q2 2026.
 
 ## Core local gate
 
@@ -26,7 +28,7 @@ Mypy remains strict, Pytest denies sockets, and branch-aware coverage remains at
 least 90%. The doctor command is deterministic and emits only allow-listed,
 non-secret configuration and readiness data.
 
-\`msi doctor\` is the authoritative Stage A readiness command. The inherited
+\`msi doctor\` is the authoritative local readiness command. The inherited
 \`msd-foundation\` entry point remains only as a compatibility alias.
 
 ## Database and migration gate
@@ -169,10 +171,12 @@ Before handoff:
 1. Run \`git diff --check\` and inspect the entire diff.
 2. Confirm retained evidence bytes and dependency locks are unchanged unless the
    reviewed change explicitly requires them.
-3. Verify documentation labels incomplete behavior as planned and uses only TFC,
-   PFSI, and Q3 2025–Q2 2026 for Stage A.
+3. Verify documentation labels incomplete behavior as planned. Stage A and
+   Phase 3 use only TFC, PFSI, and Q3 2025–Q2 2026; later issuers appear only
+   after their controlled-expansion gates.
 4. Verify no production-ready, comprehensive-coverage, investment-advice, or
    industry-ranking claim exists.
 5. Retain exact command output, migration results, provenance/reconciliation
    evidence, route/tool inventories, accessibility evidence, and screenshots.
-6. Open a draft PR only after every Stage A gate passes; do not merge master.
+6. Open a draft PR only after the active phase's complete gate passes; do not
+   merge master.

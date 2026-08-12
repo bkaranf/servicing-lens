@@ -87,6 +87,13 @@ source references. Documents and application code refer to stable IDs after
 resolution. The selected observation periods are Q3 2025, Q4 2025, Q1 2026, and
 Q2 2026 for each issuer's verified fiscal calendar.
 
+Phase 2 records TFC's SEC registrant separately from the holding-company
+regulatory reporter `tfc_bhc_regulatory_reporter` (RSSD 1074156) and the owned
+depository reporter `truist_bank_regulatory_reporter` (RSSD 852320). Their scopes
+are `tfc_bhc_regulatory` and `truist_bank_regulatory`. Neither is interchangeable
+with `tfc_consolidated_residential_mortgage_servicing`; the comparability engine
+returns `reporting scopes differ` before allowing arithmetic across those scopes.
+
 ## Fiscal-calendar model
 
 A fiscal-calendar regime stores:

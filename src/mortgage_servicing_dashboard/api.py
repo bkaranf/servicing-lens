@@ -1,4 +1,4 @@
-"""Bounded read API and server-rendered Stage A intelligence dashboard."""
+"""Bounded read API and server-rendered public-servicing intelligence dashboard."""
 
 from __future__ import annotations
 
@@ -43,6 +43,7 @@ from mortgage_servicing_dashboard.repository import (
     IntelligenceRepository,
     ObservationRecord,
     config_directory,
+    seed_phase3,
     seed_stage_a,
 )
 
@@ -191,6 +192,8 @@ class ObservationResponse(ReadResponse):
     methodology: str
     reporting_entity_id: str
     reporting_scope_id: str
+    fiscal_calendar_regime_id: str
+    accounting_policy_regime_id: str
     portfolio_population: str
     reported_label: str
     reported_value: str
@@ -213,6 +216,9 @@ class ObservationResponse(ReadResponse):
     knowledge_from: str
     knowledge_to: str | None
     revision_history: list[dict[str, object]]
+    derivation_inputs: list[dict[str, object]]
+    evidence_links: list[dict[str, object]]
+    dimensions: dict[str, str]
 
 
 class ObservationDetailResponse(ObservationResponse):
@@ -255,9 +261,29 @@ class EarningsEventResponse(ReadResponse):
     ticker: str
     fiscal_year: int
     fiscal_quarter: int
+    period_end: str | None
     event_at: str
     evidence_id: str
     source_url: str
+    event_kind: str
+    source_kind: str
+    filing_accession: str | None
+    window_start: str | None
+    window_end: str | None
+    is_inferred: bool
+    inference_basis: list[str]
+
+
+class CalendarResponse(ReadResponse):
+    """Actual reporting event plus an explicitly inferred expected window."""
+
+    company_id: str
+    ticker: str
+    as_of: str
+    last_reported_period: dict[str, object]
+    next_expected_report_window: dict[str, object]
+    freshness_state: str
+    next_announced_event: dict[str, object] | None
 
 
 class FreshnessResponse(ReadResponse):
@@ -284,6 +310,8 @@ class FreshnessResponse(ReadResponse):
     age_days: int | None
     is_stale: bool
     freshness_state: str
+    calendar_freshness_state: str
+    calendar: list[dict[str, object]]
 
 
 def _asset_root() -> Path:
@@ -685,6 +713,17 @@ def _quality_summary(repo: IntelligenceRepository) -> dict[str, object]:
         stale_days = max((datetime.now(tz=UTC) - retrieved).days, 0)
     is_stale = stale_days is None or stale_days > _STALE_AFTER_DAYS
     freshness_state = "unavailable" if stale_days is None else ("stale" if is_stale else "current")
+    calendar_rows = cast("list[dict[str, object]]", freshness.get("calendar", []))
+    calendar_states = {str(item["freshness_state"]) for item in calendar_rows}
+    calendar_freshness_state = (
+        "AWAITING_EXPECTED_FILING"
+        if "AWAITING_EXPECTED_FILING" in calendar_states
+        else (
+            "WITHIN_EXPECTED_WINDOW"
+            if "WITHIN_EXPECTED_WINDOW" in calendar_states
+            else "NOT_YET_EXPECTED"
+        )
+    )
     return {
         **freshness,
         "reported_count": reported,
@@ -697,6 +736,7 @@ def _quality_summary(repo: IntelligenceRepository) -> dict[str, object]:
         "age_days": stale_days,
         "is_stale": is_stale,
         "freshness_state": freshness_state,
+        "calendar_freshness_state": calendar_freshness_state,
     }
 
 
@@ -718,12 +758,23 @@ def create_app(  # noqa: C901, PLR0915
     *,
     database_url: str | None = None,
     repository: IntelligenceRepository | None = None,
+    bootstrap_phase3: bool = True,
 ) -> FastAPI:
-    """Create the read-only application with dependency-injectable persistence."""
+    """Create the read-only application with dependency-injectable persistence.
+
+    Args:
+        database_url: Optional database URL used when no repository is injected.
+        repository: Optional preconfigured bounded read repository.
+        bootstrap_phase3: Seed the governed retained Phase 3 layer for a newly
+            constructed local repository. Injected repositories are never mutated.
+    """
     active_repository = repository
     if active_repository is None:
         engine = create_database_engine(database_url or default_database_url())
-        seed_stage_a(engine)
+        if bootstrap_phase3:
+            seed_phase3(engine)
+        else:
+            seed_stage_a(engine)
         active_repository = IntelligenceRepository(engine)
 
     @asynccontextmanager
@@ -948,6 +999,14 @@ def create_app(  # noqa: C901, PLR0915
         offset: int = 0,
     ) -> list[dict[str, object]]:
         return _page(repo.earnings_events(), limit=limit, offset=offset)
+
+    @app.get(
+        "/api/v1/calendar",
+        response_model=list[CalendarResponse],
+        tags=["events"],
+    )
+    def calendar(repo: RepositoryDependency) -> list[dict[str, object]]:
+        return repo.calendar()
 
     @app.get(
         "/api/v1/pipeline/freshness",

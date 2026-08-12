@@ -36,10 +36,10 @@ The compiled `public_servicing_ingestion_v1` graph has these explicit stages:
 
 The graph owns ordering, checkpoint-compatible state, interruption, and same-thread
 resume. The recorded-data seeder and deterministic repository/domain services own
-the Stage A values. XBRL and bank-regulatory extraction become substantive graph
-stages only when Phase 2 lands their governed adapters; Stage A has no placeholder
-nodes for disabled sources. The SEC client owns only governed acquisition and is
-not wired to Stage A commands.
+the Stage A values. Phase 2 structured adapters run behind the same governed
+acquisition/repository boundaries rather than adding placeholder graph nodes.
+The graph therefore remains 16 substantive stages; XBRL and regulatory facts are
+parsed and persisted within the applicable parse/map/reconcile services.
 
 ## State boundary
 
@@ -64,11 +64,13 @@ and observation semantic/knowledge keys. The recorded Stage A seed operation is
 idempotent: replay inserts no duplicate company, metric, evidence, filing, event,
 or observation rows.
 
-The unwired SEC client boundary requires an explicit identifying User-Agent,
+The opt-in SEC client boundary requires an explicit identifying User-Agent,
 official HTTPS SEC hosts only, a minimum request interval, bounded retry with
-backoff, and a local content cache. Non-SEC hosts and exhausted retries fail
-closed. The disabled bank adapter raises a typed acquisition error rather than
-silently substituting an issuer or source.
+backoff, response-size bounds, validator-aware local caching, and immutable
+content-addressed retention. Non-SEC hosts, redirects, invalid identity, and
+exhausted retries fail closed. The concrete bank adapter selects only FFIEC CDR
+or FR Y-9C and resolves RSSD identity before parsing; it cannot silently cross
+holding-company and depository scopes.
 
 ## Human review
 

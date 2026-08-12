@@ -8,6 +8,32 @@ from typing import Any
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_MINIMUM_SEC_IDENTITY_LENGTH = 8
+
+
+def validate_sec_user_agent(value: str) -> str:
+    """Validate and normalize the identifying SEC HTTP User-Agent.
+
+    Args:
+        value: Application and contact identity sent to official SEC hosts.
+
+    Returns:
+        The stripped identity string.
+
+    Raises:
+        ValueError: If the value lacks the established application/contact shape.
+    """
+    normalized = value.strip()
+    if (
+        "@" not in normalized
+        or len(normalized) < _MINIMUM_SEC_IDENTITY_LENGTH
+        or "\r" in normalized
+        or "\n" in normalized
+    ):
+        msg = "SEC User-Agent must identify an application and contact email"
+        raise ValueError(msg)
+    return normalized
+
 
 class EnvironmentName(StrEnum):
     """Supported deployment environment labels."""
@@ -50,11 +76,12 @@ class AppSettings(BaseSettings):
     enable_deep_agent: bool = False
     enable_langgraph_persistence: bool = False
     max_prompt_chars: int = Field(default=2_000, ge=1, le=8_000)
+    sec_user_agent: str | None = Field(default=None, repr=False)
 
-    @field_validator("model", mode="before")
+    @field_validator("model", "sec_user_agent", mode="before")
     @classmethod
-    def normalize_optional_model(cls, value: Any) -> Any:
-        """Treat an empty model environment variable as unconfigured.
+    def normalize_optional_string(cls, value: Any) -> Any:
+        """Treat an empty optional string environment variable as unconfigured.
 
         Args:
             value: Raw settings-source value.
@@ -65,6 +92,19 @@ class AppSettings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @field_validator("sec_user_agent")
+    @classmethod
+    def require_identifying_sec_user_agent(cls, value: str | None) -> str | None:
+        """Apply the controlled SEC client's established identity rule.
+
+        Args:
+            value: Normalized optional User-Agent setting.
+
+        Returns:
+            A validated identity or `None` while live acquisition is disabled.
+        """
+        return None if value is None else validate_sec_user_agent(value)
 
     @field_validator("model")
     @classmethod
@@ -120,5 +160,20 @@ class AppSettings(BaseSettings):
             "deep_agent_enabled": self.enable_deep_agent,
             "langgraph_persistence_enabled": self.enable_langgraph_persistence,
             "max_prompt_chars": self.max_prompt_chars,
+            "sec_user_agent_configured": self.sec_user_agent is not None,
             "remote_tracing_allowed": False,
         }
+
+    def require_sec_user_agent(self) -> str:
+        """Return the configured identity or fail closed for an explicit live run.
+
+        Returns:
+            The validated SEC application/contact identity.
+
+        Raises:
+            ValueError: If `MSD_SEC_USER_AGENT` was not configured.
+        """
+        if self.sec_user_agent is None:
+            msg = "MSD_SEC_USER_AGENT is required for live SEC access"
+            raise ValueError(msg)
+        return self.sec_user_agent

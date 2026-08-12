@@ -50,6 +50,29 @@ source discovery and retain the issuer wording in observation evidence.
 - Cross-company comparison follows the pairwise comparability policy. Matching
   canonical IDs alone is insufficient.
 
+## Phase 3 extension
+
+`config/metrics/phase3_deepening.v1.yaml` composes with, and does not mutate,
+the base catalog. It versions the richer delinquency methodology dimensions,
+annualized cost and fee calculations, MSR fair-value economics, investor mix,
+and TFC SEC-versus-regulatory reconciliation rules. The machine-readable
+extension is authoritative for its exact definitions and formula versions.
+
+Every Phase 3 derivation requires exact `PUBLISHED` and `VALIDATED` observation
+revisions for all numerators, denominators, components, and averaging anchors.
+The ordered input observation IDs, input values, roles, and formula version are
+retained in `derived_observation_inputs`. A disclosed component that has not yet
+been modeled as a canonical published input blocks the derivation; it is neither
+silently used as parser-local arithmetic nor mislabeled `NOT_DISCLOSED`.
+
+Delinquency observations carry explicit count-versus-UPB basis, threshold,
+denominator, foreclosure, bankruptcy, and forbearance semantics. Portfolio-mix
+observations carry the parent population, category, basis, and overlap policy.
+PFSI's MSR-only related UPB is therefore not interchangeable with its broader
+owned-MSR-and-MSL mix and delinquency population. TFC's SEC registrant scope,
+FR Y-9C holding-company scope, and Call Report depository scope also remain
+distinct even when a reconciliation rule evaluates two values.
+
 ## Portfolio metrics
 
 | Metric ID | Business meaning and grain | Scope, unit, period | Numerator/denominator or formula | Inclusion and exclusion | Labels and required evidence | Reconciliation and comparability | Prohibited interpretation |
@@ -72,7 +95,7 @@ source discovery and retain the issuer wording in observation evidence.
 | \`servicing_operating_expense\` | Operating expense explicitly attributed to servicing for one duration, normalized as a positive expense magnitude | Servicing or qualified combined segment; currency; duration | Absolute normalized expense with raw sign retained | Include source-defined servicing operating costs; exclude MSR valuation, hedge result, and origination expense unless source combines them | Candidate labels include “servicing expense”; require line item, sign, scope, and exclusions | Reconcile to segment expense or pretax bridge when disclosed; compare only compatible allocations | Do not derive by forcing revenue minus pretax income when components differ |
 | \`servicing_pretax_income\` | Pretax income/loss explicitly reported for servicing for one duration | Servicing segment preferred; currency; duration | Reported signed pretax amount | Include only servicing-specific result; retain combined mortgage-banking result under combined scope | Candidate labels include “servicing pretax income”; require segment/basis and period | Reconcile revenue/expense only when issuer bridge covers all components; compare combined scopes as not comparable to servicing-only | Do not treat MSR marks or hedges as operations when the source separates them |
 | \`servicing_adjusted_pretax_income\` | Issuer-reported adjusted/non-GAAP pretax servicing result for one duration | Servicing scope; currency; duration; \`NON_GAAP_REPORTED\` | Reported signed amount; no platform-created adjustment | Include only issuer-defined adjustments with reconciliation; exclude analyst-selected adjustments | Candidate labels include “adjusted pretax income”; require reconciliation and definition | Compare only when adjustment sets align or with explicit caveats | Never relabel a platform calculation as issuer-reported adjusted income |
-| \`cost_to_service_per_loan\` | Deterministic servicing operating expense per average compatible loan for one duration | Same scope for expense and counts; currency/loan; duration; \`DERIVED\` | \`servicing_operating_expense / average(beginning_count, ending_count)\` | Require both compatible count instants and exact expense duration; exclude zero/missing denominator | Evidence is linked published input observations plus formula version | Reconcile multiplication to input expense within exact precision; compare only same duration, scope, and allocation method | No ending-count shortcut, annualization, or imputation |
+| \`cost_to_service_per_loan\` | Annualized deterministic servicing operating expense per average compatible loan for one duration | Same scope for expense and counts; currency/loan/year; duration; \`DERIVED\` | \`servicing_operating_expense / average(beginning_count, ending_count) * 365 / actual_period_days\` | Require both compatible count instants, exact expense duration, and explicit actual-day count; exclude zero/missing denominator | Evidence is linked published input observations plus formula version, averaging dates, observed days, and Decimal annual basis | Reconcile the unrounded calculation to every input; compare only the same formula, scope, allocation, and annualization method | No ending-count shortcut, partial-period input, estimation, or implicit day-count convention |
 | \`weighted_average_servicing_fee_bps\` | Weighted average servicing fee rate for an explicitly defined portfolio and duration | Compatible owned/servicing population; basis points; instant if reported rate, duration if derived | Reported rate preferred; derived only as versioned annualized eligible fee income divided by exact average eligible UPB | Include only fee income and UPB for the same population; day-count/annualization method is explicit | Require reported rate evidence or all published inputs and formula parameters | Derived rate reconciles to inputs; compare only matching population and methodology | Do not divide generic servicing revenue by period-end total UPB |
 
 ## MSR metrics
@@ -84,7 +107,7 @@ and market/assumption changes as signed effects. Raw issuer signs remain evidenc
 | Metric ID | Business meaning and grain | Scope, unit, period | Numerator/denominator or formula | Inclusion and exclusion | Labels and required evidence | Reconciliation and comparability | Prohibited interpretation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | \`msr_fair_value\` | Fair value of the specified MSR asset population at period end | Owned-MSR entity/scope; currency; instant | Reported fair value | Include only assets measured/presented at fair value for the stated class; exclude UPB and hedge instruments | Candidate labels include “fair value of MSRs”; require balance/class/method/date | Reconcile to ending balance when the same roll-forward is fair-value based; compare only compatible classes/methods | Fair value is not UPB, cash value, or forecast |
-| \`msr_beginning_balance\` | Opening carrying/fair-value balance in an MSR roll-forward | Exact roll-forward scope; currency; duration anchor | Reported opening balance | Preserve measurement method and asset class | Require table identity, opening date, label, method, and scale | Must equal prior compatible ending balance or carry an explained difference | Do not bridge methods/classes silently |
+| \`msr_beginning_balance\` | Opening carrying/fair-value balance in an MSR roll-forward | Exact roll-forward scope; currency; instant at the actual opening date | Reported opening balance | Preserve measurement method and asset class | Require table identity, opening date, label, method, and scale | Must equal prior compatible ending balance or carry an explained difference | Do not relabel an opening instant as the current quarter end or bridge methods/classes silently |
 | \`msr_additions\` | MSRs originated/capitalized or otherwise added under issuer-defined additions during a roll-forward | Exact roll-forward scope; currency; duration | Reported positive increase | Include issuer-classified additions; keep purchases separate | Require row label and table headers | Participates in signed roll-forward | Production volume is not an addition amount |
 | \`msr_purchases\` | MSRs acquired through purchase during a roll-forward | Exact roll-forward scope; currency; duration | Reported positive increase | Include purchases only; exclude originated additions | Require purchase row and acquisition context | Participates in signed roll-forward and corporate-action review | Do not infer from portfolio growth |
 | \`msr_sales\` | Carrying/fair-value amount removed through MSR sales during a roll-forward | Exact roll-forward scope; currency; duration | Positive reduction magnitude with raw sign retained | Include issuer-classified sales; exclude realization/amortization | Require sale row and table context | Subtracted in roll-forward; material sale creates continuity assessment | Sale proceeds and carrying-value removal are not interchangeable |

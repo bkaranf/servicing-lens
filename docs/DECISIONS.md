@@ -24,6 +24,8 @@ investment, legal, security, or regulatory approval.
 | D-013 | ACCEPTED | Extract the application from its former source repository into a standalone repository after Stage A |
 | D-014 | DEFERRED | Select model/provider, production graph persistence, tracing, hosting, authentication, and production retention only through separate approval |
 | D-015 | ACCEPTED | Stage A passed its closure audit on 2026-08-12; proceed to D-013 extraction before later pipeline phases |
+| D-016 | ACCEPTED | Phase 2 live acquisition, structured adapters, regulatory scopes, and calendar passed its exit gate on 2026-08-12 |
+| D-017 | ACCEPTED | Phase 3 TFC/PFSI profitability and expense metric deepening passed its exit gate on 2026-08-12 |
 
 ## D-001 — Public-product scope reset
 
@@ -251,11 +253,107 @@ The PFSI retained bytes are 741,531 bytes with SHA-256
 
 This exit does not claim complete catalog coverage. The linked quarterly
 periodic filings remain unretained and unchecked at the catalog-cell level, so
-their gaps are not converted to `NOT_DISCLOSED`. The SEC client remains unwired,
-and XBRL, FFIEC/FR Y-9C/NIC, and calendar behavior remain Phase 2 work.
+their gaps are not converted to `NOT_DISCLOSED`. At the Stage A exit, the SEC
+client was unwired and XBRL, FFIEC/FR Y-9C/NIC, and calendar behavior remained
+Phase 2 work; D-016 records their later implementation.
 
 The only remaining owner decisions are those already deferred by D-014:
 deployment/hosting, authentication, production retention and persistence,
 tracing, and any model-provider decision. D-012 is satisfied for Stage A; the
 governing phased objective permits Phase 1 extraction now and permits universe
 expansion only after Phases 2 and 3 pass their gates.
+
+## D-016 — Phase 2 acquisition and structured-data exit
+
+Phase 2 exited on 2026-08-12 after the standalone repository gate. Recorded
+evidence remains the offline default and no normal test opens a socket. The exit
+evidence is:
+
+- `MSD_SEC_USER_AGENT` is optional at rest and mandatory for explicit live access;
+  `msi discover --live` and `msi ingest --live` use official SEC HTTPS hosts,
+  bounded recent-index discovery, serial rate limiting, validator-aware caching,
+  bounded retry/backoff and response sizes, redirect rejection, and immutable
+  content-addressed retention;
+- a real live run acquired both configured Q2 2026 exhibits and published 36
+  deterministically parsed observations with 36 original-response lineage links,
+  zero live quarantines, and an idempotent replay with zero inserts;
+- PFSI original bytes are 741,162 bytes with SHA-256
+  `55bbe562574a015979ce480aa794d0a8ff7b09e05972d7adfd49b351dd932bd2`;
+  TFC original bytes are 1,697,274 bytes with SHA-256
+  `7a01b5c9ffc091aba54090357f372d971ea75bc42efde53e675260639ecf109e`;
+- SEC company-facts and filing-level/inline-XBRL adapters retain exact raw text,
+  Decimal scale/value, decimals, period, context, and dimensions; issuer mappings
+  distinguish company-facts, filing-XBRL, and exhibit methodologies, and exact or
+  semantic disagreement produces a quarantine decision with no preferred value;
+- the concrete regulatory adapter parses FFIEC CDR tab rows and FR Y-9C caret
+  rows by RSSD, with an effective NIC-style identity crosswalk. TFC's BHC reporter
+  (RSSD 1074156) and Truist Bank (RSSD 852320) persist under distinct native
+  scopes, and the comparability engine explicitly returns `reporting scopes differ`;
+- `msi calendar` and `GET /api/v1/calendar` expose each issuer's actual Q2 2026
+  Item 2.02/EX-99 filing separately from an inferred Q3 window. TFC's window is
+  2026-10-16 through 2026-10-20; PFSI's is 2026-10-20 through 2026-10-27. Every
+  inference lists its official SEC event IDs and can enter
+  `AWAITING_EXPECTED_FILING`; it is never presented as issuer guidance; and
+- migration `0002_phase2_structured_acquisition` explicitly adds structured fact,
+  native regulatory scope, and calendar semantics and passes fresh upgrade,
+  autogenerate check, downgrade-to-base, and re-upgrade.
+
+The XBRL, regulatory, and normalized calendar fixtures are conspicuously marked
+`SYNTHETIC_TEST_DATA` and are never public observations. Stage A missingness is
+unchanged: zero `NOT_DISCLOSED` claims and 220 cells remain `SOURCE_NOT_CHECKED`.
+The pre-existing deliberate Stage A ambiguity remains quarantined; deterministic
+Phase 2 fixture tests additionally prove XBRL disagreement and live revision
+conflicts route to quarantine.
+
+The controlled live discovery currently reads bounded `filings.recent`; it does
+not paginate older SEC submissions files. Regulatory adapters accept governed
+bulk bytes but no scheduled daemon exists. These are explicit limitations, not
+failed source checks. D-014 production/model decisions remain deferred. Phase 3
+may now deepen TFC/PFSI metrics; issuer expansion remains blocked until Phase 3
+passes.
+
+## D-017 — Phase 3 profitability and expense metric-deepening exit
+
+Phase 3 exited on 2026-08-12 after the final standalone-repository gate and an
+independent semantic audit. It deepens TFC and PFSI only, for Q3 2025 through Q2
+2026, and does not begin the controlled issuer expansion. The exit evidence is:
+
+- a composed 53-metric catalog and 424-cell disclosure assessment, split into
+  120 reported grid observations, 40 exact supporting observations, 43 governed
+  derived observations, zero blocked derivations in the retained dataset, and
+  222 `NOT_DISCLOSED` cells after complete eligible-source checks;
+- 21 immutable `ORIGINAL_HTTP_RESPONSE` bodies totaling 64,382,045 bytes, each
+  retained only at its SHA-256 path and verified against versioned TFC/PFSI
+  manifests, with no friendly duplicate or unmanifested evidence body;
+- exact `Decimal` calculations whose 43 outputs were independently recomputed
+  from their published input revisions with no mismatch, including annualized
+  cost-to-service, MSR fair-value multiples/basis points, portfolio mix, and
+  UPB-weighted delinquency and foreclosure rates;
+- ordered derived-input lineage, plural evidence links with source locators,
+  controlled dimensions, explicit fiscal/accounting regimes, and complete
+  semantic digests persisted by migration `0003_phase3_derived_lineage`;
+- a populated-0002 migration exercise that backfills legacy observation regimes
+  and semantic identity before enforcing non-null foreign keys, followed by an
+  idempotent Phase 3 seed whose second run inserts nothing;
+- bitemporal supersession of exact Stage A overlaps while retaining historical
+  observations and evidence; 243 retained pairwise comparison assessments and
+  no duplicate active company/metric/period cells in the Phase 3 dataset; and
+- a deterministic TFC SEC/FR Y-9C reconciliation path whose fixture mismatch
+  creates one audited `CROSS_SOURCE_NO_PREFERENCE` quarantine, publishes no raw
+  synthetic regulatory fact, and does not prefer either reporting scope.
+
+TFC publishes no servicing-population delinquency or cost-to-service values
+because the complete retained source sets do not disclose compatible inputs.
+Its annual and YTD MSR roll-forward rows remain source evidence and never become
+standalone-quarter facts. PFSI's MSR-only related UPB remains distinct from its
+broader owned-MSR-and-MSL delinquency population; component-only MSR sales are
+not summed and mislabeled as reported. The issuer disclosure maps record every
+reported, derived, and `NOT_DISCLOSED` cell and its exact source-check basis.
+
+The final local gate passed locked sync, Ruff, Ruff format, strict Mypy, 227
+socket-blocked tests with one explicit live-test skip, 90.05% branch coverage,
+deterministic doctor, migration/provenance checks, and clean diff checks. The
+current dashboard is not expanded for the new domains here because UI alignment
+is explicitly Phase 5. D-014 production/model decisions remain deferred. D-012
+is now satisfied through Phase 3, so Phase 4 may begin with the first governed
+issuer only; later issuers and Phase 5 remain blocked by their preceding gates.

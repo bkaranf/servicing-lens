@@ -3,16 +3,16 @@
 Servicing Lens is a read-only public-data application for
 comparing selected publicly traded U.S. mortgage servicers. It turns authoritative
 SEC filings and filed earnings materials into reproducible observations with
-complete provenance. Governed issuer investor-relations and official bank
-regulatory adapters are planned pipeline extensions; they do not support a
-Stage A published value.
+complete provenance. Opt-in SEC acquisition, SEC XBRL, FFIEC Call Report,
+FR Y-9C/NIC identity, and earnings-calendar adapters extend the closed Stage A
+recorded-data slice without changing its offline default.
 
-Stage A is intentionally narrow:
+The current governed universe remains intentionally narrow:
 
 - bank: Truist Financial Corporation (TFC);
 - nonbank: PennyMac Financial Services, Inc. (PFSI);
 - fiscal periods: Q3 2025, Q4 2025, Q1 2026, and Q2 2026; and
-- at least five useful servicing metrics where public disclosure supports them.
+- 53 Phase 3 metric IDs, populated only where the retained sources support them.
 
 Missing disclosure remains \`NOT_DISCLOSED\`. The application does not estimate a
 value to complete a comparison.
@@ -24,8 +24,14 @@ application now lives in this history-preserving standalone repository. It inclu
 versioned configuration, hash-verified retained SEC DOM serializations,
 SQLAlchemy/Alembic persistence,
 a read-only API and dashboard, an interruptible LangGraph review workflow, and a
-socket-blocked acceptance suite. The controlled SEC client exists as an unwired
-boundary; operational live acquisition is added only in Phase 2.
+socket-blocked acceptance suite. Phase 2 wires the controlled SEC client to
+explicit `--live` commands, persists original HTTP responses and structured raw
+facts, and adds a two-issuer official-source calendar. Live access remains opt-in.
+Phase 3 deepens only TFC and PFSI across the same four quarters. Its complete
+424-cell disclosure assessment publishes 120 reported grid observations, 40
+supporting observations, and 43 exact derived observations; 222 cells remain
+`NOT_DISCLOSED` after their complete eligible source sets were checked. No
+missing value is estimated or filled.
 
 This is not production-ready, comprehensive issuer coverage, an industry ranking,
 an audit product, or investment advice.
@@ -82,9 +88,9 @@ uv sync --locked --group dev
 The locked install uses released packages only; there are no path or editable
 dependency overrides. Do not install dependencies with \`pip\`.
 
-No credential is required for the normal test suite. Phase 2 live SEC acquisition
-will require a declared contact string held in an untracked \`.env\` or secret
-manager.
+No credential is required for the normal test suite. Explicit live SEC commands
+require `MSD_SEC_USER_AGENT` with an application name and monitored contact email,
+held only in an untracked `.env` or local environment.
 
 ## CLI
 
@@ -93,7 +99,12 @@ The Stage A command is \`msi\`:
 \`\`\`bash
 uv run msi doctor --json
 uv run msi discover --company TFC
+uv run msi discover --live --company TFC
 uv run msi ingest
+uv run msi seed-phase3
+uv run msi ingest --phase3
+uv run msi ingest --live
+uv run msi calendar
 uv run msi validate
 uv run msi review list
 uv run msi serve
@@ -104,6 +115,12 @@ governed source set; discovery can be filtered by issuer. Review approval and
 rejection rebuild the deterministic graph to its interrupt, resume on the
 candidate's persisted run thread, create an audited decision, and run
 revalidation; they never edit a published observation directly.
+
+`--live` performs bounded per-CIK EDGAR submissions discovery, original-response
+retention, deterministic parsing, reconciliation, and idempotent publication.
+Without `MSD_SEC_USER_AGENT` it fails before opening a database or socket.
+`msi calendar` keeps the last actual filing separate from its conspicuously
+inferred next report window and lists every filing event used in the inference.
 
 ## Stage A web surface
 
@@ -167,7 +184,8 @@ Public JSON resources are:
 - \`GET /api/v1/comparisons\`;
 - \`GET /api/v1/coverage\`;
 - \`GET /api/v1/evidence/{evidence_id}\`;
-- \`GET /api/v1/earnings-events\`; and
+- \`GET /api/v1/earnings-events\`;
+- \`GET /api/v1/calendar\`; and
 - \`GET /api/v1/pipeline/freshness\`.
 
 ## Verify

@@ -1,0 +1,195 @@
+version: "regulatory-mappings-1.0.0"
+
+# RSSD identities are native reporting boundaries. The holding company and its
+# insured depository subsidiary are deliberately separate records.
+reporters:
+  - rssd_id: "1074156"
+    company_id: tfc
+    legal_name: "Truist Financial Corporation"
+    reporting_entity_id: tfc_bhc_regulatory_reporter
+    reporting_scope_id: tfc_bhc_regulatory
+    reporter_type: BANK_HOLDING_COMPANY
+    reporting_scope: BANK_HOLDING_COMPANY_REGULATORY
+    permitted_source_families: [FR_Y9C]
+    ticker: TFC
+    cik: "0000092230"
+    parent_rssd_id: null
+    valid_from: "2019-12-06"
+    valid_to: null
+    nic_profile_url: "https://www.ffiec.gov/npw/Institution/Profile/1074156"
+
+  - rssd_id: "852320"
+    company_id: tfc
+    legal_name: "Truist Bank"
+    reporting_entity_id: truist_bank_regulatory_reporter
+    reporting_scope_id: truist_bank_regulatory
+    reporter_type: INSURED_DEPOSITORY_INSTITUTION
+    reporting_scope: DEPOSITORY_INSTITUTION_REGULATORY
+    permitted_source_families: [FFIEC_CDR_CALL]
+    ticker: null
+    cik: null
+    parent_rssd_id: "1074156"
+    valid_from: "2019-12-07"
+    valid_to: null
+    nic_profile_url: "https://www.ffiec.gov/npw/Institution/Profile/852320"
+
+sources:
+  - family: FFIEC_CDR_CALL
+    delimiter: tab
+    rssd_column: ID_RSSD
+    report_date_column: Reporting Period End Date
+    report_date_format: "%Y%m%d"
+    revision_column: Last Date/Time Submission Updated On
+    source_url: "https://cdr.ffiec.gov/public/PWS/DownloadBulkData.aspx"
+
+  - family: FR_Y9C
+    delimiter: caret
+    rssd_column: RSSD9001
+    report_date_column: REPORT_DATE
+    report_date_format: "%Y-%m-%d"
+    revision_column: REVISION
+    source_url: "https://www.ffiec.gov/npw/FinancialReport/FinancialDataDownload"
+
+# All configured dollar series are reported in thousands. Component labels
+# preserve source meaning; they are not authority to blend BHC and bank facts.
+mappings:
+  - &call_b804
+    source_family: FFIEC_CDR_CALL
+    series: RCFDB804
+    schedule: RC-S
+    item: M2.a
+    metric_id: servicing_for_others_upb
+    component: one_to_four_family_with_recourse
+    unit: USD
+    scale: thousands
+    period_type: instant
+    mapping_revision: "1.0.0"
+    valid_from: "2001-03-31"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=B804"
+
+  - <<: *call_b804
+    series: RCONB804
+
+  - &call_b805
+    source_family: FFIEC_CDR_CALL
+    series: RCFDB805
+    schedule: RC-S
+    item: M2.b
+    metric_id: servicing_for_others_upb
+    component: one_to_four_family_without_recourse
+    unit: USD
+    scale: thousands
+    period_type: instant
+    mapping_revision: "1.0.0"
+    valid_from: "2001-03-31"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=B805"
+
+  - <<: *call_b805
+    series: RCONB805
+
+  - source_family: FFIEC_CDR_CALL
+    series: RIADB492
+    schedule: RI
+    item: "5.f"
+    metric_id: servicing_fee_income
+    component: reported_net_servicing_fees_all_financial_assets
+    unit: USD
+    scale: thousands
+    period_type: duration_ytd
+    mapping_revision: "1.0.0"
+    valid_from: "2001-03-31"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=B492"
+
+  - source_family: FFIEC_CDR_CALL
+    series: RCFD3164
+    schedule: RC-M
+    item: "2.a"
+    metric_id: msr_ending_balance
+    component: regulatory_carrying_amount
+    unit: USD
+    scale: thousands
+    period_type: instant
+    mapping_revision: "1.0.0"
+    valid_from: "1985-06-30"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=3164"
+
+  - source_family: FFIEC_CDR_CALL
+    series: RCFDA590
+    schedule: RC-M
+    item: "2.a.(1)"
+    metric_id: msr_fair_value
+    component: estimated_fair_value
+    unit: USD
+    scale: thousands
+    period_type: instant
+    mapping_revision: "1.0.0"
+    valid_from: "1997-06-30"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=A590"
+
+  - &y9c_b804
+    source_family: FR_Y9C
+    series: BHCKB804
+    schedule: HC-S
+    item: M2.a
+    metric_id: servicing_for_others_upb
+    component: one_to_four_family_with_recourse
+    unit: USD
+    scale: thousands
+    period_type: instant
+    mapping_revision: "1.0.0"
+    valid_from: "2001-03-31"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=B804"
+
+  - <<: *y9c_b804
+    series: BHCKB805
+    item: M2.b
+    component: one_to_four_family_without_recourse
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=B805"
+
+  - source_family: FR_Y9C
+    series: BHCKB492
+    schedule: HI
+    item: "5.f"
+    metric_id: servicing_fee_income
+    component: reported_net_servicing_fees_all_financial_assets
+    unit: USD
+    scale: thousands
+    period_type: duration_ytd
+    mapping_revision: "1.0.0"
+    valid_from: "2001-03-31"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=B492"
+
+  - source_family: FR_Y9C
+    series: BHCK3164
+    schedule: HC-M
+    item: "12.a"
+    metric_id: msr_ending_balance
+    component: regulatory_carrying_amount
+    unit: USD
+    scale: thousands
+    period_type: instant
+    mapping_revision: "1.0.0"
+    valid_from: "1985-06-30"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=3164"
+
+  - source_family: FR_Y9C
+    series: BHCK6438
+    schedule: HC-M
+    item: "12.a.(1)"
+    metric_id: msr_fair_value
+    component: estimated_fair_value
+    unit: USD
+    scale: thousands
+    period_type: instant
+    mapping_revision: "1.0.0"
+    valid_from: "1993-03-31"
+    valid_to: null
+    definition_url: "https://www.federalreserve.gov/apps/mdrm/data-dictionary/search/item?keyword=6438"

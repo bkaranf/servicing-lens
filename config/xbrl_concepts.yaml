@@ -1,0 +1,70 @@
+schema_version: "1"
+mapping_version: "1.0.0"
+
+# These are semantic concept recipes only. Numeric observations remain in
+# retained official evidence (or conspicuously synthetic test fixtures).
+# Dimension matching is exact: [] means the consolidated, dimensionless context.
+mappings:
+  - issuer_id: tfc
+    cik: "0000092230"
+    metric_id: msr_fair_value
+    metric_version: "1.0.0"
+    taxonomy: us-gaap
+    concept: MortgageServicingRightsFairValue
+    unit: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: tfc_registrant
+    reporting_scope_id: tfc_consolidated_residential_mortgage_servicing
+    eligible_sources: [SEC_COMPANY_FACTS, SEC_FILING_XBRL]
+
+  - issuer_id: tfc
+    cik: "0000092230"
+    metric_id: servicing_for_others_upb
+    metric_version: "1.0.0"
+    taxonomy: tfc
+    concept: LoansServicedForOthersUnpaidPrincipalBalance
+    unit: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: tfc_registrant
+    reporting_scope_id: tfc_consolidated_residential_mortgage_servicing
+    eligible_sources: [SEC_COMPANY_FACTS, SEC_FILING_XBRL]
+
+  - issuer_id: pfsi
+    cik: "0001745916"
+    metric_id: owned_msr_upb
+    metric_version: "1.0.0"
+    taxonomy: pfsi
+    concept: UnpaidPrincipalBalanceOfLoansUnderlyingOwnedMortgageServicingRights
+    unit: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions:
+      - dimension: "pfsi:ServicingPortfolioAxis"
+        member: "pfsi:OwnedMortgageServicingRightsMember"
+    reporting_entity_id: pfsi_registrant
+    reporting_scope_id: pfsi_owned_msr_portfolio
+    eligible_sources: [SEC_FILING_XBRL]
+
+  - issuer_id: pfsi
+    cik: "0001745916"
+    metric_id: servicing_fee_income
+    metric_version: "1.0.0"
+    taxonomy: pfsi
+    concept: LoanServicingFees
+    unit: USD
+    scale: "1"
+    decimals: -6
+    period_type: duration
+    dimensions:
+      - dimension: "us-gaap:StatementBusinessSegmentsAxis"
+        member: "pfsi:ServicingSegmentMember"
+    reporting_entity_id: pfsi_registrant
+    reporting_scope_id: pfsi_servicing_segment
+    eligible_sources: [SEC_FILING_XBRL]

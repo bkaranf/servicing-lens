@@ -1,0 +1,1787 @@
+﻿version: "pfsi-phase3-sources-1.0.0"
+eligible_check_profiles:
+  pfsi_2025q3_earnings: "EX-99.1 Servicing Segment Profitability and Key Metrics five-quarter tables; exact configured labels and aliases"
+  pfsi_2025q3_presentation: "EX-99.2 servicing profitability, portfolio, and MSR slides; exact configured labels and aliases"
+  pfsi_2025q3_10q: "2025 Q3 Form 10-Q mortgage servicing rights, loan-servicing portfolio, delinquency, and segment note tables"
+  pfsi_2025q4_earnings: "EX-99.1 Servicing Segment Profitability and Key Metrics five-quarter tables; exact configured labels and aliases"
+  pfsi_2025q4_presentation: "EX-99.2 servicing profitability, portfolio, and MSR slides; exact configured labels and aliases"
+  pfsi_2025q4_10k: "2025 Form 10-K mortgage servicing rights, loan-servicing portfolio, delinquency, and segment note tables"
+  pfsi_2026q1_earnings: "EX-99.1 Servicing Segment Profitability and Key Metrics five-quarter tables; exact configured labels and aliases"
+  pfsi_2026q1_presentation: "EX-99.2 servicing profitability, portfolio, and MSR slides; exact configured labels and aliases"
+  pfsi_2026q1_10q: "2026 Q1 Form 10-Q mortgage servicing rights, loan-servicing portfolio, delinquency, and segment note tables"
+  pfsi_2026q2_earnings: "EX-99.1 Servicing Segment Profitability and Key Metrics five-quarter tables; exact configured labels and aliases"
+  pfsi_2026q2_presentation: "EX-99.2 servicing profitability, portfolio, and MSR slides; exact configured labels and aliases"
+  pfsi_2026q2_10q: "2026 Q2 Form 10-Q mortgage servicing rights, loan-servicing portfolio, delinquency, and segment note tables"
+issuer_id: pfsi
+cik: "0001745916"
+reporting_entity_id: pfsi_registrant
+classification: PUBLIC_CORPORATE_DOCUMENT
+retention_policy: IMMUTABLE_CONTENT_ADDRESSED
+
+# Every payload below is an exact SEC HTTP response body acquired through the
+# controlled SecClient. The runtime identifying contact is not retained.
+sources:
+  pfsi_2025q3_earnings:
+    company_id: pfsi
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-25-101260"
+    form: 8-K
+    document_type: EX-99.1
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925101260/tm2529157d1_ex99-1.htm"
+    published_at: "2025-10-21T20:30:40Z"
+    retrieved_at: "2026-08-12T13:04:11.061627+00:00"
+    last_modified: "Tue, 21 Oct 2025 20:31:11 GMT"
+    period_end: "2025-09-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/28/28475f12dc2a04264559278c78fcec4b55ed2fe9e55e950bfc8a972baf8a206a.bin"
+    byte_length: 198093
+    content_sha256: "28475f12dc2a04264559278c78fcec4b55ed2fe9e55e950bfc8a972baf8a206a"
+    locator: "PFSI Q3 2025 earnings release; document-wide eligible-source check"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2025q3_presentation:
+    company_id: pfsi
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-25-101260"
+    form: 8-K
+    document_type: EX-99.2
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925101260/tm2529157d1_ex99-2.htm"
+    published_at: "2025-10-21T20:30:40Z"
+    retrieved_at: "2026-08-12T13:04:11.156776+00:00"
+    last_modified: "Tue, 21 Oct 2025 20:31:11 GMT"
+    period_end: "2025-09-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/3b/3b514facbfcf9f08884b1d1da07386b9732458daeb11e816c30e0e03c1d9897d.bin"
+    byte_length: 62338
+    content_sha256: "3b514facbfcf9f08884b1d1da07386b9732458daeb11e816c30e0e03c1d9897d"
+    locator: "slides 14-16 and 27; servicing results, valuation/hedge attribution, and expense methodology"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2025q3_10q:
+    company_id: pfsi
+    source_class: SEC_PERIODIC_FILING
+    accession: "0001104659-25-103162"
+    form: 10-Q
+    document_type: 10-Q
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925103162/pfsi-20250930x10q.htm"
+    published_at: "2025-10-28T20:07:10Z"
+    retrieved_at: "2026-08-12T13:04:11.359236+00:00"
+    last_modified: "Tue, 28 Oct 2025 20:07:46 GMT"
+    period_end: "2025-09-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/47/47fc21275c552a0fd973a05396f716641f525a75858f359d3dcc7f3127c6b29b.bin"
+    byte_length: 7409519
+    content_sha256: "47fc21275c552a0fd973a05396f716641f525a75858f359d3dcc7f3127c6b29b"
+    locator: "Note 11, Mortgage Servicing Rights and Mortgage Servicing Liabilities; Note 26, Segment Reporting"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2025q4_earnings:
+    company_id: pfsi
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-26-008004"
+    form: 8-K
+    document_type: EX-99.1
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926008004/tm264391d1_ex99-1.htm"
+    published_at: "2026-01-29T21:30:41Z"
+    retrieved_at: "2026-08-12T13:04:11.512665+00:00"
+    last_modified: "Thu, 29 Jan 2026 21:31:11 GMT"
+    period_end: "2025-12-31"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/30/307aaa67b2536d9e514bf4a8b9557479714e660bce60f7fb515aee3b7bc784a2.bin"
+    byte_length: 274619
+    content_sha256: "307aaa67b2536d9e514bf4a8b9557479714e660bce60f7fb515aee3b7bc784a2"
+    locator: "PFSI Q4 2025 earnings release; document-wide eligible-source check"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2025q4_presentation:
+    company_id: pfsi
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-26-008004"
+    form: 8-K
+    document_type: EX-99.2
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926008004/tm264391d1_ex99-2.htm"
+    published_at: "2026-01-29T21:30:41Z"
+    retrieved_at: "2026-08-12T13:04:11.706560+00:00"
+    last_modified: "Thu, 29 Jan 2026 21:31:12 GMT"
+    period_end: "2025-12-31"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/32/32cbd3979dd7d1ddc9e1dee834029f9d3b770b776fa10ee0cf543a19e4d870af.bin"
+    byte_length: 64339
+    content_sha256: "32cbd3979dd7d1ddc9e1dee834029f9d3b770b776fa10ee0cf543a19e4d870af"
+    locator: "slides 14-16 and 27; servicing results, valuation/hedge attribution, and expense methodology"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2025q4_10k:
+    company_id: pfsi
+    source_class: SEC_PERIODIC_FILING
+    accession: "0001104659-26-018142"
+    form: 10-K
+    document_type: 10-K
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926018142/pfsi-20251231x10k.htm"
+    published_at: "2026-02-20T21:08:00Z"
+    retrieved_at: "2026-08-12T13:04:11.981823+00:00"
+    last_modified: "Fri, 20 Feb 2026 21:08:41 GMT"
+    period_end: "2025-12-31"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/3b/3b26058f99a7166c5c9253a3d9ec4a97bcb4cca0767ffa888ea959dad4282874.bin"
+    byte_length: 8621465
+    content_sha256: "3b26058f99a7166c5c9253a3d9ec4a97bcb4cca0767ffa888ea959dad4282874"
+    locator: "Note 10, Mortgage Servicing Rights and Mortgage Servicing Liabilities; Note 25, Segment Reporting"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2026q1_earnings:
+    company_id: pfsi
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-26-055670"
+    form: 8-K
+    document_type: EX-99.1
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926055670/tm2613557d1_ex99-1.htm"
+    published_at: "2026-05-05T20:30:34Z"
+    retrieved_at: "2026-08-12T13:04:12.099242+00:00"
+    last_modified: "Tue, 05 May 2026 20:31:04 GMT"
+    period_end: "2026-03-31"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/91/9115d6bd19a9d4f09aa1775df17a4228482cbfd7057a12259fc75008a53249e1.bin"
+    byte_length: 238408
+    content_sha256: "9115d6bd19a9d4f09aa1775df17a4228482cbfd7057a12259fc75008a53249e1"
+    locator: "PFSI Q1 2026 earnings release; document-wide eligible-source check"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2026q1_presentation:
+    company_id: pfsi
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-26-055670"
+    form: 8-K
+    document_type: EX-99.2
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926055670/tm2613557d1_ex99-2.htm"
+    published_at: "2026-05-05T20:30:34Z"
+    retrieved_at: "2026-08-12T13:04:12.299262+00:00"
+    last_modified: "Tue, 05 May 2026 20:31:04 GMT"
+    period_end: "2026-03-31"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/ba/baf849bf5e7be96d7df64c9a85e3d4a32dbeadf9a512dff09f612f0460c22877.bin"
+    byte_length: 53264
+    content_sha256: "baf849bf5e7be96d7df64c9a85e3d4a32dbeadf9a512dff09f612f0460c22877"
+    locator: "slides 13-15 and 21; servicing results, valuation/hedge attribution, and expense methodology"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2026q1_10q:
+    company_id: pfsi
+    source_class: SEC_PERIODIC_FILING
+    accession: "0001104659-26-055690"
+    form: 10-Q
+    document_type: 10-Q
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926055690/pfsi-20260331x10q.htm"
+    published_at: "2026-05-05T20:42:59Z"
+    retrieved_at: "2026-08-12T13:04:12.566345+00:00"
+    last_modified: "Tue, 05 May 2026 20:43:43 GMT"
+    period_end: "2026-03-31"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/59/5978634ae98ca275d5667d27c6dd6362507dd3251ffbd3c6d2eae4316ffff66d.bin"
+    byte_length: 5515504
+    content_sha256: "5978634ae98ca275d5667d27c6dd6362507dd3251ffbd3c6d2eae4316ffff66d"
+    locator: "Note 11, Mortgage Servicing Rights and Mortgage Servicing Liabilities; Note 26, Segment Reporting"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2026q2_earnings:
+    company_id: pfsi
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-26-088174"
+    form: 8-K
+    document_type: EX-99.1
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926088174/tm2621541d1_ex99-1.htm"
+    published_at: "2026-07-29T20:31:12Z"
+    retrieved_at: "2026-08-12T13:04:12.794944+00:00"
+    last_modified: "Wed, 29 Jul 2026 20:31:50 GMT"
+    period_end: "2026-06-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/55/55bbe562574a015979ce480aa794d0a8ff7b09e05972d7adfd49b351dd932bd2.bin"
+    byte_length: 741162
+    content_sha256: "55bbe562574a015979ce480aa794d0a8ff7b09e05972d7adfd49b351dd932bd2"
+    locator: "Servicing Segment Profitability and Key Metrics, pages 12-13; five-quarter table"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2026q2_presentation:
+    company_id: pfsi
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-26-088174"
+    form: 8-K
+    document_type: EX-99.2
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926088174/tm2621541d1_ex99-2.htm"
+    published_at: "2026-07-29T20:31:12Z"
+    retrieved_at: "2026-08-12T13:04:12.900896+00:00"
+    last_modified: "Wed, 29 Jul 2026 20:31:50 GMT"
+    period_end: "2026-06-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/73/733cd93061cc6144408dce0e81ce164dcd7550021064f30f9715b5cdaaee3935.bin"
+    byte_length: 51816
+    content_sha256: "733cd93061cc6144408dce0e81ce164dcd7550021064f30f9715b5cdaaee3935"
+    locator: "slides 13-15, 22, and 25; servicing results, delinquency methodology, and valuation/hedge attribution"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+  pfsi_2026q2_10q:
+    company_id: pfsi
+    source_class: SEC_PERIODIC_FILING
+    accession: "0001104659-26-090486"
+    form: 10-Q
+    document_type: 10-Q
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm"
+    published_at: "2026-08-04T21:12:17Z"
+    retrieved_at: "2026-08-12T13:02:32.242736+00:00"
+    last_modified: "Tue, 04 Aug 2026 21:13:01 GMT"
+    period_end: "2026-06-30"
+    media_type: text/html
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    fixture_path: "recorded_evidence/phase3/pfsi/sha256/b6/b6f9b49698a0880b0d923af793c2b665330dd17232f0da220717bea6ae74a0bc.bin"
+    byte_length: 7492216
+    content_sha256: "b6f9b49698a0880b0d923af793c2b665330dd17232f0da220717bea6ae74a0bc"
+    locator: "Note 11, Mortgage Servicing Rights and Mortgage Servicing Liabilities; Note 26, Segment Reporting"
+    parser_name: phase3_pfsi_servicing
+    parser_version: "1.0.0"
+    rows: []
+    quarantine_rows: []
+
+source_sets:
+  "2025-09-30": [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+  "2025-12-31": [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+  "2026-03-31": [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+  "2026-06-30": [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+
+# The following mapping recipes are deterministic instructions, never configured
+# authoritative numeric observations. `value_indices`, `table_anchor`, and
+# `column_headers` are explicit parser qualifiers.
+recipes:
+  q2_release_five_quarter_table:
+    source_key: pfsi_2026q2_earnings
+    table_anchor: "Servicing Segment Profitability and Key Metrics"
+    column_headers: ["2Q26", "1Q26", "4Q25", "3Q25", "2Q25"]
+    periods: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    value_indices: [3, 2, 1, 0]
+    period_value_indices:
+      "2025-09-30": 3
+      "2025-12-31": 2
+      "2026-03-31": 1
+      "2026-06-30": 0
+    rows:
+      - {metric_id: servicing_revenue, raw_label: "Net revenues", row_occurrence: -1, unit: USD, scale: "1000000", normalization: usd_from_millions, methodology: GAAP_SERVICING_SEGMENT, reporting_scope_id: pfsi_servicing_segment}
+      - {metric_id: servicing_fee_income, raw_label: "Total loan servicing fees", unit: USD, scale: "1000000", normalization: usd_from_millions, methodology: ISSUER_REPORTED_TOTAL_OWNED_AND_SUBSERVICING_FEES, reporting_scope_id: pfsi_servicing_segment}
+      - {metric_id: ancillary_servicing_income, raw_label: "Ancillary and other fees", unit: USD, scale: "1000000", normalization: usd_from_millions, methodology: ISSUER_REPORTED_ANCILLARY_AND_OTHER, reporting_scope_id: pfsi_servicing_segment}
+      - {metric_id: servicing_pretax_income, raw_label: "Servicing pretax income", row_occurrence: -1, unit: USD, scale: "1000000", normalization: usd_from_millions, methodology: GAAP_SERVICING_SEGMENT, reporting_scope_id: pfsi_servicing_segment}
+      - {metric_id: servicing_adjusted_pretax_income, raw_label: "Servicing pretax income net of valuation related changes", unit: USD, scale: "1000000", normalization: usd_from_millions, methodology: ISSUER_REPORTED_NON_GAAP_RECONCILED, reporting_scope_id: pfsi_servicing_segment}
+      - {metric_id: msr_realization_or_amortization, raw_label: "Realization of MSR cash flows", unit: USD, scale: "1000000", normalization: reduction_magnitude_from_parenthetical_millions, methodology: FAIR_VALUE_REALIZATION_OF_CASH_FLOWS, reporting_scope_id: pfsi_owned_msr_portfolio}
+      - {metric_id: msr_fair_value_inputs_or_assumptions_change, raw_label: "Changes in MSR fair value due to changes in valuation inputs", unit: USD, scale: "1000000", normalization: signed_usd_from_millions, methodology: ISSUER_COMBINED_VALUATION_INPUT_CHANGE, reporting_scope_id: pfsi_owned_msr_portfolio}
+      - {metric_id: msr_hedging_result, raw_label: "Hedging results", unit: USD, scale: "1000000", normalization: signed_usd_from_millions, methodology: ISSUER_REPORTED_MSR_HEDGE_RESULT, reporting_scope_id: pfsi_owned_msr_portfolio}
+      - {metric_id: total_servicing_upb, raw_label: "Total UPB", unit: USD, scale: "1000000000", normalization: usd_from_billions, methodology: TOTAL_OWNED_MSR_SUBSERVICED_AND_HELD_FOR_SALE, reporting_scope_id: pfsi_total_servicing_portfolio}
+      - {metric_id: subservicing_upb, raw_label: "Subserviced UPB", unit: USD, scale: "1000000000", normalization: usd_from_billions, methodology: PMT_AND_OTHER_SUBSERVICING, reporting_scope_id: pfsi_subservicing_portfolio}
+      - {metric_id: servicing_loan_count, raw_label: "Total loans serviced (in thousands)", unit: count, scale: "1000", normalization: count_from_thousands, methodology: TOTAL_SERVICING_PORTFOLIO_COUNT, reporting_scope_id: pfsi_total_servicing_portfolio}
+      - {metric_id: delinquency_60_plus_count_rate, raw_label: "60+ Day Delinquency", unit: percent, scale: "0.01", normalization: percent_to_ratio, methodology: ISSUER_REPORTED_LOAN_COUNT_OWNED_PORTFOLIO, reporting_scope_id: pfsi_owned_msr_portfolio, dimensions: {portfolio_population: owned_msr}}
+      - {metric_id: weighted_average_servicing_fee_bps, raw_label: "Weighted average servicing fee", unit: basis_points, scale: "1", normalization: percent_to_basis_points, methodology: ISSUER_REPORTED_OWNED_MSR_RATE, reporting_scope_id: pfsi_owned_msr_portfolio, dimensions: {portfolio_population: owned_msr}}
+
+  periodic_msr_fair_value_and_related_upb:
+    reporting_scope_id: pfsi_owned_msr_portfolio
+    unit: USD
+    scale: "1000"
+    table_anchor: "Mortgage servicing rights and mortgage servicing liabilities"
+    column_headers: ["Unpaid principal balance of underlying loans", "Fair value"]
+    by_period:
+      "2025-09-30": {source_key: pfsi_2025q3_10q}
+      "2025-12-31": {source_key: pfsi_2025q4_10k}
+      "2026-03-31": {source_key: pfsi_2026q1_10q}
+      "2026-06-30": {source_key: pfsi_2026q2_10q}
+    rows:
+      - {metric_id: owned_msr_upb, raw_label: "Unpaid principal balance of underlying loans", normalization: usd_from_thousands, methodology: RELATED_LOANS_UNDERLYING_RECOGNIZED_MSR_FAIR_VALUE}
+      - {metric_id: msr_fair_value, raw_label: "Fair value", normalization: usd_from_thousands, methodology: FAIR_VALUE}
+
+  presentation_operating_expense:
+    table_anchor: "SERVICING PROFITABILITY EXCLUDING VALUATION-RELATED CHANGES"
+    parser_behavior: "The filed presentation serializes each slide as one table cell. Tokenize normalized visible slide text after the anchor, select the Operating expenses sequence under the stated quarter headers, and retain the exact parenthetical source token before sign normalization."
+    current_stage_a_row_parser_compatible: false
+    raw_label: "Operating expenses"
+    unit: USD
+    scale: "1000000"
+    normalization: expense_magnitude_from_millions
+    methodology: ISSUER_REPORTED_DIRECT_SERVICING_OPERATING_EXPENSE
+    reporting_scope_id: pfsi_servicing_segment
+    by_period:
+      "2025-09-30": {source_key: pfsi_2025q3_presentation, column_headers: ["3Q25", "$ in millions"], reported_decimals: 1}
+      "2025-12-31": {source_key: pfsi_2025q4_presentation, column_headers: ["4Q25", "$ in millions"], reported_decimals: 1}
+      "2026-03-31": {source_key: pfsi_2026q1_presentation, column_headers: ["1Q26", "$ in millions"], reported_decimals: 1}
+      "2026-06-30": {source_key: pfsi_2026q2_presentation, column_headers: ["2Q26", "$ in millions"], reported_decimals: 0}
+
+  periodic_portfolio_and_delinquency:
+    reporting_scope_id: pfsi_owned_msr_and_msl_portfolio
+    unit: USD
+    scale: "1000"
+    dash_policy: PUBLISH_ZERO_ONLY_WHEN_ROW_PRESENTS_EM_DASH
+    table_anchor: "Loan type | Unpaid principal balance | Loan count"
+    column_headers: ["Unpaid principal balance", "Loan count", "60+ Delinquency (by UPB)"]
+    by_period:
+      "2025-09-30": {source_key: pfsi_2025q3_10q, total_row: 1763}
+      "2025-12-31": {source_key: pfsi_2025q4_10k, total_row: 558}
+      "2026-03-31": {source_key: pfsi_2026q1_10q, total_row: 1586}
+      "2026-06-30": {source_key: pfsi_2026q2_10q, total_row: 1776}
+    component_rows:
+      government_servicing_upb:
+        input_metric_ids: [fha_servicing_upb, va_servicing_upb, usda_servicing_upb]
+        raw_labels: [FHA, VA, USDA]
+        formula: "sum exact published component observations"
+        methodology: DERIVED_ISSUER_GOVERNMENT_INSURED_OR_GUARANTEED
+      conventional_servicing_upb:
+        input_metric_ids: [fhlmc_servicing_upb, fnma_servicing_upb, closed_end_second_lien_servicing_upb, other_servicing_upb]
+        raw_labels: ["Freddie Mac", "Fannie Mae", "Closed-end second lien mortgage loans", "Other (3)"]
+        formula: "sum exact published component observations"
+        methodology: DERIVED_ISSUER_CONVENTIONAL_COMPONENTS
+      fhlmc_servicing_upb: {raw_label: "Freddie Mac", methodology: ISSUER_REPORTED_OWNED_MSR_INVESTOR_MIX}
+      fnma_servicing_upb: {raw_label: "Fannie Mae", methodology: ISSUER_REPORTED_OWNED_MSR_INVESTOR_MIX}
+      fha_servicing_upb: {raw_label: FHA, methodology: ISSUER_REPORTED_OWNED_MSR_INVESTOR_MIX}
+      va_servicing_upb: {raw_label: VA, methodology: ISSUER_REPORTED_OWNED_MSR_INVESTOR_MIX}
+      usda_servicing_upb: {raw_label: USDA, methodology: ISSUER_REPORTED_OWNED_MSR_INVESTOR_MIX}
+      closed_end_second_lien_servicing_upb: {raw_label: "Closed-end second lien mortgage loans", methodology: ISSUER_REPORTED_OWNED_MSR_INVESTOR_MIX}
+      other_servicing_upb: {raw_label: "Other (3)", methodology: ISSUER_REPORTED_OWNED_MSR_INVESTOR_MIX}
+      owned_msr_msl_upb: {raw_label: Total, methodology: ISSUER_REPORTED_OWNED_MSR_AND_MSL_TOTAL}
+    reconciliation:
+      formula: government_components + conventional_components = source_reported_owned_msr_and_msl_upb
+      scope_note: "The investor/loan-type table includes both recognized MSRs and MSLs; it is not the exact MSR-only denominator used for fair-value economics."
+      tolerance: "0"
+      failure_disposition: QUARANTINE
+
+  periodic_msr_rollforward:
+    unit: USD
+    scale: "1000"
+    reporting_scope_id: pfsi_owned_msr_portfolio
+    table_anchor: "Balance at beginning of"
+    by_period:
+      "2025-09-30": {source_key: pfsi_2025q3_10q, column_headers: ["Quarter ended September 30", "2025"]}
+      "2025-12-31": {source_key: pfsi_2025q4_10k, column_headers: ["Year ended December 31", "2025"]}
+      "2026-03-31": {source_key: pfsi_2026q1_10q, column_headers: ["Quarter ended March 31", "2026"]}
+      "2026-06-30": {source_key: pfsi_2026q2_10q, column_headers: ["Quarter ended June 30", "2026"]}
+    rows:
+      - {metric_id: msr_beginning_balance, raw_label_variants: ["Balance at beginning of period", "Balance at beginning of quarter", "Balance at beginning of year"], normalization: usd_from_thousands, sign: positive}
+      - {metric_id: msr_additions, raw_label: "MSRs resulting from loan sales", normalization: usd_from_thousands, sign: positive}
+      - metric_id: msr_sales
+        raw_label: "Sales adjustments (sales) to:"
+        component_labels: [Non-affiliates, "PennyMac Mortgage Investment Trust"]
+        publication_policy: SOURCE_COMPONENTS_ONLY_NO_AGGREGATE_OBSERVATION
+        rationale: "The source has component rows but no exact aggregate sales row; parser-local arithmetic is prohibited."
+      - {metric_id: msr_fair_value_inputs_or_assumptions_change, raw_label: "Changes in inputs used in valuation model (1)", normalization: signed_usd_from_thousands, methodology: ISSUER_COMBINED_VALUATION_INPUT_CHANGE}
+      - {metric_id: msr_realization_or_amortization, raw_label: "Other changes in fair value (2)", normalization: reduction_magnitude_from_thousands, methodology: FAIR_VALUE_REALIZATION_OF_CASH_FLOWS}
+      - {metric_id: msr_ending_balance, raw_label_variants: ["Balance at end of period", "Balance at end of quarter", "Balance at end of year"], normalization: usd_from_thousands, sign: positive}
+    reconciliation:
+      formula: beginning + additions + other_sales_adjustment - sales + valuation_input_change - realization = ending
+      tolerance: "0"
+      failure_disposition: QUARANTINE
+
+  derived_cost_to_service_per_loan:
+    metric_id: cost_to_service_per_loan
+    formula_version: "1.0.0"
+    formula: "servicing_operating_expense / average(beginning_servicing_loan_count, ending_servicing_loan_count) * 365 / actual_period_days"
+    methodology: DERIVED_ANNUALIZED_QUARTERLY_EXPENSE_PER_AVERAGE_LOAN
+    required_inputs: [servicing_operating_expense, beginning_servicing_loan_count, ending_servicing_loan_count]
+    input_observation_ids_required: true
+    required_scope_alignment: pfsi_servicing_segment_to_total_servicing_portfolio
+    averaging_convention: arithmetic_mean_of_exact_adjacent_quarter_end_counts
+    annualization: ACTUAL_OVER_365
+    period_days_by_period: {"2025-09-30": "92", "2025-12-31": "92", "2026-03-31": "90", "2026-06-30": "91"}
+    annualization_basis_days: "365"
+    output_unit: USD_per_loan
+    rounding: ROUND_HALF_EVEN
+    quantize: "0.01"
+    zero_denominator: REJECT
+
+  derived_msr_economics:
+    reporting_scope_id: pfsi_owned_msr_portfolio
+    input_observation_ids_required: true
+    required_period_alignment: SAME_INSTANT_OR_DURATION_AS_APPLICABLE
+    zero_denominator: REJECT
+    recipes:
+      - metric_id: msr_fair_value_multiple_of_related_upb
+        formula_version: "1.0.0"
+        formula: msr_fair_value / owned_msr_upb
+        output_unit: multiple
+        quantize: "0.000001"
+        rounding: ROUND_HALF_EVEN
+      - metric_id: msr_fair_value_bps_of_related_upb
+        formula_version: "1.0.0"
+        formula: (msr_fair_value / owned_msr_upb) * 10000
+        output_unit: basis_points
+        quantize: "0.01"
+        rounding: ROUND_HALF_EVEN
+      - metric_id: capitalized_servicing_rate_on_additions
+        formula_version: "1.0.0"
+        formula: msr_additions / msr_additions_related_upb
+        denominator_metric_id: msr_additions_related_upb
+        input_label: "Unpaid principal balance"
+        input_table_anchor: "MSR and underlying loan characteristics"
+        output_unit: basis_points
+        quantize: "0.000001"
+        rounding: ROUND_HALF_EVEN
+        excluded_periods:
+          "2025-12-31": "The 10-K reports only annual additions and related UPB, not standalone Q4 inputs."
+
+  derived_owned_portfolio_delinquency:
+    reporting_scope_id: pfsi_owned_msr_and_msl_portfolio
+    input_observation_ids_required: true
+    denominator_metric_id: owned_msr_msl_upb
+    denominator_source_field: source_reported_owned_msr_and_msl_upb
+    denominator_scope_note: "Use the exact total from the same MSR/MSL population table; do not substitute the MSR-only related-UPB field."
+    source_table_anchor: "Delinquencies > Owned servicing"
+    unit: ratio
+    scale: "1"
+    formulas:
+      delinquency_30_plus_upb_rate: "(delinquency_30_to_89_upb + delinquency_90_plus_upb) / owned_msr_msl_upb"
+      delinquency_90_plus_upb_rate: "delinquency_90_plus_upb / owned_msr_msl_upb"
+      foreclosure_upb_rate: "foreclosure_upb / owned_msr_msl_upb"
+    reported_mapping:
+      metric_id: delinquency_60_plus_upb_rate
+      table_anchor: "Loan type | Unpaid principal balance | Loan count"
+      raw_label: "total row"
+      column_header: "60+ Delinquency (by UPB)"
+      normalization: percent_to_ratio
+      methodology: ISSUER_REPORTED_UPB_WEIGHTED_OWNED_MSR_PORTFOLIO
+
+# DERIVED means that the arithmetic candidate is reproducible from retained
+# issuer text. It is not permission to publish unless every input is itself a
+# canonical published observation with an observation ID.
+derivation_publication_assessment:
+  ready_metric_periods:
+    cost_to_service_per_loan: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    msr_fair_value_multiple_of_related_upb: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    msr_fair_value_bps_of_related_upb: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    government_servicing_upb: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    conventional_servicing_upb: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    capitalized_servicing_rate_on_additions: ["2025-09-30", "2026-03-31", "2026-06-30"]
+    delinquency_30_plus_upb_rate: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    delinquency_90_plus_upb_rate: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    foreclosure_upb_rate: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+  blocked_metric_periods: {}
+
+excluded_candidates:
+  - metric_id: delinquency_30_plus_count_rate
+    candidate: "30-89 days, 60 days, and 90 days or more tables"
+    reason: "The periodic filing dollar buckets are UPB-weighted, not count-weighted; they cannot publish a count-rate metric."
+  - metric_id: delinquency_90_plus_count_rate
+    candidate: "90 days or more"
+    reason: "The source discloses UPB, not a 90+ loan-count rate."
+  - metric_id: msr_fair_value_market_change
+    candidate: "Changes in inputs used in valuation model"
+    reason: "The issuer combines rate, OAS/pricing-spread, cost, and other valuation inputs; it does not isolate market movement."
+  - metric_id: msr_fair_value_assumption_change
+    candidate: "Changes in inputs used in valuation model"
+    reason: "The issuer does not isolate assumption-only change from its combined valuation-input change."
+  - metric_id: gnma_servicing_upb
+    candidate: "Government insured or guaranteed"
+    reason: "The source says the population includes Ginnie Mae pools and private-investor loans; GNMA UPB is not isolated."
+  - metric_id: cost_to_service_per_loan
+    candidate: "Per-loan annual cost of servicing"
+    reason: "This is an MSR valuation input, not reported operating expense per serviced loan; the governed output uses published expense and counts instead."
+
+eligible_source_assessment:
+  assessment_version: "pfsi-phase3-missingness-1.0.0"
+  required_source_set_policy: "filed quarterly earnings release, filed presentation, and periodic 10-Q/10-K checked together"
+  cells:
+    - metric_id: servicing_for_others_upb
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "PFSI separates owned MSR and subservicing populations and does not report the canonical servicing-for-others population."
+    - metric_id: total_servicing_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: owned_msr_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_loan_count
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: subservicing_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: bank_owned_loans_serviced_upb
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "PFSI is a nonbank and does not disclose a bank-owned-loans-serviced population."
+    - metric_id: interim_servicing_upb
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "No interim-servicing row or amount appears in the complete Q3 source set."
+    - metric_id: servicing_revenue
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_fee_income
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: ancillary_servicing_income
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_operating_expense
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_presentation]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_pretax_income
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_adjusted_pretax_income
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: cost_to_service_per_loan
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_presentation, pfsi_2026q2_earnings]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: weighted_average_servicing_fee_bps
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_beginning_balance
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "The July 1 opening fact is retained at its actual instant and is not relabeled as a September 30 observation."
+    - metric_id: msr_additions
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_purchases
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "No separately labeled MSR-purchase component appears in the checked quarterly source set."
+    - metric_id: msr_sales
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "The roll-forward discloses sale components but no exact aggregate MSR-sales value; parser arithmetic cannot create a reported observation."
+    - metric_id: msr_realization_or_amortization
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value_market_change
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "Valuation-input change is combined; market movement is not isolated."
+    - metric_id: msr_fair_value_assumption_change
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "Assumption-only change is not isolated from combined valuation-input change."
+    - metric_id: msr_ending_balance
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: delinquency_30_plus_count_rate
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "The source reports 60+ by count and other delinquency buckets by UPB; it does not report 30+ by count."
+    - metric_id: delinquency_60_plus_count_rate
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The filed earnings table explicitly labels the owned-portfolio rate as loan-count weighted."
+    - metric_id: delinquency_90_plus_count_rate
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "The source reports 90+ UPB, not a 90+ loan-count rate."
+    - metric_id: government_servicing_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: conventional_servicing_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: gnma_servicing_upb
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "Government UPB includes Ginnie Mae pools and loans sold to private investors; GNMA UPB is not isolated."
+    - metric_id: fnma_servicing_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: fhlmc_servicing_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_hedging_result
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value_multiple_of_related_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: msr_fair_value_bps_of_related_upb
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: capitalized_servicing_rate_on_additions
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: delinquency_30_plus_upb_rate
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: delinquency_60_plus_upb_rate
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "The periodic filing explicitly reports the owned-MSR total-row 60+ delinquency rate by UPB."
+    - metric_id: delinquency_90_plus_upb_rate
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: foreclosure_upb_rate
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2025q3_10q]
+      rationale: "Exact same-population in-foreclosure UPB divided by exact owned MSR-and-MSL total UPB."
+    - metric_id: reo_upb
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "The checked filing's Foreclosed row belongs to a different outstanding-loan population, not the governed owned-servicing scope."
+    - metric_id: msr_fair_value_inputs_or_assumptions_change
+      period_end: "2025-09-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "PFSI reports a combined change from valuation-model inputs; it is not split into market-only or assumption-only components."
+    - metric_id: msr_realization_passage_time_and_other
+      period_end: "2025-09-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q]
+      evidence_source_keys: []
+      rationale: "PFSI reports realization of cash flows without TFC's combined passage-time-and-other methodology."
+    - metric_id: servicing_for_others_upb
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "PFSI separates owned MSR and subservicing populations and does not report the canonical servicing-for-others population."
+    - metric_id: total_servicing_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: owned_msr_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_loan_count
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: subservicing_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: bank_owned_loans_serviced_upb
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "PFSI is a nonbank and does not disclose a bank-owned-loans-serviced population."
+    - metric_id: interim_servicing_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "The periodic filing explicitly reports interim servicing; an em dash is a measured zero where applicable."
+    - metric_id: servicing_revenue
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_fee_income
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: ancillary_servicing_income
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_operating_expense
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_presentation]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_pretax_income
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_adjusted_pretax_income
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: cost_to_service_per_loan
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_presentation, pfsi_2026q2_earnings]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: weighted_average_servicing_fee_bps
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_beginning_balance
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "The 10-K reports annual roll-forward/addition inputs; a standalone Q4 value is not disclosed and is not derived from YTD."
+    - metric_id: msr_additions
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "The 10-K reports annual roll-forward/addition inputs; a standalone Q4 value is not disclosed and is not derived from YTD."
+    - metric_id: msr_purchases
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "No separately labeled MSR-purchase component appears in the checked quarterly source set."
+    - metric_id: msr_sales
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "The 10-K reports annual roll-forward/addition inputs; a standalone Q4 value is not disclosed and is not derived from YTD."
+    - metric_id: msr_realization_or_amortization
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value_market_change
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "Valuation-input change is combined; market movement is not isolated."
+    - metric_id: msr_fair_value_assumption_change
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "Assumption-only change is not isolated from combined valuation-input change."
+    - metric_id: msr_ending_balance
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: delinquency_30_plus_count_rate
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "The source reports 60+ by count and other delinquency buckets by UPB; it does not report 30+ by count."
+    - metric_id: delinquency_60_plus_count_rate
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The filed earnings table explicitly labels the owned-portfolio rate as loan-count weighted."
+    - metric_id: delinquency_90_plus_count_rate
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "The source reports 90+ UPB, not a 90+ loan-count rate."
+    - metric_id: government_servicing_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: conventional_servicing_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: gnma_servicing_upb
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "Government UPB includes Ginnie Mae pools and loans sold to private investors; GNMA UPB is not isolated."
+    - metric_id: fnma_servicing_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: fhlmc_servicing_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_hedging_result
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value_multiple_of_related_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: msr_fair_value_bps_of_related_upb
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: capitalized_servicing_rate_on_additions
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "The 10-K reports annual roll-forward/addition inputs; a standalone Q4 value is not disclosed and is not derived from YTD."
+    - metric_id: delinquency_30_plus_upb_rate
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: delinquency_60_plus_upb_rate
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "The periodic filing explicitly reports the owned-MSR total-row 60+ delinquency rate by UPB."
+    - metric_id: delinquency_90_plus_upb_rate
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: foreclosure_upb_rate
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2025q4_10k]
+      rationale: "Exact same-population in-foreclosure UPB divided by exact owned MSR-and-MSL total UPB."
+    - metric_id: reo_upb
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "The checked filing's Foreclosed row belongs to a different outstanding-loan population, not the governed owned-servicing scope."
+    - metric_id: msr_fair_value_inputs_or_assumptions_change
+      period_end: "2025-12-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "PFSI reports a combined change from valuation-model inputs; it is not split into market-only or assumption-only components."
+    - metric_id: msr_realization_passage_time_and_other
+      period_end: "2025-12-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k]
+      evidence_source_keys: []
+      rationale: "PFSI reports realization of cash flows without TFC's combined passage-time-and-other methodology."
+    - metric_id: servicing_for_others_upb
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "PFSI separates owned MSR and subservicing populations and does not report the canonical servicing-for-others population."
+    - metric_id: total_servicing_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: owned_msr_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_loan_count
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: subservicing_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: bank_owned_loans_serviced_upb
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "PFSI is a nonbank and does not disclose a bank-owned-loans-serviced population."
+    - metric_id: interim_servicing_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "The periodic filing explicitly reports interim servicing; an em dash is a measured zero where applicable."
+    - metric_id: servicing_revenue
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_fee_income
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: ancillary_servicing_income
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_operating_expense
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_presentation]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_pretax_income
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_adjusted_pretax_income
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: cost_to_service_per_loan
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_presentation, pfsi_2026q2_earnings]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: weighted_average_servicing_fee_bps
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_beginning_balance
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "The January 1 opening fact is retained at its actual instant and is not relabeled as a March 31 observation."
+    - metric_id: msr_additions
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_purchases
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "No separately labeled MSR-purchase component appears in the checked quarterly source set."
+    - metric_id: msr_sales
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "The roll-forward discloses sale components but no exact aggregate MSR-sales value; parser arithmetic cannot create a reported observation."
+    - metric_id: msr_realization_or_amortization
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value_market_change
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "Valuation-input change is combined; market movement is not isolated."
+    - metric_id: msr_fair_value_assumption_change
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "Assumption-only change is not isolated from combined valuation-input change."
+    - metric_id: msr_ending_balance
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: delinquency_30_plus_count_rate
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "The source reports 60+ by count and other delinquency buckets by UPB; it does not report 30+ by count."
+    - metric_id: delinquency_60_plus_count_rate
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The filed earnings table explicitly labels the owned-portfolio rate as loan-count weighted."
+    - metric_id: delinquency_90_plus_count_rate
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "The source reports 90+ UPB, not a 90+ loan-count rate."
+    - metric_id: government_servicing_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: conventional_servicing_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: gnma_servicing_upb
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "Government UPB includes Ginnie Mae pools and loans sold to private investors; GNMA UPB is not isolated."
+    - metric_id: fnma_servicing_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: fhlmc_servicing_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_hedging_result
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value_multiple_of_related_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: msr_fair_value_bps_of_related_upb
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: capitalized_servicing_rate_on_additions
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: delinquency_30_plus_upb_rate
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: delinquency_60_plus_upb_rate
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "The periodic filing explicitly reports the owned-MSR total-row 60+ delinquency rate by UPB."
+    - metric_id: delinquency_90_plus_upb_rate
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: foreclosure_upb_rate
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q1_10q]
+      rationale: "Exact same-population in-foreclosure UPB divided by exact owned MSR-and-MSL total UPB."
+    - metric_id: reo_upb
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "The checked filing's Foreclosed row belongs to a different outstanding-loan population, not the governed owned-servicing scope."
+    - metric_id: msr_fair_value_inputs_or_assumptions_change
+      period_end: "2026-03-31"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "PFSI reports a combined change from valuation-model inputs; it is not split into market-only or assumption-only components."
+    - metric_id: msr_realization_passage_time_and_other
+      period_end: "2026-03-31"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q]
+      evidence_source_keys: []
+      rationale: "PFSI reports realization of cash flows without TFC's combined passage-time-and-other methodology."
+    - metric_id: servicing_for_others_upb
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "PFSI separates owned MSR and subservicing populations and does not report the canonical servicing-for-others population."
+    - metric_id: total_servicing_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: owned_msr_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_loan_count
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: subservicing_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: bank_owned_loans_serviced_upb
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "PFSI is a nonbank and does not disclose a bank-owned-loans-serviced population."
+    - metric_id: interim_servicing_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "The periodic filing explicitly reports interim servicing; an em dash is a measured zero where applicable."
+    - metric_id: servicing_revenue
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_fee_income
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: ancillary_servicing_income
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_operating_expense
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_presentation]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_pretax_income
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: servicing_adjusted_pretax_income
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: cost_to_service_per_loan
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_presentation, pfsi_2026q2_earnings]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: weighted_average_servicing_fee_bps
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_beginning_balance
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "The April 1 opening fact is retained at its actual instant and is not relabeled as a June 30 observation."
+    - metric_id: msr_additions
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_purchases
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "No separately labeled MSR-purchase component appears in the checked quarterly source set."
+    - metric_id: msr_sales
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "The roll-forward discloses sale components but no exact aggregate MSR-sales value; parser arithmetic cannot create a reported observation."
+    - metric_id: msr_realization_or_amortization
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value_market_change
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "Valuation-input change is combined; market movement is not isolated."
+    - metric_id: msr_fair_value_assumption_change
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "Assumption-only change is not isolated from combined valuation-input change."
+    - metric_id: msr_ending_balance
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: delinquency_30_plus_count_rate
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "The source reports 60+ by count and other delinquency buckets by UPB; it does not report 30+ by count."
+    - metric_id: delinquency_60_plus_count_rate
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The filed earnings table explicitly labels the owned-portfolio rate as loan-count weighted."
+    - metric_id: delinquency_90_plus_count_rate
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "The source reports 90+ UPB, not a 90+ loan-count rate."
+    - metric_id: government_servicing_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: conventional_servicing_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: gnma_servicing_upb
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "Government UPB includes Ginnie Mae pools and loans sold to private investors; GNMA UPB is not isolated."
+    - metric_id: fnma_servicing_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: fhlmc_servicing_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_hedging_result
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "The value is explicitly disclosed in retained official SEC evidence under the configured issuer scope and methodology."
+    - metric_id: msr_fair_value_multiple_of_related_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: msr_fair_value_bps_of_related_upb
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: capitalized_servicing_rate_on_additions
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: delinquency_30_plus_upb_rate
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: delinquency_60_plus_upb_rate
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "The periodic filing explicitly reports the owned-MSR total-row 60+ delinquency rate by UPB."
+    - metric_id: delinquency_90_plus_upb_rate
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "Every exact input is disclosed in retained evidence; the versioned Decimal formula and input observation IDs are required."
+    - metric_id: foreclosure_upb_rate
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: DERIVED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_10q]
+      rationale: "Exact same-population in-foreclosure UPB divided by exact owned MSR-and-MSL total UPB."
+    - metric_id: reo_upb
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "The checked filing's Foreclosed row belongs to a different outstanding-loan population, not the governed owned-servicing scope."
+    - metric_id: msr_fair_value_inputs_or_assumptions_change
+      period_end: "2026-06-30"
+      assessment_status: DISCLOSURE_FOUND
+      result_state: PUBLISHED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: [pfsi_2026q2_earnings]
+      rationale: "PFSI reports a combined change from valuation-model inputs; it is not split into market-only or assumption-only components."
+    - metric_id: msr_realization_passage_time_and_other
+      period_end: "2026-06-30"
+      assessment_status: CHECKED_COMPLETE
+      result_state: NOT_DISCLOSED
+      checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q]
+      evidence_source_keys: []
+      rationale: "PFSI reports realization of cash flows without TFC's combined passage-time-and-other methodology."
+
+    # Governed published inputs used only as exact support observations. These
+    # cells carry the same evidence and locator discipline as displayed metrics.
+    - {metric_id: fha_servicing_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact FHA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: va_servicing_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact VA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: usda_servicing_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact USDA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: closed_end_second_lien_servicing_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact closed-end second-lien row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: other_servicing_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact issuer-defined Other row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: owned_msr_msl_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact same-table owned MSR-and-MSL total UPB."}
+    - {metric_id: msr_additions_related_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact quarterly UPB related to MSR additions."}
+    - {metric_id: delinquency_30_to_89_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact published 30-89 days delinquent owned-servicing UPB."}
+    - {metric_id: delinquency_90_plus_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact published 90-plus days delinquent owned-servicing UPB."}
+    - {metric_id: foreclosure_upb, period_end: "2025-09-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q3_earnings, pfsi_2025q3_presentation, pfsi_2025q3_10q], evidence_source_keys: [pfsi_2025q3_10q], rationale: "Exact published In foreclosure row under Owned servicing."}
+
+    - {metric_id: fha_servicing_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact FHA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: va_servicing_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact VA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: usda_servicing_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact USDA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: closed_end_second_lien_servicing_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact closed-end second-lien row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: other_servicing_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact issuer-defined Other row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: owned_msr_msl_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact same-table owned MSR-and-MSL total UPB."}
+    - {metric_id: msr_additions_related_upb, period_end: "2025-12-31", assessment_status: CHECKED_COMPLETE, result_state: NOT_DISCLOSED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [], rationale: "Annual additions-related UPB is not a standalone fourth-quarter observation."}
+    - {metric_id: delinquency_30_to_89_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact published 30-89 days delinquent owned-servicing UPB."}
+    - {metric_id: delinquency_90_plus_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact published 90-plus days delinquent owned-servicing UPB."}
+    - {metric_id: foreclosure_upb, period_end: "2025-12-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2025q4_earnings, pfsi_2025q4_presentation, pfsi_2025q4_10k], evidence_source_keys: [pfsi_2025q4_10k], rationale: "Exact published In foreclosure row under Owned servicing."}
+
+    - {metric_id: fha_servicing_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact FHA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: va_servicing_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact VA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: usda_servicing_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact USDA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: closed_end_second_lien_servicing_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact closed-end second-lien row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: other_servicing_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact issuer-defined Other row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: owned_msr_msl_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact same-table owned MSR-and-MSL total UPB."}
+    - {metric_id: msr_additions_related_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact quarterly UPB related to MSR additions."}
+    - {metric_id: delinquency_30_to_89_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact published 30-89 days delinquent owned-servicing UPB."}
+    - {metric_id: delinquency_90_plus_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact published 90-plus days delinquent owned-servicing UPB."}
+    - {metric_id: foreclosure_upb, period_end: "2026-03-31", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q1_earnings, pfsi_2026q1_presentation, pfsi_2026q1_10q], evidence_source_keys: [pfsi_2026q1_10q], rationale: "Exact published In foreclosure row under Owned servicing."}
+
+    - {metric_id: fha_servicing_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact FHA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: va_servicing_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact VA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: usda_servicing_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact USDA row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: closed_end_second_lien_servicing_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact closed-end second-lien row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: other_servicing_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact issuer-defined Other row in the owned MSR-and-MSL loan-type table."}
+    - {metric_id: owned_msr_msl_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact same-table owned MSR-and-MSL total UPB."}
+    - {metric_id: msr_additions_related_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact quarterly UPB related to MSR additions."}
+    - {metric_id: delinquency_30_to_89_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact published 30-89 days delinquent owned-servicing UPB."}
+    - {metric_id: delinquency_90_plus_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact published 90-plus days delinquent owned-servicing UPB."}
+    - {metric_id: foreclosure_upb, period_end: "2026-06-30", assessment_status: DISCLOSURE_FOUND, result_state: PUBLISHED, checked_source_keys: [pfsi_2026q2_earnings, pfsi_2026q2_presentation, pfsi_2026q2_10q], evidence_source_keys: [pfsi_2026q2_10q], rationale: "Exact published In foreclosure row under Owned servicing."}

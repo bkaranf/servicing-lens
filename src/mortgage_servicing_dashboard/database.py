@@ -211,10 +211,21 @@ class RawXbrlFact(Base):
     __tablename__ = "raw_xbrl_facts"
     id: Mapped[str] = mapped_column(String(96), primary_key=True)
     evidence_id: Mapped[str] = mapped_column(ForeignKey("source_evidence.id"))
+    filing_id: Mapped[str | None] = mapped_column(ForeignKey("filings.id"))
     concept: Mapped[str] = mapped_column(String(255))
+    taxonomy: Mapped[str] = mapped_column(String(128), default="unknown")
+    entity_identifier: Mapped[str] = mapped_column(String(128), default="unknown")
     context_ref: Mapped[str] = mapped_column(String(255))
     raw_value: Mapped[str] = mapped_column(Text)
     unit_ref: Mapped[str | None] = mapped_column(String(128))
+    decimals: Mapped[str | None] = mapped_column(String(32))
+    scale: Mapped[Decimal | None] = mapped_column(_MONEY)
+    period_type: Mapped[str] = mapped_column(String(16), default="instant")
+    period_start: Mapped[date | None] = mapped_column(Date)
+    period_end: Mapped[date | None] = mapped_column(Date)
+    instant: Mapped[date | None] = mapped_column(Date)
+    dimensions: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
+    methodology: Mapped[str] = mapped_column(String(64), default="SEC_XBRL")
 
 
 class RawRegulatoryFact(Base):
@@ -224,9 +235,17 @@ class RawRegulatoryFact(Base):
     id: Mapped[str] = mapped_column(String(96), primary_key=True)
     evidence_id: Mapped[str] = mapped_column(ForeignKey("source_evidence.id"))
     reporting_entity_id: Mapped[str] = mapped_column(ForeignKey("reporting_entities.id"))
+    reporting_scope_id: Mapped[str] = mapped_column(ForeignKey("reporting_scopes.id"))
+    source_family: Mapped[str] = mapped_column(String(32))
+    rssd_id: Mapped[str] = mapped_column(String(16))
     schedule: Mapped[str] = mapped_column(String(64))
     item_code: Mapped[str] = mapped_column(String(64))
+    report_date: Mapped[date] = mapped_column(Date)
+    period_type: Mapped[str] = mapped_column(String(16))
+    unit: Mapped[str] = mapped_column(String(32))
+    scale: Mapped[str] = mapped_column(String(32))
     raw_value: Mapped[str] = mapped_column(Text)
+    revision_identifier: Mapped[str] = mapped_column(String(128))
 
 
 class MetricDefinition(Base):
@@ -309,13 +328,9 @@ class MetricObservation(Base):
     __tablename__ = "metric_observations"
     __table_args__ = (
         UniqueConstraint(
-            "metric_version_id",
-            "reporting_entity_id",
-            "reporting_scope_id",
-            "period_end",
-            "methodology",
+            "semantic_key_digest",
             "knowledge_from",
-            name="uq_observation_semantic_knowledge_key",
+            name="uq_observation_semantic_digest_knowledge",
         ),
         CheckConstraint(
             "(observation_state = 'NOT_DISCLOSED' AND value IS NULL) OR "
@@ -329,6 +344,10 @@ class MetricObservation(Base):
     metric_version_id: Mapped[str] = mapped_column(ForeignKey("metric_definition_versions.id"))
     reporting_entity_id: Mapped[str] = mapped_column(ForeignKey("reporting_entities.id"))
     reporting_scope_id: Mapped[str] = mapped_column(ForeignKey("reporting_scopes.id"))
+    fiscal_calendar_regime_id: Mapped[str] = mapped_column(ForeignKey("fiscal_calendar_regimes.id"))
+    accounting_policy_regime_id: Mapped[str] = mapped_column(
+        ForeignKey("accounting_policy_regimes.id")
+    )
     period_start: Mapped[date | None] = mapped_column(Date)
     period_end: Mapped[date] = mapped_column(Date)
     fiscal_year: Mapped[int] = mapped_column(Integer)
@@ -342,6 +361,7 @@ class MetricObservation(Base):
     reported_precision: Mapped[str] = mapped_column(String(128))
     observation_state: Mapped[str] = mapped_column(String(32))
     methodology: Mapped[str] = mapped_column(String(128))
+    dimensions: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
     evidence_locator: Mapped[str] = mapped_column(Text)
     extraction_method: Mapped[str] = mapped_column(String(64))
     parser_metadata: Mapped[dict[str, object]] = mapped_column(JSON)
@@ -395,6 +415,46 @@ class ObservationEvidence(Base):
     validation_status: Mapped[str] = mapped_column(String(32))
 
 
+class DerivedObservationInput(Base):
+    """Exact published input revision used by one derived observation."""
+
+    __tablename__ = "derived_observation_inputs"
+    __table_args__ = (
+        UniqueConstraint(
+            "derived_observation_id",
+            "input_ordinal",
+            name="uq_derived_observation_input_ordinal",
+        ),
+        CheckConstraint(
+            "input_ordinal >= 0",
+            name="ck_derived_observation_input_ordinal_nonnegative",
+        ),
+    )
+    derived_observation_id: Mapped[str] = mapped_column(
+        ForeignKey("metric_observations.id"), primary_key=True
+    )
+    input_observation_id: Mapped[str] = mapped_column(
+        ForeignKey("metric_observations.id"), primary_key=True
+    )
+    input_role: Mapped[str] = mapped_column(String(64))
+    input_ordinal: Mapped[int] = mapped_column(Integer)
+    formula_version: Mapped[str] = mapped_column(String(64))
+    input_value: Mapped[Decimal] = mapped_column(_MONEY)
+
+    @validates("input_value")
+    def reject_float_value(self, _: str, value: object) -> Decimal:
+        """Reject binary floats at the derived-lineage boundary."""
+        if isinstance(value, Decimal):
+            return value
+        if isinstance(value, str | int) and not isinstance(value, bool):
+            return Decimal(value)
+        if isinstance(value, float):
+            msg = "derived observation inputs cannot be binary floats"
+            raise TypeError(msg)
+        msg = "derived observation inputs must be Decimal, integer, or decimal text"
+        raise TypeError(msg)
+
+
 class ObservationRevision(Base):
     """Audited revision or supersession event."""
 
@@ -429,8 +489,16 @@ class EarningsEvent(Base):
     company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
     fiscal_year: Mapped[int] = mapped_column(Integer)
     fiscal_quarter: Mapped[int] = mapped_column(Integer)
+    period_end: Mapped[date | None] = mapped_column(Date)
     event_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     evidence_id: Mapped[str] = mapped_column(ForeignKey("source_evidence.id"))
+    event_kind: Mapped[str] = mapped_column(String(32), default="FILED_ACTUAL")
+    source_kind: Mapped[str] = mapped_column(String(32), default="SEC_8_K_EX_99")
+    filing_accession: Mapped[str | None] = mapped_column(String(40))
+    window_start: Mapped[date | None] = mapped_column(Date)
+    window_end: Mapped[date | None] = mapped_column(Date)
+    is_inferred: Mapped[bool] = mapped_column(Boolean, default=False)
+    inference_basis: Mapped[list[str]] = mapped_column(JSON, default=list)
 
 
 class PipelineRun(Base):

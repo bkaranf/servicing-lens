@@ -28,5 +28,5 @@ def test_tools_are_network_free_and_read_only() -> None:
         "get_foundation_capabilities",
         "get_foundation_guardrails",
     }
-    assert by_name["get_foundation_capabilities"].invoke({})["phase"] == "stage_a"
+    assert by_name["get_foundation_capabilities"].invoke({})["phase"] == "phase_3_metric_deepening"
     assert by_name["get_foundation_guardrails"].invoke({})["operational_actions"] == "disabled"

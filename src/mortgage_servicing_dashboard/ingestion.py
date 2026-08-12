@@ -16,6 +16,7 @@ from itertools import pairwise
 from pathlib import Path
 from typing import Annotated, Any, Literal, Protocol, assert_never, cast
 
+import httpx
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
@@ -46,12 +47,19 @@ from mortgage_servicing_dashboard.repository import (
 from mortgage_servicing_dashboard.sources import (
     AcquiredDocument,
     ContentAddressedEvidenceStore,
+    LiveSecAcquisition,
     PublicSourceError,
     RecordedEvidenceAcquirer,
     RecordedSourceDefinition,
     RetainedDocument,
+    SecClient,
+    SecFilingMetadata,
     StageARecordedDocumentParser,
     TransientPublicSourceError,
+    normalize_sec_cik,
+    parse_sec_submissions,
+    prepare_live_sec_acquisition,
+    sec_submissions_url,
 )
 
 INGESTION_NODES = (
@@ -100,6 +108,8 @@ _MAX_ERRORS = 16
 _MAX_RETRIES = 3
 _MAX_THREAD_ID_LENGTH = 128
 _MAX_STATE_STRING_LENGTH = 512
+_LIVE_SEC_FORMS = frozenset({"8-K", "8-K/A", "10-K", "10-K/A", "10-Q", "10-Q/A"})
+_MAX_LIVE_FILINGS_PER_COMPANY = 64
 
 
 class IngestionState(TypedDict, total=False):
@@ -178,6 +188,244 @@ class _Workspace:
     documents: dict[str, AcquiredDocument]
     retained: dict[str, RetainedDocument]
     candidates: tuple[ParsedObservationCandidate, ...]
+
+
+def _live_sec_directories(
+    *,
+    cache_directory: Path | None,
+    retention_root: Path | None,
+) -> tuple[Path, Path]:
+    live_root = Path.cwd() / ".msi" / "sec"
+    return (
+        cache_directory or live_root / "cache",
+        retention_root or live_root / "evidence",
+    )
+
+
+def _selected_live_companies(
+    companies: list[dict[str, Any]],
+    company: str | None,
+) -> list[dict[str, Any]]:
+    if company is None:
+        return companies
+    requested = company.casefold()
+    selected = [
+        item
+        for item in companies
+        if requested in {str(item["id"]).casefold(), str(item["ticker"]).casefold()}
+    ]
+    if len(selected) != 1:
+        msg = "live SEC discovery company is outside the configured universe"
+        raise ValueError(msg)
+    return selected
+
+
+def _discover_live_company_filings(
+    *,
+    client: SecClient,
+    store: ContentAddressedEvidenceStore,
+    company: dict[str, Any],
+    filed_on_or_after: date,
+    max_filings: int,
+) -> tuple[SecFilingMetadata, ...]:
+    cik = normalize_sec_cik(str(company["cik"]))
+    document = client.acquire(sec_submissions_url(cik), refresh=True)
+    retained = store.retain(document)
+    if store.verify(retained) != document.content:
+        msg = "content-addressed SEC submissions replay did not match the response"
+        raise PublicSourceError(msg)
+    return parse_sec_submissions(
+        document=document,
+        company_id=str(company["id"]),
+        cik=cik,
+        forms=_LIVE_SEC_FORMS,
+        filed_on_or_after=filed_on_or_after,
+        max_filings=max_filings,
+    )
+
+
+def discover_live_sec_filings(  # noqa: PLR0913
+    *,
+    user_agent: str,
+    company: str | None = None,
+    config_dir: Path | None = None,
+    cache_directory: Path | None = None,
+    retention_root: Path | None = None,
+    max_filings_per_company: int = _MAX_LIVE_FILINGS_PER_COMPANY,
+    transport: httpx.BaseTransport | None = None,
+) -> tuple[SecFilingMetadata, ...]:
+    """Discover bounded recent filings from each configured company's SEC index.
+
+    Args:
+        user_agent: Required identifying application and contact string.
+        company: Optional configured ticker or stable company identifier.
+        config_dir: Optional versioned configuration root.
+        cache_directory: Optional application-owned HTTP response cache.
+        retention_root: Optional content-addressed evidence root.
+        max_filings_per_company: Per-CIK bound after form and date filters.
+        transport: Optional test transport; omitted runs the controlled live client.
+
+    Returns:
+        Bounded allow-listed filing metadata without opening a database.
+    """
+    config_root = config_directory(config_dir)
+    universe, _, data = load_stage_a_configuration(config_root)
+    companies = _selected_live_companies(
+        cast("list[dict[str, Any]]", universe["companies"]),
+        company,
+    )
+    quarters = cast("list[dict[str, Any]]", data["quarters"])
+    filed_on_or_after = min(date.fromisoformat(str(item["period_start"])) for item in quarters)
+    cache_root, evidence_root = _live_sec_directories(
+        cache_directory=cache_directory,
+        retention_root=retention_root,
+    )
+    store = ContentAddressedEvidenceStore(evidence_root)
+    discovered: list[SecFilingMetadata] = []
+    with SecClient(
+        user_agent=user_agent,
+        cache_directory=cache_root,
+        transport=transport,
+    ) as client:
+        for configured_company in companies:
+            discovered.extend(
+                _discover_live_company_filings(
+                    client=client,
+                    store=store,
+                    company=configured_company,
+                    filed_on_or_after=filed_on_or_after,
+                    max_filings=max_filings_per_company,
+                )
+            )
+    return tuple(discovered)
+
+
+def _validate_live_candidates(
+    candidates: tuple[ParsedObservationCandidate, ...],
+) -> None:
+    for candidate in candidates:
+        result = validate_candidate(candidate)
+        if not result.valid:
+            msg = f"live SEC candidate failed deterministic validation: {result.code}"
+            raise PublicSourceError(msg)
+    by_key = {
+        (candidate.company_id, candidate.period_end, candidate.metric_id): candidate
+        for candidate in candidates
+    }
+    tfc_periods = {
+        candidate.period_end for candidate in candidates if candidate.company_id == "tfc"
+    }
+    for period_end in tfc_periods:
+        required = (
+            ("tfc", period_end, "total_servicing_upb"),
+            ("tfc", period_end, "servicing_for_others_upb"),
+            ("tfc", period_end, "bank_owned_loans_serviced_upb"),
+        )
+        if not all(key in by_key for key in required):
+            continue
+        total = by_key[required[0]].normalized_value
+        components = by_key[required[1]].normalized_value + by_key[required[2]].normalized_value
+        if total != components:
+            msg = "live SEC TFC servicing total failed deterministic reconciliation"
+            raise PublicSourceError(msg)
+
+
+def run_live_sec_ingestion(
+    *,
+    user_agent: str,
+    config_dir: Path | None = None,
+    cache_directory: Path | None = None,
+    retention_root: Path | None = None,
+    transport: httpx.BaseTransport | None = None,
+) -> tuple[LiveSecAcquisition, ...]:
+    """Acquire and validate configured SEC documents for repository publication.
+
+    This function performs only governed discovery, HTTP acquisition,
+    content-addressed retention, deterministic parsing, and candidate validation.
+    Database filing linkage, evidence insertion, and observation revisions remain
+    the repository layer's responsibility.
+
+    Args:
+        user_agent: Required identifying application and contact string.
+        config_dir: Optional versioned configuration root.
+        cache_directory: Optional application-owned HTTP response cache.
+        retention_root: Optional immutable content-addressed evidence root.
+        transport: Optional test transport; omitted runs the controlled live client.
+
+    Returns:
+        One content-specific acquisition for each configured live SEC source.
+
+    Raises:
+        PublicSourceError: If discovery, acquisition, replay, parsing, or validation fails.
+    """
+    config_root = config_directory(config_dir)
+    universe, _, data = load_stage_a_configuration(config_root)
+    companies = cast("list[dict[str, Any]]", universe["companies"])
+    company_by_id = {str(item["id"]): item for item in companies}
+    quarters = cast("list[dict[str, Any]]", data["quarters"])
+    filed_on_or_after = min(date.fromisoformat(str(item["period_start"])) for item in quarters)
+    source_payloads = cast("dict[str, dict[str, Any]]", data["sources"])
+    definitions = {
+        key: RecordedSourceDefinition.from_mapping(
+            key=key,
+            payload=payload,
+            config_root=config_root,
+        )
+        for key, payload in source_payloads.items()
+    }
+    cache_root, evidence_root = _live_sec_directories(
+        cache_directory=cache_directory,
+        retention_root=retention_root,
+    )
+    store = ContentAddressedEvidenceStore(evidence_root)
+    parser = StageARecordedDocumentParser()
+    all_candidates: list[ParsedObservationCandidate] = []
+    acquisitions: list[LiveSecAcquisition] = []
+    with SecClient(
+        user_agent=user_agent,
+        cache_directory=cache_root,
+        transport=transport,
+    ) as client:
+        discovered_by_company = {
+            str(company["id"]): _discover_live_company_filings(
+                client=client,
+                store=store,
+                company=company,
+                filed_on_or_after=filed_on_or_after,
+                max_filings=_MAX_LIVE_FILINGS_PER_COMPANY,
+            )
+            for company in companies
+        }
+        for source_key in sorted(definitions):
+            definition = definitions[source_key]
+            matches = [
+                filing
+                for filing in discovered_by_company[definition.company_id]
+                if filing.accession == definition.accession
+            ]
+            if len(matches) != 1:
+                msg = "configured SEC accession was not uniquely discovered for its CIK"
+                raise PublicSourceError(msg)
+            acquired_document = client.acquire(definition.url, refresh=True)
+            retained_document = store.retain(acquired_document)
+            acquisition = prepare_live_sec_acquisition(
+                source=definition,
+                cik=str(company_by_id[definition.company_id]["cik"]),
+                discovered_filing=matches[0],
+                acquired_document=acquired_document,
+                retained_document=retained_document,
+            )
+            candidates = parser.parse(
+                source=acquisition.runtime_definition,
+                content=store.verify(retained_document),
+                company=company_by_id[definition.company_id],
+                quarters=quarters,
+            )
+            _validate_live_candidates(candidates)
+            all_candidates.extend(candidates)
+            acquisitions.append(acquisition)
+    _validate_live_candidates(tuple(all_candidates))
+    return tuple(acquisitions)
 
 
 class StageAIngestionServices:
