@@ -7,8 +7,13 @@ companies:
     cik: "0000092230"
     classification: bank
     fiscal_year_end: "12-31"
+    exchange: NYSE
     reporting_entity: tfc_registrant
     reporting_scope: tfc_consolidated_residential_mortgage_servicing
+    reporting_scope_definition:
+      name: "Tfc Consolidated Residential Mortgage Servicing"
+      portfolio_population: residential_servicing_for_others_and_bank_owned
+      methodology: "Issuer-defined public servicing disclosure scope."
     regulatory_reporting_entities:
       - id: tfc_bhc_regulatory_reporter
         legal_name: "Truist Financial Corporation"
@@ -44,5 +49,10 @@ companies:
     cik: "0001745916"
     classification: nonbank
     fiscal_year_end: "12-31"
+    exchange: NYSE
     reporting_entity: pfsi_registrant
     reporting_scope: pfsi_servicing_segment
+    reporting_scope_definition:
+      name: "Pfsi Servicing Segment"
+      portfolio_population: owned_msr_subservicing_and_held_for_sale
+      methodology: "Issuer-defined public servicing disclosure scope."

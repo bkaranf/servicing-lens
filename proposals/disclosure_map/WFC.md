@@ -101,8 +101,8 @@ the current PFSI `owned_msr_and_msl` foreclosure definitions.
 | `msr_hedging_result` | R | ND | R | R | Exact current-quarter economic-hedge result except Q4 annual-only. |
 | `msr_fair_value_inputs_or_assumptions_change` | ND | ND | ND | ND | WFC reports separate market and other-assumption components; they are not relabeled as a combined-only metric. |
 | `msr_realization_passage_time_and_other` | ND | ND | ND | ND | Collection/realization is narrower than this combined methodology. |
-| `msr_fair_value_multiple_of_related_upb` | D | D | D | D | Exact SEC inputs; publication awaits governed WFC scope bridge. |
-| `msr_fair_value_bps_of_related_upb` | D | D | D | D | Exact SEC inputs; publication awaits governed WFC scope bridge. |
+| `msr_fair_value_multiple_of_related_upb` | D | D | D | D | Exact SEC inputs; metric-engine v1.1.0 uses the governed same-date WFC residential-MSR-related UPB support boundary. |
+| `msr_fair_value_bps_of_related_upb` | D | D | D | D | Exact SEC inputs; metric-engine v1.1.0 uses the governed same-date WFC residential-MSR-related UPB support boundary. |
 | `capitalized_servicing_rate_on_additions` | ND | ND | ND | ND | Additions and related UPB are not separately disclosed. |
 | `fha_servicing_upb` | ND | ND | ND | ND | No exact same-population program component. |
 | `va_servicing_upb` | ND | ND | ND | ND | No exact same-population program component. |

@@ -1,9 +1,73 @@
-version: "phase4-wfc-research-1.0.0"
-status: DISCLOSURE_MAP_RESEARCH_ONLY
+version: "phase4-wfc-1.0.0"
+status: PUBLICATION_VALIDATED
 knowledge_at: "2026-08-12T15:34:49.229633Z"
-publication_authorized: false
-parser_implemented: false
+publication_authorized: true
+parser_implemented: true
 manifest: ../recorded_evidence/phase4/wfc/manifest.v1.yaml
+
+offline_parser:
+  parser_name: wfc_phase4_retained_sec_html
+  parser_version: "1.0.0"
+  table_window_rows: 16
+  sources:
+    Q3_2025:
+      source_key: wfc_2025q3_10q
+      period_end: "2025-09-30"
+      portfolio_header: "($ in billions, unless otherwise noted) | Residential mortgages | Commercial mortgages | Residential mortgages | Commercial mortgages"
+      rollforward_header: "Quarter ended September 30, | Nine months ended September 30,"
+      income_anchor: "Contractually specified servicing fees, late charges and ancillary fees"
+      rows:
+        - {metric_id: servicing_for_others_upb, raw_label: "Total serviced for others, excluding subserviced for others", table: portfolio, scale: billions, period_type: instant}
+        - {metric_id: total_servicing_upb, raw_label: "Total managed servicing portfolio", table: portfolio, scale: billions, period_type: instant}
+        - {metric_id: bank_owned_loans_serviced_upb, raw_label: "Owned loans serviced", table: portfolio, scale: billions, period_type: instant}
+        - {metric_id: servicing_revenue, raw_label: "Total net servicing income", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value, raw_label: "Residential MSRs at fair value, end of period", table: rollforward, scale: millions, period_type: instant}
+        - {metric_id: msr_ending_balance, raw_label: "Residential MSRs at fair value, end of period", table: rollforward, scale: millions, period_type: instant}
+        - {metric_id: msr_realization_or_amortization, raw_label: "Changes due to collection/realization of expected cash flows (3)", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value_market_change, raw_label: "Changes in fair value of MSRs due to market interest rates", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value_assumption_change, raw_label: "Changes in fair value of MSRs due to other valuation inputs or assumptions (4)", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_hedging_result, raw_label: "Net derivative gain (losses) from economic hedges (5)", table: income, scale: millions, period_type: duration}
+    Q4_2025:
+      source_key: wfc_2025q4_annual_report
+      period_end: "2025-12-31"
+      portfolio_header: "($ in billions, unless otherwise noted) | Residential mortgages | Commercial mortgages | Residential mortgages | Commercial mortgages"
+      rollforward_header: "Year ended December 31, | (in millions) | 2025 | 2024 | 2023"
+      rows:
+        - {metric_id: servicing_for_others_upb, raw_label: "Total serviced for others, excluding subserviced for others (1)", table: portfolio, scale: billions, period_type: instant}
+        - {metric_id: total_servicing_upb, raw_label: "Total managed servicing portfolio", table: portfolio, scale: billions, period_type: instant}
+        - {metric_id: bank_owned_loans_serviced_upb, raw_label: "Owned loans serviced", table: portfolio, scale: billions, period_type: instant}
+        - {metric_id: msr_fair_value, raw_label: "Residential MSRs at fair value, end of period", table: rollforward, scale: millions, period_type: instant}
+        - {metric_id: msr_ending_balance, raw_label: "Residential MSRs at fair value, end of period", table: rollforward, scale: millions, period_type: instant}
+    Q1_2026:
+      source_key: wfc_2026q1_10q
+      period_end: "2026-03-31"
+      portfolio_header: "Mar 31, 2026 | Dec 31, 2025 | Residential mortgages | Commercial mortgages | Residential mortgages | Commercial mortgages"
+      rollforward_header: "Quarter ended March 31, | (in millions) | 2026 | 2025"
+      income_anchor: "Contractually specified servicing fees, late charges and ancillary fees"
+      rows:
+        - {metric_id: servicing_for_others_upb, raw_label: "Loans serviced for others ($ in billions)", table: portfolio, scale: billions, period_type: instant}
+        - {metric_id: servicing_revenue, raw_label: "Total net servicing income", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value, raw_label: "Residential MSRs at fair value, end of period", table: rollforward, scale: millions, period_type: instant}
+        - {metric_id: msr_ending_balance, raw_label: "Residential MSRs at fair value, end of period", table: rollforward, scale: millions, period_type: instant}
+        - {metric_id: msr_realization_or_amortization, raw_label: "Changes due to collection/realization of expected cash flows (3)", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value_market_change, raw_label: "Changes in fair value of MSRs due to market interest rates", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value_assumption_change, raw_label: "Changes in fair value of MSRs due to other valuation inputs or assumptions (5)", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_hedging_result, raw_label: "Net derivative gains (losses) from economic hedges (4)", table: income, scale: millions, period_type: duration}
+    Q2_2026:
+      source_key: wfc_2026q2_10q
+      period_end: "2026-06-30"
+      portfolio_header: "Jun 30, 2026 | Dec 31, 2025 | Residential mortgages | Commercial mortgages | Residential mortgages | Commercial mortgages"
+      rollforward_header: "Quarter ended June 30, | Six months ended June 30, | (in millions) | 2026 | 2025 | 2026 | 2025"
+      income_anchor: "Contractually specified servicing fees, late charges and ancillary fees"
+      rows:
+        - {metric_id: servicing_for_others_upb, raw_label: "Loans serviced for others, unpaid principal balance ($ in billions)", table: portfolio, scale: billions, period_type: instant}
+        - {metric_id: servicing_revenue, raw_label: "Total net servicing income", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value, raw_label: "Residential MSRs at fair value, end of period", table: rollforward, scale: millions, period_type: instant}
+        - {metric_id: msr_ending_balance, raw_label: "Residential MSRs at fair value, end of period", table: rollforward, scale: millions, period_type: instant}
+        - {metric_id: msr_realization_or_amortization, raw_label: "Changes due to collection/realization of expected cash flows (3)", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value_market_change, raw_label: "Changes in fair value of MSRs due to market interest rates", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_fair_value_assumption_change, raw_label: "Changes in fair value of MSRs due to other valuation inputs or assumptions (5)", table: income, scale: millions, period_type: duration}
+        - {metric_id: msr_hedging_result, raw_label: "Net derivative gains (losses) from economic hedges (4)", table: income, scale: millions, period_type: duration}
 
 identity:
   company_id: wfc
@@ -261,15 +325,15 @@ disclosures:
     assessment: NOT_DISCLOSED_INCOMPATIBLE_METHODOLOGY
     rule: "WFC separately discloses market-interest-rate and other-input/assumption changes; those components are not relabeled as the catalog's combined-only metric."
   msr_fair_value_multiple_of_related_upb:
-    assessment: DERIVABLE_RESEARCH_ONLY
+    assessment: DERIVABLE_GOVERNED
     formula: msr_fair_value / servicing_for_others_upb
     periods: [Q3_2025, Q4_2025, Q1_2026, Q2_2026]
-    rule: "Requires future governed WFC scope-bridge and publication implementation; no derived value is configured here."
+    rule: "Derived only through metric_engine v1.1.0 from exact same-date residential MSR fair value and the governed WFC residential-MSR-related servicing UPB support observation; no derived value is configured here."
   msr_fair_value_bps_of_related_upb:
-    assessment: DERIVABLE_RESEARCH_ONLY
+    assessment: DERIVABLE_GOVERNED
     formula: (msr_fair_value / servicing_for_others_upb) * 10000
     periods: [Q3_2025, Q4_2025, Q1_2026, Q2_2026]
-    rule: "Requires future governed WFC scope-bridge and publication implementation; no derived value is configured here."
+    rule: "Derived only through metric_engine v1.1.0 from exact same-date residential MSR fair value and the governed WFC residential-MSR-related servicing UPB support observation; no derived value is configured here."
 
 matrix_statuses:
   all_reported: &all_r {Q3_2025: R, Q4_2025: R, Q1_2026: R, Q2_2026: R}
@@ -323,8 +387,8 @@ eligible_source_assessment:
     msr_hedging_result: {periods: *except_q4_r, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Exact quarterly economic-hedge result except Q4, where only annual is disclosed."}
     msr_fair_value_inputs_or_assumptions_change: {periods: *all_nd, check_profile: msr, rationale: "WFC separately discloses market and other-input/assumption changes; the components are not relabeled as the catalog's combined-only metric."}
     msr_realization_passage_time_and_other: {periods: *all_nd, check_profile: msr, rationale: "WFC discloses collection/realization, not the broader combined realization/passage-of-time/other methodology."}
-    msr_fair_value_multiple_of_related_upb: {periods: *all_d, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Research-ready exact ratio from fair value and same-date servicing-for-others UPB; publication awaits governed WFC scope bridge."}
-    msr_fair_value_bps_of_related_upb: {periods: *all_d, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Research-ready exact multiple times 10,000; publication awaits governed WFC scope bridge."}
+    msr_fair_value_multiple_of_related_upb: {periods: *all_d, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Governed exact ratio from residential MSR fair value and the same-date WFC residential-MSR-related UPB support observation."}
+    msr_fair_value_bps_of_related_upb: {periods: *all_d, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Governed exact multiple times 10,000 from residential MSR fair value and the same-date WFC residential-MSR-related UPB support observation."}
     capitalized_servicing_rate_on_additions: {periods: *all_nd, check_profile: msr, rationale: "Neither additions nor additions-related UPB is separately disclosed."}
     fha_servicing_upb: *mix_nd
     va_servicing_upb: *mix_nd

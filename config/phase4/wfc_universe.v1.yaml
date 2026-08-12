@@ -1,0 +1,80 @@
+version: "phase-4a-wfc-2026-08-12"
+display_name: "Wells Fargo Phase 4a universe extension"
+companies:
+  - id: wfc
+    legal_name: "Wells Fargo & Company"
+    ticker: WFC
+    exchange: NYSE
+    cik: "0000072971"
+    classification: bank
+    fiscal_year_end: "12-31"
+    reporting_entity: wfc_sec_registrant
+    reporting_scope: wfc_consolidated_residential_mortgage_servicing
+    reporting_scope_definition:
+      name: "Wells Fargo consolidated residential mortgage servicing for others"
+      portfolio_population: residential_mortgages_serviced_for_others_excluding_subservicing
+      methodology: "Issuer Note 6 residential loans-serviced-for-others boundary."
+    additional_reporting_entities:
+      - id: wfc_home_lending_operating_unit
+        legal_name: "Home Lending"
+        entity_type: DISCLOSED_OPERATING_UNIT
+        relationship_type: REPORTS_SEGMENT
+        parent_entity_id: wfc_sec_registrant
+    additional_reporting_scopes:
+      - id: wfc_managed_residential_mortgage_servicing
+        reporting_entity_id: wfc_sec_registrant
+        name: "Wells Fargo managed residential mortgage servicing"
+        portfolio_population: managed_residential_mortgages
+        methodology: "Issuer Note 6 managed servicing boundary; disclosed only for governed periods."
+      - id: wfc_owned_residential_loans_serviced
+        reporting_entity_id: wfc_sec_registrant
+        name: "Wells Fargo owned residential loans serviced"
+        portfolio_population: owned_residential_loans_serviced
+        methodology: "Issuer Note 6 owned-loan servicing boundary."
+      - id: wfc_owned_residential_msr
+        reporting_entity_id: wfc_sec_registrant
+        name: "Wells Fargo owned residential MSR"
+        portfolio_population: owned_residential_msr_at_fair_value
+        methodology: "Issuer Note 6 residential MSRs measured at fair value."
+      - id: wfc_mortgage_banking_servicing_economics
+        reporting_entity_id: wfc_sec_registrant
+        name: "Wells Fargo mortgage banking servicing economics"
+        portfolio_population: combined_mortgage_banking_servicing_economics
+        methodology: "Issuer Note 6 combined mortgage-banking servicing economics boundary."
+      - id: wfc_home_lending_owned_loan_metrics
+        reporting_entity_id: wfc_home_lending_operating_unit
+        name: "Wells Fargo Home Lending owned-loan metrics"
+        portfolio_population: owned_home_lending_loans
+        methodology: "Disclosed Home Lending operating-unit owned-loan boundary; not a servicing-for-others scope."
+    regulatory_reporting_entities:
+      - id: wfc_bhc_regulatory_reporter
+        legal_name: "Wells Fargo & Company"
+        entity_type: BANK_HOLDING_COMPANY
+        relationship_type: REGULATED_AS
+        parent_entity_id: wfc_sec_registrant
+        scope:
+          id: wfc_bhc_regulatory
+          name: "Wells Fargo consolidated holding-company regulatory scope"
+          portfolio_population: bank_holding_company_consolidated
+          methodology: "FR Y-9C consolidated holding-company reporting; never interchangeable with SEC or depository scope."
+        identifiers:
+          - scheme: RSSD
+            value: "1120754"
+            source_url: "https://www.ffiec.gov/npw/Institution/Profile/1120754"
+      - id: wells_fargo_bank_na_regulatory_reporter
+        legal_name: "Wells Fargo Bank, National Association"
+        entity_type: INSURED_DEPOSITORY_INSTITUTION
+        relationship_type: OWNS
+        parent_entity_id: wfc_bhc_regulatory_reporter
+        scope:
+          id: wells_fargo_bank_na_regulatory
+          name: "Wells Fargo Bank, N.A. depository regulatory scope"
+          portfolio_population: depository_institution_only
+          methodology: "FFIEC Call Report depository-institution reporting; never interchangeable with holding-company or SEC scope."
+        identifiers:
+          - scheme: RSSD
+            value: "451965"
+            source_url: "https://www.ffiec.gov/npw/Institution/Profile/451965"
+          - scheme: FDIC_CERT
+            value: "3511"
+            source_url: "https://banks.data.fdic.gov/bankfind-suite/bankfind/details/3511"

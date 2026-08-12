@@ -33,6 +33,7 @@ from mortgage_servicing_dashboard.repository import (
     load_stage_a_configuration,
     prepare_stage_a,
     seed_phase3,
+    seed_phase4_wfc,
     seed_stage_a,
 )
 from mortgage_servicing_dashboard.sources import PublicSourceError
@@ -58,6 +59,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     phase3.add_argument("--database-url")
     phase3.add_argument("--config-dir", type=Path)
+    phase4_wfc = subparsers.add_parser(
+        "seed-phase4-wfc",
+        help="Publish the governed retained WFC Phase 4a dataset.",
+    )
+    phase4_wfc.add_argument("--database-url")
+    phase4_wfc.add_argument("--config-dir", type=Path)
     calendar = subparsers.add_parser(
         "calendar",
         help="Show actual reports and separately labeled inferred filing windows.",
@@ -282,7 +289,7 @@ def _review_candidate(engine: Any, args: argparse.Namespace) -> tuple[int, dict[
     }
 
 
-def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0912
+def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0912, PLR0915
     """Dispatch deterministic CLI operations."""
     args = build_parser().parse_args(argv)
     command = args.command or "doctor"
@@ -334,6 +341,16 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0
         print(
             json.dumps(
                 {"database": "ready", "mode": "phase3", "inserted": counts},
+                sort_keys=True,
+            )
+        )
+        engine.dispose()
+        return 0
+    if command == "seed-phase4-wfc":
+        counts = seed_phase4_wfc(engine, config_dir=getattr(args, "config_dir", None))
+        print(
+            json.dumps(
+                {"database": "ready", "mode": "phase4-wfc", "inserted": counts},
                 sort_keys=True,
             )
         )

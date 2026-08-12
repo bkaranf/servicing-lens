@@ -1,0 +1,95 @@
+schema_version: "1"
+extension_version: "phase4-wfc-metric-bridge-1.0.0"
+requires_base_catalog_version: "1.0.0"
+
+dimension_taxonomies: []
+
+metric_versions:
+  - &wfc_owned_msr_fair_value
+    metric_id: msr_fair_value
+    semantic_version: "2.0.0"
+    category: msr
+    definition: "Carrying fair value of residential mortgage servicing rights in WFC's explicitly disclosed owned-MSR population."
+    unit: USD
+    scale: "1"
+    period_types: [instant]
+    methodologies: [ISSUER_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: owned_msr}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [EXACT_PUBLISHED_ENDING_BALANCE, RESIDENTIAL_MSR_POPULATION_REQUIRED]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - <<: *wfc_owned_msr_fair_value
+    metric_id: msr_ending_balance
+    definition: "Ending balance of residential mortgage servicing rights in WFC's explicitly disclosed owned-MSR roll-forward."
+
+  - metric_id: wfc_residential_msr_related_upb
+    semantic_version: "1.0.0"
+    category: msr_economics_support
+    definition: "WFC residential mortgage loans serviced for others disclosed in the same Note 6 residential mortgage banking context as its residential MSR fair value, governed only as the same-date denominator for the WFC residential MSR fair-value ratios."
+    unit: USD
+    scale: "1"
+    period_types: [instant]
+    methodologies: [ISSUER_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: owned_msr}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [EXACT_PUBLISHED_DENOMINATOR, SAME_NOTE6_RESIDENTIAL_MORTGAGE_CONTEXT]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - &wfc_fv_multiple
+    metric_id: msr_fair_value_multiple_of_related_upb
+    semantic_version: "1.1.0"
+    category: msr_economics
+    definition: "MSR fair value divided by exact related servicing-for-others UPB at the same instant, only through an issuer-specific governed relationship between the denominator and owned-MSR scopes."
+    unit: multiple
+    scale: "1"
+    period_types: [instant]
+    methodologies: [DETERMINISTIC_DERIVED]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: owned_msr}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [FORMULA_REPRODUCES_INPUTS, RELATED_UPB_REQUIRED, GOVERNED_SCOPE_BRIDGE_REQUIRED]
+    quantization: {quantum: "0.0000000001", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: FAIR_VALUE_TO_UPB_MULTIPLE
+      formula_version: "1.1.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: fair_value, metric_ids: [msr_fair_value], unit: USD, period_relation: SAME_INSTANT}
+        - role: related_upb
+          metric_ids: [owned_msr_upb, servicing_for_others_upb, wfc_residential_msr_related_upb]
+          unit: USD
+          period_relation: SAME_INSTANT
+          allowed_scope_pairs:
+            - [tfc_consolidated_residential_mortgage_servicing, tfc_owned_residential_msr]
+
+  - <<: *wfc_fv_multiple
+    metric_id: msr_fair_value_bps_of_related_upb
+    semantic_version: "1.1.0"
+    definition: "MSR fair value divided by exact related servicing-for-others UPB at the same instant and expressed in basis points, only through an issuer-specific governed relationship between the denominator and owned-MSR scopes."
+    unit: basis_points
+    validation_rules: [FINITE, NONNEGATIVE, BPS_0_10000]
+    quantization: {quantum: "0.000001", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: FAIR_VALUE_TO_UPB_BPS
+      formula_version: "1.1.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: fair_value, metric_ids: [msr_fair_value], unit: USD, period_relation: SAME_INSTANT}
+        - role: related_upb
+          metric_ids: [owned_msr_upb, servicing_for_others_upb, wfc_residential_msr_related_upb]
+          unit: USD
+          period_relation: SAME_INSTANT
+          allowed_scope_pairs:
+            - [tfc_consolidated_residential_mortgage_servicing, tfc_owned_residential_msr]
+
+cross_source_rules: []

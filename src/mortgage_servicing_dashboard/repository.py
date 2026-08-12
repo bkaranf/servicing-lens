@@ -9,6 +9,7 @@ import sys
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, time
 from decimal import ROUND_HALF_EVEN, Decimal
+from itertools import combinations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -70,8 +71,10 @@ if TYPE_CHECKING:
         MetricDefinition as EngineMetricDefinition,
     )
     from mortgage_servicing_dashboard.phase3 import Phase3Dataset
+RecordedIssuerDataset = Any
 
 _MAX_REPOSITORY_RESULTS = 500
+_MIN_COMPARISON_COMPANIES = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -245,6 +248,89 @@ def _metric_display_name(metric_id: str) -> str:
     return metric_id.replace("_", " ").title().replace("Msr", "MSR").replace("Upb", "UPB")
 
 
+def _fiscal_year_end(company: dict[str, Any]) -> tuple[int, int]:
+    raw = str(company["fiscal_year_end"])
+    try:
+        month_text, day_text = raw.split("-", maxsplit=1)
+        month, day = int(month_text), int(day_text)
+        date(2000, month, day)
+    except (TypeError, ValueError) as error:
+        msg = f"invalid fiscal_year_end for {company['id']}: {raw}"
+        raise ValueError(msg) from error
+    return month, day
+
+
+def _ensure_entity_regimes(
+    session: Session,
+    *,
+    entity_id: str,
+    fiscal_year_end: tuple[int, int],
+    policy: tuple[str, str, str],
+) -> None:
+    calendar_id = f"{entity_id}:calendar"
+    if session.get(FiscalCalendarRegime, calendar_id) is None:
+        session.add(
+            FiscalCalendarRegime(
+                id=calendar_id,
+                reporting_entity_id=entity_id,
+                fiscal_year_end_month=fiscal_year_end[0],
+                fiscal_year_end_day=fiscal_year_end[1],
+                effective_from=date(1900, 1, 1),
+                effective_to=None,
+            )
+        )
+    policy_suffix, policy_name, policy_description = policy
+    policy_id = f"{entity_id}:{policy_suffix}"
+    if session.get(AccountingPolicyRegime, policy_id) is None:
+        session.add(
+            AccountingPolicyRegime(
+                id=policy_id,
+                reporting_entity_id=entity_id,
+                policy_name=policy_name,
+                description=policy_description,
+                effective_from=date(1900, 1, 1),
+                effective_to=None,
+            )
+        )
+
+
+def _ensure_entity_relationship(
+    session: Session,
+    *,
+    parent_entity_id: str,
+    child_entity_id: str,
+    relationship_type: str,
+) -> None:
+    relationship_id = f"{parent_entity_id}:{child_entity_id}"
+    if session.get(EntityRelationship, relationship_id) is None:
+        session.add(
+            EntityRelationship(
+                id=relationship_id,
+                parent_entity_id=parent_entity_id,
+                child_entity_id=child_entity_id,
+                relationship_type=relationship_type,
+                valid_from=date(1900, 1, 1),
+                valid_to=None,
+                known_from=datetime(2026, 8, 12, tzinfo=UTC),
+                known_to=None,
+            )
+        )
+
+
+def _ensure_reporting_scope(session: Session, scope: dict[str, Any]) -> None:
+    scope_id = str(scope["id"])
+    if session.get(ReportingScope, scope_id) is None:
+        session.add(
+            ReportingScope(
+                id=scope_id,
+                reporting_entity_id=str(scope["reporting_entity_id"]),
+                name=str(scope["name"]),
+                portfolio_population=str(scope["portfolio_population"]),
+                methodology=str(scope["methodology"]),
+            )
+        )
+
+
 def _seed_universe(  # noqa: C901
     session: Session,
     *,
@@ -256,6 +342,7 @@ def _seed_universe(  # noqa: C901
         company_id = str(company["id"])
         entity_id = str(company["reporting_entity"])
         scope_id = str(company["reporting_scope"])
+        fiscal_year_end = _fiscal_year_end(company)
         if session.get(Company, company_id) is None:
             session.add(
                 Company(
@@ -272,7 +359,7 @@ def _seed_universe(  # noqa: C901
                     id=f"{company_id}:common",
                     company_id=company_id,
                     ticker=str(company["ticker"]),
-                    exchange="NYSE",
+                    exchange=str(company["exchange"]),
                     security_type="common_stock",
                 )
             )
@@ -284,19 +371,14 @@ def _seed_universe(  # noqa: C901
                     entity_type="SEC_REGISTRANT",
                 )
             )
-            population = (
-                "residential_servicing_for_others_and_bank_owned"
-                if company_id == "tfc"
-                else "owned_msr_subservicing_and_held_for_sale"
-            )
-            session.add(
-                ReportingScope(
-                    id=scope_id,
-                    reporting_entity_id=entity_id,
-                    name=scope_id.replace("_", " ").title(),
-                    portfolio_population=population,
-                    methodology="Issuer-defined public servicing disclosure scope.",
-                )
+            scope_definition = cast("dict[str, Any]", company["reporting_scope_definition"])
+            _ensure_reporting_scope(
+                session,
+                {
+                    "id": scope_id,
+                    "reporting_entity_id": entity_id,
+                    **scope_definition,
+                },
             )
             session.add(
                 EntityIdentifier(
@@ -308,54 +390,63 @@ def _seed_universe(  # noqa: C901
                     valid_to=None,
                 )
             )
-            session.add(
-                FiscalCalendarRegime(
-                    id=f"{entity_id}:calendar",
-                    reporting_entity_id=entity_id,
-                    fiscal_year_end_month=12,
-                    fiscal_year_end_day=31,
-                    effective_from=date(1900, 1, 1),
-                    effective_to=None,
-                )
-            )
-            session.add(
-                AccountingPolicyRegime(
-                    id=f"{entity_id}:us-gaap",
-                    reporting_entity_id=entity_id,
-                    policy_name="US_GAAP_ISSUER_REPORTED",
-                    description=(
-                        "Issuer-reported US GAAP accounting and valuation policies; "
-                        "metric-specific methodology remains attached to each observation."
-                    ),
-                    effective_from=date(1900, 1, 1),
-                    effective_to=None,
-                )
-            )
             inserted += 1
+        else:
+            existing_company = session.get(Company, company_id)
+            assert existing_company is not None  # noqa: S101
+            existing_company.universe_version = str(universe["version"])
 
         session.flush()
-        if session.get(FiscalCalendarRegime, f"{entity_id}:calendar") is None:
-            session.add(
-                FiscalCalendarRegime(
-                    id=f"{entity_id}:calendar",
-                    reporting_entity_id=entity_id,
-                    fiscal_year_end_month=12,
-                    fiscal_year_end_day=31,
-                    effective_from=date(1900, 1, 1),
-                    effective_to=None,
+        _ensure_entity_regimes(
+            session,
+            entity_id=entity_id,
+            fiscal_year_end=fiscal_year_end,
+            policy=(
+                "us-gaap",
+                "US_GAAP_ISSUER_REPORTED",
+                (
+                    "Issuer-reported US GAAP accounting and valuation policies; "
+                    "metric-specific methodology remains attached to each observation."
+                ),
+            ),
+        )
+
+        additional_entities = cast(
+            "list[dict[str, Any]]", company.get("additional_reporting_entities", [])
+        )
+        for additional in additional_entities:
+            additional_id = str(additional["id"])
+            if session.get(ReportingEntity, additional_id) is None:
+                session.add(
+                    ReportingEntity(
+                        id=additional_id,
+                        company_id=company_id,
+                        legal_name=str(additional["legal_name"]),
+                        entity_type=str(additional["entity_type"]),
+                    )
                 )
+            session.flush()
+            _ensure_entity_regimes(
+                session,
+                entity_id=additional_id,
+                fiscal_year_end=fiscal_year_end,
+                policy=(
+                    "us-gaap",
+                    "US_GAAP_ISSUER_REPORTED",
+                    "Issuer-disclosed operating-unit US GAAP reporting basis.",
+                ),
             )
-        if session.get(AccountingPolicyRegime, f"{entity_id}:us-gaap") is None:
-            session.add(
-                AccountingPolicyRegime(
-                    id=f"{entity_id}:us-gaap",
-                    reporting_entity_id=entity_id,
-                    policy_name="US_GAAP_ISSUER_REPORTED",
-                    description="Issuer-reported US GAAP accounting and valuation policies.",
-                    effective_from=date(1900, 1, 1),
-                    effective_to=None,
-                )
+            _ensure_entity_relationship(
+                session,
+                parent_entity_id=str(additional.get("parent_entity_id", entity_id)),
+                child_entity_id=additional_id,
+                relationship_type=str(additional["relationship_type"]),
             )
+
+        for additional_scope in cast(
+            "list[dict[str, Any]]", company.get("additional_reporting_scopes", [])
+        ):
+            _ensure_reporting_scope(session, additional_scope)
 
         regulatory_entities = cast(
             "list[dict[str, Any]]", company.get("regulatory_reporting_entities", [])
@@ -372,31 +463,16 @@ def _seed_universe(  # noqa: C901
                     )
                 )
             session.flush()
-            if session.get(FiscalCalendarRegime, f"{regulatory_entity_id}:calendar") is None:
-                session.add(
-                    FiscalCalendarRegime(
-                        id=f"{regulatory_entity_id}:calendar",
-                        reporting_entity_id=regulatory_entity_id,
-                        fiscal_year_end_month=12,
-                        fiscal_year_end_day=31,
-                        effective_from=date(1900, 1, 1),
-                        effective_to=None,
-                    )
-                )
-            if (
-                session.get(AccountingPolicyRegime, f"{regulatory_entity_id}:regulatory-gaap")
-                is None
-            ):
-                session.add(
-                    AccountingPolicyRegime(
-                        id=f"{regulatory_entity_id}:regulatory-gaap",
-                        reporting_entity_id=regulatory_entity_id,
-                        policy_name="REGULATORY_REPORTING_BASIS",
-                        description="Native reporter-scoped bank regulatory reporting basis.",
-                        effective_from=date(1900, 1, 1),
-                        effective_to=None,
-                    )
-                )
+            _ensure_entity_regimes(
+                session,
+                entity_id=regulatory_entity_id,
+                fiscal_year_end=fiscal_year_end,
+                policy=(
+                    "regulatory-gaap",
+                    "REGULATORY_REPORTING_BASIS",
+                    "Native reporter-scoped bank regulatory reporting basis.",
+                ),
+            )
             scope = cast("dict[str, Any]", regulatory["scope"])
             regulatory_scope_id = str(scope["id"])
             if session.get(ReportingScope, regulatory_scope_id) is None:
@@ -410,20 +486,12 @@ def _seed_universe(  # noqa: C901
                     )
                 )
             parent_entity_id = str(regulatory.get("parent_entity_id", entity_id))
-            relationship_id = f"{parent_entity_id}:{regulatory_entity_id}"
-            if session.get(EntityRelationship, relationship_id) is None:
-                session.add(
-                    EntityRelationship(
-                        id=relationship_id,
-                        parent_entity_id=parent_entity_id,
-                        child_entity_id=regulatory_entity_id,
-                        relationship_type=str(regulatory["relationship_type"]),
-                        valid_from=date(1900, 1, 1),
-                        valid_to=None,
-                        known_from=datetime(2026, 8, 12, tzinfo=UTC),
-                        known_to=None,
-                    )
-                )
+            _ensure_entity_relationship(
+                session,
+                parent_entity_id=parent_entity_id,
+                child_entity_id=regulatory_entity_id,
+                relationship_type=str(regulatory["relationship_type"]),
+            )
             identifiers = cast("list[dict[str, Any]]", regulatory["identifiers"])
             for identifier in identifiers:
                 scheme = str(identifier["scheme"])
@@ -1144,10 +1212,8 @@ def _seed_comparability_assessments(session: Session, *, known_at: datetime) -> 
             company_id, []
         ).append((observation, semantic_version, population))
     for (metric_id, _semantic_version, _period_end), by_company in grouped.items():
-        if set(by_company) != {"tfc", "pfsi"}:
+        if len(by_company) < _MIN_COMPARISON_COMPANIES:
             continue
-        left_rows = sorted(by_company["tfc"], key=lambda row: row[0].id)
-        right_rows = sorted(by_company["pfsi"], key=lambda row: row[0].id)
 
         def assessment_input(
             observation: MetricObservation,
@@ -1173,8 +1239,18 @@ def _seed_comparability_assessments(session: Session, *, known_at: datetime) -> 
                 dimensions=tuple(sorted(observation.dimensions.items())),
             )
 
-        for left, left_version, left_population in left_rows:
-            for right, right_version, right_population in right_rows:
+        company_order = sorted(
+            by_company,
+            key=lambda company_id: ({"tfc": 0, "pfsi": 1}.get(company_id, 2), company_id),
+        )
+        for left_company, right_company in combinations(company_order, 2):
+            left_rows = sorted(by_company[left_company], key=lambda row: row[0].id)
+            right_rows = sorted(by_company[right_company], key=lambda row: row[0].id)
+            for (left, left_version, left_population), (
+                right,
+                right_version,
+                right_population,
+            ) in ((left_row, right_row) for left_row in left_rows for right_row in right_rows):
                 result = assess_comparability(
                     assessment_input(left, left_version, left_population),
                     assessment_input(right, right_version, right_population),
@@ -1220,7 +1296,13 @@ def _write_stage_a(
     initialize_schema(engine)
     root = config_directory(config_dir)
     universe, catalog, data = load_stage_a_configuration(root)
-    companies = cast("list[dict[str, Any]]", universe["companies"])
+    universe_companies = cast("list[dict[str, Any]]", universe["companies"])
+    stage_a_company_ids = set(
+        cast("dict[str, Any]", data["eligible_source_assessment"])["companies"]
+    )
+    companies = [
+        company for company in universe_companies if str(company["id"]) in stage_a_company_ids
+    ]
     metrics = cast("list[dict[str, Any]]", catalog["metrics"])
     quarters = cast("list[dict[str, Any]]", data["quarters"])
     bundles = _load_source_bundles(config_root=root, data=data, companies=companies)
@@ -1236,7 +1318,7 @@ def _write_stage_a(
         inserted["companies"] = _seed_universe(
             session,
             universe=universe,
-            companies=companies,
+            companies=universe_companies,
         )
         inserted["metrics"] = _seed_metrics(session, metrics)
         session.flush()
@@ -1409,7 +1491,7 @@ def _phase3_scope_population(scope_id: str) -> str:
     return controlled.get(scope_id, f"explicit_issuer_scope:{scope_id}")
 
 
-def _ensure_phase3_scopes(session: Session, dataset: Phase3Dataset) -> None:
+def _ensure_phase3_scopes(session: Session, dataset: RecordedIssuerDataset) -> None:
     candidates = tuple(
         item.candidate
         for item in (
@@ -1441,7 +1523,7 @@ def _ensure_phase3_scopes(session: Session, dataset: Phase3Dataset) -> None:
 
 def _phase3_run(
     session: Session,
-    dataset: Phase3Dataset,
+    dataset: RecordedIssuerDataset,
     *,
     config_root: Path,
 ) -> tuple[PipelineRun, bool]:
@@ -1550,10 +1632,81 @@ def _phase3_run(
     return run, True
 
 
+def _wfc_phase4_run(
+    session: Session,
+    dataset: Any,
+    *,
+    config_root: Path,
+) -> tuple[PipelineRun, bool]:
+    governed_paths = [
+        config_root / "universe.yaml",
+        config_root / "phase4" / "wfc_universe.v1.yaml",
+        config_root / "phase4" / "wfc_sources.yaml",
+        config_root / "recorded_evidence" / "phase4" / "wfc" / "manifest.v1.yaml",
+        *sorted((config_root / "metrics").glob("*.yaml")),
+    ]
+    config_hashes = {
+        path.relative_to(config_root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in governed_paths
+        if path.is_file()
+    }
+    run_key = _stable_hash(
+        _canonical_run_value(
+            {
+                "mode": "phase4-wfc-recorded-publication",
+                "dataset_version": dataset.dataset_version,
+                "parser": (dataset.parser_name, dataset.parser_version),
+                "catalog": sorted(
+                    f"{item.metric_id}:{item.semantic_version}"
+                    for item in dataset.catalog.definitions
+                ),
+                "config_hashes": config_hashes,
+                "evidence": dataset.evidence,
+                "assessments": dataset.assessments,
+                "reported": dataset.reported_candidates,
+                "support": getattr(dataset, "support_candidates", ()),
+                "derived": dataset.derived_candidates,
+                "blocked": dataset.blocked_derivations,
+                "missing": dataset.missing_cells,
+                "regulatory_research": dataset.regulatory_research_expectations,
+            }
+        )
+    )
+    run_id = f"pipeline:phase4:wfc:{run_key[:32]}"
+    existing = session.get(PipelineRun, run_id)
+    if existing is not None:
+        return existing, False
+    run = PipelineRun(
+        id=run_id,
+        run_key=run_key,
+        status="RUNNING",
+        thread_id=f"thread:phase4:wfc:{run_key[:24]}",
+        started_at=dataset.knowledge_at,
+        completed_at=None,
+        error_count=0,
+        retry_count=0,
+        requested_company_id="wfc",
+        requested_periods=sorted({item.period_end.isoformat() for item in dataset.assessments}),
+        code_version="phase4a-wfc-persistence-v1",
+        config_version=dataset.dataset_version,
+        parser_version=f"{dataset.parser_name}:{dataset.parser_version}",
+        terminal_outcomes={
+            "PUBLISHED": 0,
+            "NOT_DISCLOSED": 0,
+            "SOURCE_NOT_CHECKED": 0,
+            "QUARANTINED": 0,
+            "FAILED": 0,
+        },
+    )
+    session.add(run)
+    session.flush()
+    return run, True
+
+
 def _seed_phase3_evidence(
     session: Session,
     *,
-    dataset: Phase3Dataset,
+    dataset: RecordedIssuerDataset,
     run: PipelineRun,
 ) -> tuple[int, dict[str, str]]:
     inserted = 0
@@ -1627,12 +1780,14 @@ def _phase3_metric_version(catalog: MetricCatalog, metric_id: str) -> str:
     return str(versions[-1].semantic_version)
 
 
-def _seed_phase3_assessments(
+def _seed_phase3_assessments(  # noqa: PLR0913
     session: Session,
     *,
-    dataset: Phase3Dataset,
+    dataset: RecordedIssuerDataset,
     run: PipelineRun,
     evidence_ids: dict[str, str],
+    namespace: str = "phase3",
+    assessment_version: str = "phase3-disclosure-map-v1",
 ) -> int:
     evidence_by_source = {
         item.source_key: evidence_ids[item.evidence_id] for item in dataset.evidence
@@ -1648,7 +1803,7 @@ def _seed_phase3_assessments(
             msg = f"Phase 3 assessment dimensions do not match catalog: {item.metric_id}"
             raise ValueError(msg)
         assessment_id = (
-            "assessment:phase3:"
+            f"assessment:{namespace}:"
             + _stable_hash((item.company_id, item.metric_id, item.period_end.isoformat(), version))[
                 :32
             ]
@@ -1673,7 +1828,7 @@ def _seed_phase3_assessments(
                 ],
                 checked_evidence_ids=checked_evidence_ids,
                 checked_locators=list(item.locators),
-                assessment_version="phase3-disclosure-map-v1",
+                assessment_version=assessment_version,
                 rationale=item.reason_code or f"Phase 3 result state: {item.result_state}",
                 assessed_at=dataset.knowledge_at,
             )
@@ -1683,8 +1838,8 @@ def _seed_phase3_assessments(
     return inserted
 
 
-def _phase3_observation_id(candidate_id: str) -> str:
-    return f"observation:phase3:{_stable_hash(candidate_id)[:40]}"
+def _phase3_observation_id(candidate_id: str, *, namespace: str = "phase3") -> str:
+    return f"observation:{namespace}:{_stable_hash(candidate_id)[:40]}"
 
 
 def _phase3_reported_semantic_digest(
@@ -1739,9 +1894,10 @@ def _replay_phase3_normalization(wrapped: Any) -> Decimal:
 def _publish_phase3_reported(  # noqa: C901, PLR0915
     session: Session,
     *,
-    dataset: Phase3Dataset,
+    dataset: RecordedIssuerDataset,
     run: PipelineRun,
     evidence_ids: dict[str, str],
+    namespace: str = "phase3",
 ) -> tuple[int, dict[str, str]]:
     from mortgage_servicing_dashboard.metric_engine import (  # noqa: PLC0415
         Completeness,
@@ -1776,7 +1932,7 @@ def _publish_phase3_reported(  # noqa: C901, PLR0915
             msg = f"Phase 3 candidate dimensions do not match catalog: {candidate.candidate_id}"
             raise ValueError(msg)
         governed_input = MetricInput(
-            observation_id=_phase3_observation_id(candidate.candidate_id),
+            observation_id=_phase3_observation_id(candidate.candidate_id, namespace=namespace),
             issuer_id=candidate.company_id,
             metric_id=candidate.metric_id,
             metric_version=candidate.metric_version,
@@ -1864,7 +2020,7 @@ def _publish_phase3_reported(  # noqa: C901, PLR0915
         if not validation.valid:
             msg = f"Phase 3 reported candidate failed validation: {candidate.candidate_id}"
             raise ValueError(msg)
-        base_observation_id = _phase3_observation_id(candidate.candidate_id)
+        base_observation_id = _phase3_observation_id(candidate.candidate_id, namespace=namespace)
         observation_id = base_observation_id
         if session.get(MetricObservation, observation_id) is not None:
             observation_id = (
@@ -1954,13 +2110,14 @@ def _publish_phase3_reported(  # noqa: C901, PLR0915
     return inserted, observation_by_candidate
 
 
-def _publish_phase3_derived(  # noqa: C901, PLR0912, PLR0915
+def _publish_phase3_derived(  # noqa: C901, PLR0912, PLR0913, PLR0915
     session: Session,
     *,
-    dataset: Phase3Dataset,
+    dataset: RecordedIssuerDataset,
     run: PipelineRun,
     observation_by_candidate: dict[str, str],
     evidence_ids: dict[str, str],
+    namespace: str = "phase3",
 ) -> int:
     from mortgage_servicing_dashboard.metric_engine import (  # noqa: PLC0415
         Completeness,
@@ -1980,7 +2137,7 @@ def _publish_phase3_derived(  # noqa: C901, PLR0912, PLR0915
                 f"Phase 3 derivation is absent from the governed catalog: {candidate.candidate_id}"
             )
             raise ValueError(msg)
-        observation_id = _phase3_observation_id(candidate.candidate_id)
+        observation_id = _phase3_observation_id(candidate.candidate_id, namespace=namespace)
         observation_by_candidate[candidate.candidate_id] = observation_id
         existing_output = session.get(MetricObservation, observation_id)
         if existing_output is not None and (
@@ -2255,8 +2412,9 @@ def _publish_phase3_derived(  # noqa: C901, PLR0912, PLR0915
 def _seed_phase3_missing(
     session: Session,
     *,
-    dataset: Phase3Dataset,
+    dataset: RecordedIssuerDataset,
     run: PipelineRun,
+    namespace: str = "phase3",
 ) -> int:
     blocked_keys = {
         (item.company_id, item.metric_id, item.period_end) for item in dataset.blocked_derivations
@@ -2269,7 +2427,7 @@ def _seed_phase3_missing(
             raise ValueError(msg)
         version = _phase3_metric_version(dataset.catalog, item.metric_id)
         assessment_id = (
-            "assessment:phase3:"
+            f"assessment:{namespace}:"
             + _stable_hash((item.company_id, item.metric_id, item.period_end.isoformat(), version))[
                 :32
             ]
@@ -2279,7 +2437,7 @@ def _seed_phase3_missing(
             msg = f"Phase 3 missing cell lacks complete retained source lineage: {assessment_id}"
             raise ValueError(msg)
         observation_id = (
-            "observation:phase3:missing:"
+            f"observation:{namespace}:missing:"
             + _stable_hash((item.company_id, item.metric_id, item.period_end.isoformat()))[:32]
         )
         if session.get(MetricObservation, observation_id) is not None:
@@ -2388,9 +2546,10 @@ def _seed_phase3_missing(
 def _seed_phase3_blocked(
     session: Session,
     *,
-    dataset: Phase3Dataset,
+    dataset: RecordedIssuerDataset,
     run: PipelineRun,
     evidence_ids: dict[str, str],
+    namespace: str = "phase3",
 ) -> int:
     assessments = {
         (item.company_id, item.metric_id, item.period_end): item for item in dataset.assessments
@@ -2406,7 +2565,7 @@ def _seed_phase3_blocked(
             msg = f"blocked Phase 3 derivation lacks source assessment: {key}"
             raise ValueError(msg)
         candidate_id = (
-            "quarantine:phase3:blocked:"
+            f"quarantine:{namespace}:blocked:"
             + _stable_hash(
                 (
                     (item.company_id, item.metric_id, item.period_end.isoformat()),
@@ -2827,6 +2986,141 @@ def seed_phase3(
                 "QUARANTINED": (
                     len(dataset.blocked_derivations) + inserted["cross_source_quarantines"]
                 ),
+                "FAILED": 0,
+            }
+        session.commit()
+    return inserted
+
+
+def seed_phase4_wfc(
+    engine: Engine,
+    *,
+    config_dir: Path | None = None,
+) -> dict[str, int]:
+    """Idempotently publish the governed issuer-scoped WFC Phase 4a dataset."""
+    from mortgage_servicing_dashboard.phase4_wfc import (  # noqa: PLC0415
+        load_wfc_phase4_dataset,
+    )
+
+    root = config_directory(config_dir)
+    source_config = _load_yaml(root / "phase4" / "wfc_sources.yaml")
+    if (
+        source_config.get("publication_authorized") is not True
+        or source_config.get("parser_implemented") is not True
+        or source_config.get("status") != "PUBLICATION_VALIDATED"
+    ):
+        msg = "WFC Phase 4a source package is not authorized for publication"
+        raise ValueError(msg)
+    dataset = load_wfc_phase4_dataset(root)
+    if (
+        getattr(dataset, "publication_authorized", None) is not True
+        or getattr(dataset, "parser_implemented", None) is not True
+        or getattr(dataset, "status", None) != "PUBLICATION_VALIDATED"
+    ):
+        msg = "WFC Phase 4a dataset does not carry validated publication authority"
+        raise ValueError(msg)
+    seed_stage_a(engine, config_dir=root)
+    inserted = {
+        "companies": 0,
+        "metrics": 0,
+        "evidence": 0,
+        "source_assessments": 0,
+        "reported_observations": 0,
+        "support_observations": 0,
+        "derived_observations": 0,
+        "not_disclosed_observations": 0,
+        "blocked_derivations": 0,
+        "comparability_assessments": 0,
+    }
+    namespace = "phase4:wfc"
+    with Session(engine) as session:
+        wfc_universe = _load_yaml(root / "phase4" / "wfc_universe.v1.yaml")
+        inserted["companies"] = _seed_universe(
+            session,
+            universe=wfc_universe,
+            companies=cast("list[dict[str, Any]]", wfc_universe["companies"]),
+        )
+        inserted["metrics"] = _seed_metrics(
+            session,
+            [_phase3_metric_payload(item) for item in dataset.catalog.definitions],
+        )
+        session.flush()
+        _ensure_phase3_scopes(session, dataset)
+        run, is_new_run = _wfc_phase4_run(session, dataset, config_root=root)
+        inserted["evidence"], evidence_ids = _seed_phase3_evidence(
+            session,
+            dataset=dataset,
+            run=run,
+        )
+        inserted["source_assessments"] = _seed_phase3_assessments(
+            session,
+            dataset=dataset,
+            run=run,
+            evidence_ids=evidence_ids,
+            namespace=namespace,
+            assessment_version=dataset.dataset_version,
+        )
+        support_candidates = tuple(getattr(dataset, "support_candidates", ()))
+        support_ids = {
+            _phase3_observation_id(item.candidate.candidate_id, namespace=namespace)
+            for item in support_candidates
+        }
+        support_before = sum(
+            session.get(MetricObservation, observation_id) is not None
+            for observation_id in support_ids
+        )
+        reported_inserted, observation_by_candidate = _publish_phase3_reported(
+            session,
+            dataset=dataset,
+            run=run,
+            evidence_ids=evidence_ids,
+            namespace=namespace,
+        )
+        support_after = sum(
+            session.get(MetricObservation, observation_id) is not None
+            for observation_id in support_ids
+        )
+        inserted["support_observations"] = support_after - support_before
+        inserted["reported_observations"] = reported_inserted - inserted["support_observations"]
+        inserted["derived_observations"] = _publish_phase3_derived(
+            session,
+            dataset=dataset,
+            run=run,
+            observation_by_candidate=observation_by_candidate,
+            evidence_ids=evidence_ids,
+            namespace=namespace,
+        )
+        inserted["not_disclosed_observations"] = _seed_phase3_missing(
+            session,
+            dataset=dataset,
+            run=run,
+            namespace=namespace,
+        )
+        inserted["blocked_derivations"] = _seed_phase3_blocked(
+            session,
+            dataset=dataset,
+            run=run,
+            evidence_ids=evidence_ids,
+            namespace=namespace,
+        )
+        comparisons_before = int(
+            session.scalar(select(func.count(ComparabilityAssessment.id))) or 0
+        )
+        _seed_comparability_assessments(session, known_at=dataset.knowledge_at)
+        comparisons_after = int(session.scalar(select(func.count(ComparabilityAssessment.id))) or 0)
+        inserted["comparability_assessments"] = comparisons_after - comparisons_before
+        if is_new_run:
+            run.status = (
+                "COMPLETED_WITH_BLOCKED_DERIVATIONS" if dataset.blocked_derivations else "COMPLETED"
+            )
+            run.completed_at = dataset.knowledge_at
+            run.terminal_outcomes = {
+                "PUBLISHED": len(observation_by_candidate),
+                "NOT_DISCLOSED": inserted["not_disclosed_observations"],
+                "SOURCE_NOT_CHECKED": sum(
+                    item.assessment_status == "SOURCE_NOT_CHECKED" for item in dataset.assessments
+                ),
+                "QUARANTINED": len(dataset.blocked_derivations),
                 "FAILED": 0,
             }
         session.commit()
