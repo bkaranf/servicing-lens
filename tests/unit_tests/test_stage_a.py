@@ -370,13 +370,14 @@ def test_api_routes_and_dashboard_are_read_only(seeded_engine: Engine) -> None:
         ("/companies/{company_id}", ("pfsi", request, repo)),
         ("/metrics/{metric_id}", ("total_servicing_upb", request, repo)),
         ("/comparison", (request, repo)),
+        ("/earnings", (request, repo)),
         ("/data-quality", (request, repo)),
         ("/methodology", (request, repo)),
     )
     for path, arguments in pages:
         response = cast("HTMLResponse", endpoint(path)(*arguments))
         assert response.status_code == 200
-        assert b"Servicing Intelligence" in response.body
+        assert b"Servicing Lens" in response.body
         assert b'<a class="skip-link" href="#main">' in response.body
         assert b'<dialog id="provenance-dialog"' in response.body
     with pytest.raises(HTTPException):

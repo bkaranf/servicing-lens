@@ -1,6 +1,6 @@
-# Public Mortgage Servicing Intelligence
+# Servicing Lens
 
-Public Mortgage Servicing Intelligence is a read-only public-data application for
+Servicing Lens is a read-only public-data application for
 comparing selected publicly traded U.S. mortgage servicers. It turns authoritative
 SEC filings, filed earnings materials, limited issuer investor-relations material,
 and official bank regulatory data into reproducible observations with complete
@@ -115,6 +115,41 @@ Jinja2/HTMX pages for:
 Chart assets are hosted locally and every chart has an accessible table. Every
 page shows data-as-of time and clearly labels reported actual, preliminary,
 pro-forma, announced-impact, derived, and not-disclosed states.
+
+The light Servicing Lens interface adds a searchable company universe, four
+presentation sorts, a checkbox-only three-company comparison bench with three
+synchronized KPI selectors, and an event-backed earnings brief at `GET /earnings`.
+These components are Jinja templates with progressively enhanced vanilla
+JavaScript; the existing FastAPI routes, repository, evidence views, and public
+read API remain authoritative.
+
+Presentation-only normalization lives in `presentation.py` and uses exact
+`Decimal` arithmetic. The current governed dataset maps fields as follows:
+
+- Servicing UPB: latest reported `total_servicing_upb`.
+- UPB growth: exact quarter-over-quarter change in reported total servicing UPB,
+  only when the observations are adjacent fiscal quarters with matching entity,
+  scope, methodology, currency, unit, and metric version.
+- PFSI owned/MSR mix: `owned_msr_upb / total_servicing_upb`.
+- TFC bank-owned share: `bank_owned_loans_serviced_upb / total_servicing_upb`;
+  this is explicitly not labeled as owned-MSR mix.
+- Customer loans, servicing platform, and earnings sentiment: unavailable because
+  the governed Stage A pipeline does not currently publish those fields.
+
+Mix inputs must share the same period and compatible entity, scope, currency,
+unit, and period type. Relative portfolio scales render only when the repository's
+authoritative comparison result is `comparable`; the interface fails closed and
+shows its governed reason otherwise. Every reported or derived presentation value
+links to its observation and precise evidence locator, and derived values disclose
+all inputs.
+
+The earnings brief uses the latest issuer event returned by
+`IntelligenceRepository.earnings_events()`, its official source URL, and only
+observations matching that event's fiscal year and quarter. If that period has no
+published observations, deterministic summaries and signals render unavailable
+rather than silently falling back to a newer or older global observation.
+It does not reuse the reference implementation's demonstration companies or
+values and does not characterize sentiment when none is produced by the pipeline.
 
 Public JSON resources are:
 

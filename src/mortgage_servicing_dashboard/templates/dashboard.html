@@ -1,394 +1,177 @@
+{% macro metric_value(metric) -%}
+  {% if metric.inputs %}
+  <a class="metric-value provenance-trigger" href="{{ metric.inputs[0].locator_url or '/api/v1/observations/' ~ metric.inputs[0].observation_id }}" data-observation-id="{{ metric.inputs[0].observation_id }}">{{ metric.display }}</a>
+  {% else %}<strong class="metric-value unavailable">{{ metric.display }}</strong>{% endif %}
+  {% if metric.inputs|length > 1 %}
+  <details class="metric-inputs"><summary>{{ metric.inputs|length }} evidence inputs</summary><ul>{% for input in metric.inputs %}<li><a class="provenance-trigger" href="{{ input.locator_url or '/api/v1/observations/' ~ input.observation_id }}" data-observation-id="{{ input.observation_id }}">{{ input.label }} · {{ input.period_label }} · {{ input.display }}</a><code>{{ input.observation_id }}</code></li>{% endfor %}</ul></details>
+  {% elif metric.inputs %}<small class="metric-input-id">Observation <code>{{ metric.inputs[0].observation_id }}</code></small>{% endif %}
+{%- endmacro %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Read-only, source-traceable public mortgage-servicing intelligence for TFC and PFSI.">
-  <title>{{ title }} &middot; Public Mortgage Servicing Intelligence</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/dashboard.css') }}?v=stage-a-1">
-  <script defer src="{{ url_for('static', path='/dashboard.js') }}?v=stage-a-1"></script>
+  <meta name="description" content="Servicing Lens: source-traceable public mortgage-servicing intelligence for selected public companies.">
+  <meta property="og:title" content="{{ title }} · Servicing Lens">
+  <meta property="og:description" content="Sharper context for public mortgage servicing portfolios and earnings disclosures.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="{{ request.url_for('static', path='/og.png') }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ title }} · Servicing Lens">
+  <meta name="twitter:image" content="{{ request.url_for('static', path='/og.png') }}">
+  <title>{{ title }} · Servicing Lens</title>
+  <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', path='/dashboard.css') }}?v=servicing-lens-1">
+  <script defer src="{{ url_for('static', path='/servicing_lens_state.js') }}?v=servicing-lens-2"></script>
+  <script defer src="{{ url_for('static', path='/dashboard.js') }}?v=servicing-lens-2"></script>
 </head>
 <body data-page="{{ page }}">
   <a class="skip-link" href="#main">Skip to main content</a>
-  <header class="topbar">
-    <a class="brand" href="/" aria-label="Public Mortgage Servicing Intelligence home">
-      <span class="brand-mark" aria-hidden="true">MI</span>
-      <span>
-        <strong>Mortgage Intelligence</strong>
-        <small>Selected public servicers</small>
-      </span>
-    </a>
-    <div class="topbar-actions">
-      <p class="as-of"><span class="status-dot" aria-hidden="true"></span>Data as of <strong>{{ quality.knowledge_at or "unavailable" }}</strong></p>
-      <button class="menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="primary-nav">
-        <span aria-hidden="true">&#9776;</span><span class="menu-label">Menu</span>
-      </button>
-    </div>
+
+  <header class="site-header">
+    <nav class="nav wrap" aria-label="Main navigation">
+      <a class="brand" href="/" aria-label="Servicing Lens home">
+        <span class="brand-mark" aria-hidden="true"><span>S</span><span>L</span></span>
+        <span class="brand-text">Servicing <b>Lens</b></span>
+      </a>
+      <div class="nav-links" id="primary-nav">
+        <a class="{{ 'active' if page in ('overview', 'company', 'metric') else '' }}" href="/">Company universe</a>
+        <a class="{{ 'active' if page == 'comparison' else '' }}" href="/comparison">Comparison bench</a>
+        <a class="{{ 'active' if page == 'earnings' else '' }}" href="/earnings">Earnings brief</a>
+        <a class="{{ 'active' if page == 'quality' else '' }}" href="/data-quality">Data quality</a>
+        <a class="{{ 'active' if page == 'methodology' else '' }}" href="/methodology">Methods</a>
+      </div>
+      <p class="data-stamp"><span aria-hidden="true"></span>Data as of {{ quality.knowledge_at[:10] if quality.knowledge_at else "unavailable" }}</p>
+      <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    </nav>
   </header>
 
-  <div class="shell">
-    <aside class="side-rail" id="primary-nav">
-      <nav aria-label="Primary navigation">
-        <p class="nav-label">Analyze</p>
-        <a class="{{ 'active' if page == 'overview' else '' }}" {% if page == 'overview' %}aria-current="page"{% endif %} href="/">Executive brief</a>
-        <a class="{{ 'active' if page == 'comparison' else '' }}" {% if page == 'comparison' %}aria-current="page"{% endif %} href="/comparison">Compare issuers</a>
-        <p class="nav-label">Issuer profiles</p>
-        {% for company in companies %}
-        <a class="{{ 'active' if page == 'company' and selected_company == company.id else '' }}" {% if page == 'company' and selected_company == company.id %}aria-current="page"{% endif %} href="/companies/{{ company.id }}">
-          <span>{{ company.ticker }}</span><small>{{ company.classification }}</small>
-        </a>
-        {% endfor %}
-        <p class="nav-label">Trust</p>
-        <a class="{{ 'active' if page == 'quality' else '' }}" {% if page == 'quality' %}aria-current="page"{% endif %} href="/data-quality">Coverage &amp; freshness</a>
-        <a class="{{ 'active' if page == 'methodology' else '' }}" {% if page == 'methodology' %}aria-current="page"{% endif %} href="/methodology">Methodology</a>
-      </nav>
-      <div class="rail-note">
-        <strong>Stage A boundary</strong>
-        <p>TFC and PFSI, Q3 2025 through Q2 2026. Missing disclosure stays missing.</p>
-      </div>
-    </aside>
-
-    <main id="main" tabindex="-1">
-      <header class="page-heading">
+  <main id="main" tabindex="-1">
+    {% if page == 'overview' %}
+    <section class="hero">
+      <div class="wrap hero-grid">
         <div>
-          <p class="eyebrow">PUBLIC MORTGAGE SERVICING INTELLIGENCE</p>
-          <h1>{{ title }}</h1>
-          <p class="lede">Portfolio, economics, MSR and operating disclosures with exact values and source-level evidence.</p>
+          <p class="eyebrow">Public mortgage servicing intelligence</p>
+          <h1>See the servicing market<br>with sharper context.</h1>
+          <p class="hero-copy">Screen the governed public-company universe by portfolio scale and disclosure, compare business models, and follow every reported value to retained evidence.</p>
+          <div class="hero-actions"><a class="button primary" href="#universe">Explore companies</a><a class="button secondary" href="/methodology">Review methods</a></div>
         </div>
-        <div class="mode-block" aria-label="Application mode">
-          <span class="mode-chip">Deterministic read mode</span>
-          <small>AI, tracing and optional persistence off</small>
+        <aside class="hero-card" aria-label="Current governed screen summary">
+          <div class="hero-card-top"><span>Current screen</span><span class="live-pill">LATEST PUBLISHED</span></div>
+          <div class="hero-stat"><strong>{{ servicing_cards|length }}</strong><span>selected public companies</span></div>
+          <div class="hero-card-grid">
+            <div><strong>{{ selected_period or 'Unavailable' }}</strong><span>latest period end</span></div>
+            <div><strong>{{ quality.published_count }}</strong><span>published observations</span></div>
+          </div>
+          <div class="sparkline" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </aside>
+      </div>
+    </section>
+    {% elif page == 'company' and active_company %}
+    <section class="page-hero"><div class="wrap"><p class="eyebrow">Issuer profile · {{ active_company.period_label }}</p><h1>{{ active_company.ticker }} disclosure profile.</h1><p>{{ active_company.legal_name }} · {{ active_company.classification|title }}. Platform and customer-loan count remain unavailable unless published by the governed pipeline.</p></div></section>
+    <section class="wrap route-summary" aria-labelledby="company-summary-title"><header><div><p class="eyebrow">Latest governed portfolio</p><h2 id="company-summary-title">{{ active_company.legal_name }}</h2></div><a class="button secondary" href="/#universe">Back to company universe</a></header><div class="route-metrics"><article><span>Servicing UPB</span>{{ metric_value(active_company.upb) }}<p>{{ active_company.upb.note }}</p></article><article><span>{{ active_company.owned_mix.label }}</span>{{ metric_value(active_company.owned_mix) }}<p>{{ active_company.owned_mix.note }}</p></article><article><span>UPB growth</span>{{ metric_value(active_company.growth) }}<p>{{ active_company.growth.note }}</p></article></div><div class="highlight-list"><h3>Reported disclosure highlights</h3>{% for row in highlights[selected_company] %}<a class="provenance-trigger" href="{{ row.evidence_locator_url or '/api/v1/observations/' ~ row.id }}" data-observation-id="{{ row.id }}"><span>{{ row.metric_name }}</span><strong>{{ row.display_value }}</strong><small>{{ row.period_label }} · {{ row.state|replace('_', ' ') }}</small></a>{% endfor %}</div></section>
+    {% elif page == 'metric' and active_metric %}
+    <section class="page-hero"><div class="wrap"><p class="eyebrow">Metric profile · semantic version {{ active_metric.semantic_version }}</p><h1>{{ active_metric.display_name }}.</h1><p>{{ active_metric.business_meaning }}</p></div></section>
+    <section class="wrap route-summary metric-summary" aria-labelledby="metric-summary-title"><header><div><p class="eyebrow">Governed semantic contract</p><h2 id="metric-summary-title"><code>{{ active_metric.id }}</code></h2></div><a class="button secondary" href="/methodology">Full metric catalog</a></header><dl><div><dt>Category</dt><dd>{{ active_metric.category|replace('_', ' ')|title }}</dd></div><div><dt>Unit</dt><dd>{{ active_metric.unit }}</dd></div><div><dt>Grain</dt><dd>{{ active_metric.grain }}</dd></div><div><dt>Permitted scopes</dt><dd>{{ active_metric.permitted_scopes|join(', ') }}</dd></div></dl></section>
+    {% endif %}
+
+    {% if page in ('overview', 'company', 'metric') %}
+    {% if quality.freshness_state == 'stale' %}
+    <section class="wrap notice warning" role="alert"><strong>Recorded evidence is stale.</strong> Verify the data-as-of timestamp and official sources before relying on it.</section>
+    {% endif %}
+    {% if not rows %}
+    <section class="wrap notice" role="status"><h2>No published observations are available</h2><p>The interface remains read-only; no value was substituted.</p></section>
+    {% endif %}
+
+    {% if page == 'overview' %}<section class="workspace wrap" id="universe" aria-labelledby="universe-title">
+      <header class="results-head">
+        <div><p class="eyebrow">Company universe</p><h2 id="universe-title"><span id="match-count">{{ servicing_cards|length }}</span> operators match</h2><p class="section-copy">Selected publicly traded U.S. mortgage servicers—not a complete industry ranking.</p></div>
+        <div class="universe-tools">
+          <label class="field"><span>Company or ticker</span><input id="company-search" type="search" placeholder="Search companies" autocomplete="off"></label>
+          <label class="field"><span>Sort by</span><select id="company-sort"><option value="upb">Servicing UPB</option><option value="loans">Customer loans</option><option value="growth">UPB growth</option><option value="owned">Owned/MSR mix</option></select></label>
         </div>
       </header>
-
-      {% if not rows %}
-      <section class="system-message empty" role="status" aria-labelledby="empty-title">
-        <div aria-hidden="true">&#8709;</div>
-        <h2 id="empty-title">No published observations are available</h2>
-        <p>The read service is working, but this dataset currently has no publishable values. Missing or unprocessed data is not rendered as zero.</p>
-      </section>
-      {% endif %}
-
-      {% if quality.freshness_state == 'unavailable' %}
-      <section class="system-message unavailable" role="alert">
-        <h2>Freshness unavailable</h2>
-        <p>The application cannot verify when retained evidence was last retrieved. Previously published observations remain labeled by knowledge time.</p>
-      </section>
-      {% elif quality.is_stale %}
-      <section class="system-message stale" role="alert">
-        <h2>Recorded evidence is stale</h2>
-        <p>The latest retained evidence is {{ quality.age_days }} days old. Values remain visible for historical analysis but are not presented as current.</p>
-      </section>
-      {% endif %}
-
-      {% if page in ['overview', 'company', 'comparison', 'metric'] and rows %}
-      <section class="explorer-controls" aria-labelledby="controls-title">
-        <div class="control-intro">
-          <p class="kicker">EXPLORE THE RECORDED SLICE</p>
-          <h2 id="controls-title">Choose a metric and comparison quarter</h2>
-        </div>
-        <form method="get" action="{{ request.url.path }}" class="filter-form">
-          {% if page != 'metric' %}
-          <label>
-            <span>Metric</span>
-            <select name="metric_id">
-              {% for category, group in metric_groups.items() %}
-              <optgroup label="{{ category|replace('_', ' ')|title }}">
-                {% for metric in group %}
-                <option value="{{ metric.id }}" {{ 'selected' if metric.id == selected_metric else '' }}>{{ metric.display_name }}</option>
-                {% endfor %}
-              </optgroup>
-              {% endfor %}
-            </select>
-          </label>
-          {% endif %}
-          <label>
-            <span>Comparison quarter</span>
-            <select name="period_end">
-              {% for period in periods %}
-              <option value="{{ period }}" {{ 'selected' if period == selected_period else '' }}>{{ period }}</option>
-              {% endfor %}
-            </select>
-          </label>
-          <button class="primary-button" type="submit">Update view</button>
-        </form>
-      </section>
-      {% endif %}
-
-      {% if page in ['overview', 'company'] and rows %}
-      <section aria-labelledby="snapshot-title">
-        <div class="section-heading">
-          <div><p class="kicker">LATEST SELECTED QUARTER &middot; {{ selected_period }}</p><h2 id="snapshot-title">Executive snapshot</h2></div>
-          <p>Source-reported values lead. Normalized values and exact quarter-over-quarter differences are secondary.</p>
-        </div>
-        <div class="issuer-grid">
-          {% for company in companies if not selected_company or selected_company == company.id %}
-          <article class="issuer-card {{ company.classification }}">
-            <header>
-              <div><p class="ticker">{{ company.ticker }}</p><h3>{{ company.legal_name }}</h3></div>
-              <span class="class-chip">{{ company.classification }}</span>
-            </header>
-            <div class="highlight-list">
-              {% for row in highlights[company.id] %}
-              <div class="highlight-row">
-                <div>
-                  <a class="metric-name" href="/metrics/{{ row.metric_id }}">{{ row.metric_name }}</a>
-                  <span class="scope-label">{{ row.reporting_scope_id|replace('_', ' ') }}</span>
-                </div>
-                <div class="highlight-value">
-                  <a class="value-link provenance-trigger" href="{{ row.evidence_locator_url or '/api/v1/observations/' ~ row.id }}" data-observation-id="{{ row.id }}" aria-label="{{ company.ticker }} {{ row.metric_name }} {{ row.display_value }}. Open complete evidence view; without JavaScript, open the precise retained-source locator.">{{ row.display_value }}</a>
-                  <span class="state state-{{ row.state|lower }}">{{ row.state|replace('_', ' ') }}</span>
-                  <small>{{ row.normalized_display }}</small>
-                  <span class="movement {{ row.movement.status }}">{{ row.movement.label }}{% if row.movement.detail %}<span class="visually-hidden"> {{ row.movement.detail }}</span>{% endif %}</span>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-            <a class="text-link" href="/companies/{{ company.id }}">Open {{ company.ticker }} disclosure profile <span aria-hidden="true">&rarr;</span></a>
+      <p id="comparison-notice" class="selection-status" role="status" aria-live="polite">Select up to three companies for the comparison bench.</p>
+      <div class="company-table" role="table" aria-label="Mortgage servicing companies">
+        <div class="table-head" role="rowgroup"><div role="row"><span role="columnheader">Company</span><span role="columnheader">Servicing portfolio</span><span role="columnheader">Customer reach</span><span role="columnheader">Portfolio mix</span><span role="columnheader">QoQ</span><span class="center" role="columnheader">Select</span></div></div>
+        <div id="company-rows" role="rowgroup">
+        {% for company in servicing_cards %}
+          <article class="company-row" role="row" data-company-id="{{ company.id }}" data-search="{{ company.search_text }}" data-sort-upb="{{ company.sort_upb }}" data-sort-loans="{{ company.sort_loans }}" data-sort-growth="{{ company.sort_growth }}" data-sort-owned="{{ company.sort_owned }}">
+            <div class="company-cell" role="cell"><span class="company-logo" aria-hidden="true">{{ company.ticker[:2] }}</span><div><h3>{{ company.legal_name }}</h3><p>{{ company.ticker }} · {{ company.classification|title }} · Platform not available</p></div></div>
+            <div class="metric-cell" role="cell"><span class="mobile-label">Servicing UPB</span>{{ metric_value(company.upb) }}<small>{{ company.period_label }} · {{ company.upb.status|title }}</small></div>
+            <div class="metric-cell" role="cell"><span class="mobile-label">Customer loans</span>{{ metric_value(company.customer_loans) }}<small>{{ company.customer_loans.note }}</small></div>
+            <div class="mix-cell" role="cell"><span class="mobile-label">Portfolio mix</span>{{ metric_value(company.owned_mix) }}<div class="mix-track" aria-hidden="true"><span style="width: {{ company.owned_mix.display if company.owned_mix.value is not none else '0%' }}"></span></div><small>{{ company.owned_mix.label }} · {{ company.owned_mix.note }}</small></div>
+            <div class="growth {{ 'negative' if company.growth.value is not none and company.growth.value < 0 else '' }}" role="cell"><span class="mobile-label">UPB growth</span>{{ metric_value(company.growth) }}<small>{{ company.growth.status|title }}</small></div>
+            <div class="select-cell" role="cell"><input class="compare-checkbox" type="checkbox" value="{{ company.id }}" aria-label="Add {{ company.legal_name }} to comparison" {{ 'checked' if loop.index <= 2 else '' }}></div>
           </article>
-          {% endfor %}
-        </div>
-      </section>
-
-      <section class="signal-grid" aria-label="Dataset decision signals">
-        <article>
-          <p class="signal-label">Coverage</p>
-          <strong>{{ quality.reported_count }} disclosed</strong>
-          <span>{{ quality.source_not_checked_count }} SOURCE_NOT_CHECKED; {{ quality.not_disclosed_count }} reviewed missing disclosures</span>
-        </article>
-        <article>
-          <p class="signal-label">Freshness</p>
-          <strong>{{ quality.freshness_state|title }}</strong>
-          <span>Evidence retrieved {{ quality.retrieved_at or 'unavailable' }}</span>
-        </article>
-        <article>
-          <p class="signal-label">Ambiguity</p>
-          <strong>{{ quality.quarantined_candidate_count }} quarantined</strong>
-          <span>Quarantined candidates never enter public values</span>
-        </article>
-        <article>
-          <p class="signal-label">Comparability</p>
-          <strong>Pairwise only</strong>
-          <span>No automatic scope substitution or ranking</span>
-        </article>
-      </section>
-      {% endif %}
-
-      {% if page in ['overview', 'company', 'comparison', 'metric'] and rows %}
-      <section class="panel explorer-panel" aria-labelledby="trend-title">
-        <header class="panel-header">
-          <div>
-            <p class="kicker">FOUR-QUARTER DISCLOSURE VIEW</p>
-            <h2 id="trend-title">{{ chart.metric_name or selected_metric|replace('_', ' ')|title }}</h2>
-            <p>Point labels retain the issuer's reported text. Connecting segments appear only across consecutive, semantically aligned disclosures.</p>
-          </div>
-          <div class="chart-legend" aria-label="Issuer legend">
-            {% for series in chart.series %}
-            <span class="legend-item {{ series.classification }}"><i aria-hidden="true"></i>{{ series.ticker }} <small>{{ series.classification }}</small></span>
-            {% endfor %}
-            <span class="legend-item missing"><i aria-hidden="true">&times;</i>NOT_DISCLOSED</span>
-          </div>
-        </header>
-
-        <div class="view-tabs" role="tablist" aria-label="Trend presentation">
-          <button id="chart-tab" type="button" role="tab" aria-selected="true" aria-controls="chart-panel" tabindex="0">Chart</button>
-          <button id="table-tab" type="button" role="tab" aria-selected="false" aria-controls="table-panel" tabindex="-1">Accessible table</button>
-        </div>
-
-        <div id="chart-panel" class="tab-panel chart-panel" role="tabpanel" tabindex="0" aria-labelledby="chart-tab">
-          {% if chart.status == 'empty' %}
-          <div class="system-message empty compact" role="status">
-            <h3>No disclosed numeric values for this metric</h3>
-            <p>The table still shows each reviewed NOT_DISCLOSED observation and its evidence.</p>
-          </div>
-          {% else %}
-          <svg class="trend-chart" viewBox="0 0 720 270" role="img" aria-labelledby="chart-svg-title chart-svg-desc">
-            <title id="chart-svg-title">{{ chart.metric_name }} for {% if selected_company %}{{ selected_company|upper }}{% else %}TFC and PFSI{% endif %}, Q3 2025 through Q2 2026</title>
-            <desc id="chart-svg-desc">Exact reported values are shown as labeled points. Missing observations are marked NOT_DISCLOSED. The adjacent accessible table contains the identical observations, states and evidence links.</desc>
-            <g class="grid-lines" aria-hidden="true">
-              <line x1="72" y1="28" x2="648" y2="28"></line>
-              <line x1="72" y1="112" x2="648" y2="112"></line>
-              <line x1="72" y1="196" x2="648" y2="196"></line>
-            </g>
-            <text class="axis-label" x="8" y="33">{{ chart.maximum }}</text>
-            <text class="axis-label" x="8" y="201">{{ chart.minimum }}</text>
-            {% for series in chart.series %}
-            <g class="series series-{{ series.company_id }}">
-              {% for segment in series.segments %}
-              <line class="series-line" x1="{{ segment.x1 }}" y1="{{ segment.y1 }}" x2="{{ segment.x2 }}" y2="{{ segment.y2 }}"></line>
-              {% endfor %}
-              {% for point in series.points %}
-              <a class="chart-point provenance-trigger {{ 'not-disclosed' if not point.plotted else '' }}" href="{{ point.evidence_locator_url or '/api/v1/observations/' ~ point.id }}" data-observation-id="{{ point.id }}" aria-label="{{ point.ticker }}, {{ point.period_label }}, {{ point.display_value }}, {{ point.state|replace('_', ' ') }}. Open complete evidence view; without JavaScript, open the precise retained-source locator.">
-                {% if point.plotted %}
-                  {% if series.company_id == 'tfc' %}<circle cx="{{ point.x }}" cy="{{ point.y }}" r="6"></circle>{% else %}<rect x="{{ point.x|int - 6 }}" y="{{ point.y|int - 6 }}" width="12" height="12" rx="2"></rect>{% endif %}
-                  <text class="point-label" x="{{ point.x }}" y="{{ point.y|int - 12 }}" text-anchor="middle">{{ point.display_value }}</text>
-                {% else %}
-                  <path d="M {{ point.x|int - 5 }} 213 L {{ point.x|int + 5 }} 223 M {{ point.x|int + 5 }} 213 L {{ point.x|int - 5 }} 223"></path>
-                  <text class="missing-label" x="{{ point.x }}" y="238" text-anchor="middle">N/D</text>
-                {% endif %}
-              </a>
-              {% endfor %}
-            </g>
-            {% endfor %}
-            {% for period in chart.periods %}
-            {% set first_series = chart.series[0] if chart.series else none %}
-            {% set period_point = first_series.points|selectattr('period_end', 'equalto', period)|first if first_series else none %}
-            {% if period_point %}<text class="period-label" x="{{ period_point.x }}" y="262" text-anchor="middle">{{ period_point.period_label }}</text>{% endif %}
-            {% endfor %}
-          </svg>
-          <p class="chart-note"><strong>Normalized range:</strong> {{ chart.minimum }} to {{ chart.maximum }} {{ chart.scale }} {{ chart.unit }}. Geometry was generated with exact decimal arithmetic; labels use retained source text.</p>
-          {% endif %}
-        </div>
-
-        <div id="table-panel" class="tab-panel" role="tabpanel" tabindex="0" aria-labelledby="table-tab" hidden>
-          <div class="table-wrap" tabindex="0" role="region" aria-label="Exact chart data table">
-            <table>
-              <caption>{{ chart.metric_name or selected_metric|replace('_', ' ')|title }}. This table contains the same observations as the chart.</caption>
-              <thead><tr><th scope="col">Quarter</th><th scope="col">Issuer</th><th scope="col">Reported value</th><th scope="col">Normalized value</th><th scope="col">State</th><th scope="col">Scope</th></tr></thead>
-              <tbody>
-                {% for row in chart.table_rows %}
-                <tr>
-                  <th scope="row" data-label="Quarter">{{ row.period_label }}</th>
-                  <td data-label="Issuer"><span class="issuer-symbol {{ row.company_classification }}" aria-hidden="true"></span>{{ row.ticker }}</td>
-                  <td data-label="Reported value"><a class="value-link provenance-trigger" href="{{ row.evidence_locator_url or '/api/v1/observations/' ~ row.id }}" data-observation-id="{{ row.id }}">{{ row.display_value }}</a></td>
-                  <td data-label="Normalized value"><code>{{ row.normalized_display }}</code></td>
-                  <td data-label="State"><span class="state state-{{ row.state|lower }}">{{ row.state|replace('_', ' ') }}</span></td>
-                  <td data-label="Scope"><code>{{ row.reporting_scope_id }}</code></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <footer class="source-strip">
-          <span><strong>Evidence:</strong> retained SEC filings and filed earnings materials with observation-level locators.</span>
-          <a href="/methodology">How sources, missingness and exact values are handled</a>
-        </footer>
-      </section>
-      {% endif %}
-
-      {% if page in ['overview', 'company', 'metric'] and rows %}
-      <section class="panel" aria-labelledby="matrix-title">
-        <header class="panel-header">
-          <div><p class="kicker">PORTFOLIO &middot; ECONOMICS &middot; MSR &middot; OPERATIONS</p><h2 id="matrix-title">Selected-quarter disclosure matrix</h2></div>
-          <p>Asymmetric public disclosure is preserved; cells are never backfilled from a nearby metric.</p>
-        </header>
-        <div class="table-wrap" tabindex="0" role="region" aria-label="Selected quarter disclosure matrix">
-          <table>
-            <caption>Executive servicing indicators for {{ selected_period }}</caption>
-            <thead><tr><th scope="col">Issuer</th><th scope="col">Dimension</th><th scope="col">Metric</th><th scope="col">Reported value</th><th scope="col">State</th><th scope="col">Scope</th></tr></thead>
-            <tbody>
-              {% for row in featured if row.period_end == selected_period %}
-              <tr>
-                <td data-label="Issuer"><span class="issuer-symbol {{ row.company_classification }}" aria-hidden="true"></span>{{ row.ticker }}</td>
-                <td data-label="Dimension">{{ row.metric_category|replace('_', ' ')|title }}</td>
-                <th scope="row" data-label="Metric"><a href="/metrics/{{ row.metric_id }}">{{ row.metric_name }}</a></th>
-                <td data-label="Reported value"><a class="value-link provenance-trigger" href="{{ row.evidence_locator_url or '/api/v1/observations/' ~ row.id }}" data-observation-id="{{ row.id }}">{{ row.display_value }}</a></td>
-                <td data-label="State"><span class="state state-{{ row.state|lower }}">{{ row.state|replace('_', ' ') }}</span></td>
-                <td data-label="Scope"><code>{{ row.reporting_scope_id }}</code></td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      {% endif %}
-
-      {% if page in ['overview', 'comparison'] and comparisons %}
-      <section class="panel" aria-labelledby="comparison-title">
-        <header class="panel-header">
-          <div><p class="kicker">PAIRWISE ASSESSMENT &middot; {{ selected_period }}</p><h2 id="comparison-title">Can these values be compared?</h2></div>
-          <p>Unsupported arithmetic stays disabled. Reasons travel with both values.</p>
-        </header>
-        <div class="comparison-grid">
-          {% for comparison in comparisons %}
-          <article class="comparison-card">
-            <header><a href="/metrics/{{ comparison.metric_id }}">{{ comparison.metric_id|replace('_', ' ')|title }}</a><span class="verdict verdict-{{ comparison.status }}">{{ comparison.status|replace('_', ' ') }}</span></header>
-            <div class="comparison-pair">
-              <a class="comparison-value provenance-trigger" href="{{ comparison.left.evidence_locator_url or '/api/v1/observations/' ~ comparison.left.id }}" data-observation-id="{{ comparison.left.id }}"><strong>{{ comparison.left.ticker }}</strong><span>{{ comparison.left.reported_value }}</span><small>{{ comparison.left.state|replace('_', ' ') }}</small></a>
-              <span class="versus" aria-hidden="true">vs</span>
-              <a class="comparison-value provenance-trigger" href="{{ comparison.right.evidence_locator_url or '/api/v1/observations/' ~ comparison.right.id }}" data-observation-id="{{ comparison.right.id }}"><strong>{{ comparison.right.ticker }}</strong><span>{{ comparison.right.reported_value }}</span><small>{{ comparison.right.state|replace('_', ' ') }}</small></a>
-            </div>
-            <h3>Deterministic reasons</h3>
-            <ul>{% for reason in comparison.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
-            {% if comparison.status != 'comparable' %}<p class="blocked-calculation"><span aria-hidden="true">&#9940;</span> Difference and ranking disabled</p>{% endif %}
-          </article>
-          {% endfor %}
-        </div>
-      </section>
-      {% endif %}
-
-      {% if page == 'quality' %}
-      <section class="quality-summary" aria-label="Current data quality states">
-        <article class="quality-card {{ quality.freshness_state }}"><p>Freshness</p><strong>{{ quality.freshness_state|upper }}</strong><span>{% if quality.age_days is not none %}{{ quality.age_days }} days since retrieval{% else %}Retrieval time unavailable{% endif %}</span></article>
-        <article class="quality-card {{ quality.coverage_state }}"><p>Coverage</p><strong>{{ quality.coverage_state|upper }}</strong><span>{{ quality.reported_count }} disclosed; {{ quality.source_not_checked_count }} SOURCE_NOT_CHECKED</span></article>
-        <article class="quality-card quarantined"><p>Review boundary</p><strong>{{ quality.quarantined_candidate_count }} QUARANTINED</strong><span>Excluded from every public observation read</span></article>
-        <article class="quality-card {{ 'failed' if quality.failed_run_count else 'current' }}"><p>Pipeline</p><strong>{{ quality.failed_run_count }} FAILED RUNS</strong><span>{{ quality.ingestion_error_count }} retained structured errors</span></article>
-      </section>
-
-      <section class="panel" aria-labelledby="coverage-title">
-        <header class="panel-header"><div><p class="kicker">EVIDENCE REVIEW COVERAGE</p><h2 id="coverage-title">Disclosure coverage by issuer and quarter</h2></div><p>SOURCE_NOT_CHECKED means the required source cell has not been reviewed. It is not evidence that the issuer omitted a disclosure.</p></header>
-        <div class="coverage-grid">
-          {% for item in coverage %}
-          <article>
-            <header><strong>{{ item.company_id|upper }}</strong><span>{{ item.period_end }}</span></header>
-            <meter min="0" max="{{ item.total }}" value="{{ item.reported }}">{{ item.reported }} of {{ item.total }} disclosed</meter>
-            <p><strong>{{ item.reported }}</strong> disclosed <span aria-hidden="true">&middot;</span> <strong>{{ item.source_not_checked }}</strong> SOURCE_NOT_CHECKED{% if item.missing %} <span aria-hidden="true">&middot;</span> <strong>{{ item.missing }}</strong> reviewed missing{% endif %}</p>
-          </article>
-          {% endfor %}
-        </div>
-        <div class="quality-notes">
-          <article><h3>Partial coverage is visible</h3><p>TFC and PFSI publish different populations and line items. The interface keeps those gaps visible instead of manufacturing symmetry.</p></article>
-          <article><h3>Conflicts fail closed</h3><p>Ambiguous or conflicting candidates stay quarantined until deterministic revalidation after controlled review.</p></article>
-          <article><h3>Unchecked is distinct</h3><p>SOURCE_NOT_CHECKED is a review-coverage state, never a published observation and never a claim about issuer disclosure. Freshness and pipeline errors remain separate system states.</p></article>
-        </div>
-      </section>
-      {% endif %}
-
-      {% if page == 'methodology' %}
-      <section class="method-grid" aria-label="Methodology summary">
-        <article><span>01</span><h2>Official evidence first</h2><p>Filed SEC materials and official regulatory records outrank issuer copies. Search results, screenshots and model recollection cannot support a value.</p></article>
-        <article><span>02</span><h2>Meaning travels with value</h2><p>Entity, scope, period, population, unit, scale, precision, method and accounting basis remain attached to each observation.</p></article>
-        <article><span>03</span><h2>Missing stays missing</h2><p>NOT_DISCLOSED has no numeric value. It cannot enter arithmetic, a connected trend segment or a ranking.</p></article>
-        <article><span>04</span><h2>Comparison is pairwise</h2><p>Matching metric names are insufficient. Deterministic rules assess exact revisions and return every applicable reason.</p></article>
-      </section>
-
-      <section class="panel catalog" aria-labelledby="catalog-title">
-        <header class="panel-header"><div><p class="kicker">SEMANTIC CATALOG VERSION 1.0.0</p><h2 id="catalog-title">Metric definitions</h2></div><p>{{ metrics|length }} versioned contracts</p></header>
-        {% for category, group in metric_groups.items() %}
-        <section class="catalog-group" aria-labelledby="catalog-{{ category }}">
-          <h3 id="catalog-{{ category }}">{{ category|replace('_', ' ')|title }}</h3>
-          {% for metric in group %}
-          <details>
-            <summary><span>{{ metric.display_name }}</span><code>{{ metric.id }}</code></summary>
-            <p>{{ metric.business_meaning }}</p>
-            <dl><dt>Grain</dt><dd>{{ metric.grain }}</dd><dt>Unit</dt><dd>{{ metric.unit }}</dd><dt>Semantic version</dt><dd>{{ metric.semantic_version }}</dd><dt>Permitted scopes</dt><dd>{{ metric.permitted_scopes|join(', ') }}</dd></dl>
-          </details>
-          {% endfor %}
-        </section>
         {% endfor %}
-      </section>
-      {% endif %}
-    </main>
-  </div>
+        </div>
+        <div id="company-empty" class="empty" hidden><strong>No matches</strong><p>Try another legal name or ticker. Platform names are not available in the governed dataset.</p><button class="button secondary" type="button" id="clear-company-search">Clear search</button></div>
+      </div>
+    </section>{% endif %}
 
-  <dialog id="provenance-dialog" aria-labelledby="provenance-title" aria-describedby="provenance-description">
-    <div class="dialog-frame">
-      <header class="dialog-header">
-        <div><p class="kicker">COMPLETE EVIDENCE VIEW</p><h2 id="provenance-title">Observation evidence</h2></div>
-        <button class="dialog-close" type="button" aria-label="Close evidence view" autofocus>&times;</button>
-      </header>
-      <p id="provenance-description" class="dialog-description">Reported and normalized values, full semantic context, immutable source identity, validation and revision history.</p>
-      <div id="provenance-status" class="dialog-status" role="status" aria-live="polite"></div>
-      <div id="provenance-content"></div>
-    </div>
-  </dialog>
+    <section class="evidence-panel wrap" aria-labelledby="evidence-title">
+      <header><div><p class="eyebrow">Evidence explorer</p><h2 id="evidence-title">Reported portfolio history</h2></div><p>Geometry was generated with exact decimal arithmetic. AI, tracing and optional persistence off.</p></header>
+      <div class="view-tabs" role="tablist" aria-label="Evidence views"><button id="chart-tab" role="tab" aria-selected="true" aria-controls="chart-panel" tabindex="0">Observation list</button><button id="table-tab" role="tab" aria-selected="false" aria-controls="table-panel" tabindex="-1">Accessible table</button></div>
+      <div id="chart-panel" role="tabpanel" aria-labelledby="chart-tab" tabindex="0" class="observation-grid">
+      {% for row in chart.table_rows %}<a class="observation-chip provenance-trigger" href="{{ row.evidence_locator_url or '/api/v1/observations/' ~ row.id }}" data-observation-id="{{ row.id }}"><strong>{{ row.ticker }} · {{ row.period_label }}</strong><span>{{ row.display_value }}</span><small>{{ row.metric_name }}</small></a>{% endfor %}
+      </div>
+      <div id="table-panel" role="tabpanel" aria-labelledby="table-tab" tabindex="0" hidden><div class="table-wrap"><table><caption>Identical governed observations represented by the observation list.</caption><thead><tr><th>Quarter</th><th>Issuer</th><th>Reported value</th><th>State</th></tr></thead><tbody>{% for row in chart.table_rows %}<tr><th scope="row">{{ row.period_label }}</th><td>{{ row.ticker }}</td><td><a class="provenance-trigger" href="{{ row.evidence_locator_url or '/api/v1/observations/' ~ row.id }}" data-observation-id="{{ row.id }}">{{ row.display_value }}</a></td><td>{{ row.state|replace('_', ' ') }}</td></tr>{% endfor %}</tbody></table></div></div>
+      <div class="table-wrap disclosure-table"><table><caption>Latest-period disclosure matrix with direct evidence links.</caption><thead><tr><th>Issuer</th><th>Metric</th><th>Reported value</th><th>State</th></tr></thead><tbody>{% for row in featured if row.period_end == selected_period %}<tr><td>{{ row.ticker }}</td><th scope="row">{{ row.metric_name }}</th><td><a class="provenance-trigger" href="{{ row.evidence_locator_url or '/api/v1/observations/' ~ row.id }}" data-observation-id="{{ row.id }}">{{ row.display_value }}</a></td><td>{{ row.state|replace('_', ' ') }}</td></tr>{% endfor %}</tbody></table></div>
+    </section>
+    {% endif %}
 
-  <noscript><p class="noscript">JavaScript is disabled. Every value link still opens its precise retained-source locator.</p></noscript>
-  <footer class="site-footer">
-    <p>Selected publicly traded U.S. mortgage servicers &middot; Public-company evidence only &middot; No borrower or loan-level data</p>
-    <p>This Stage A research interface is not an industry ranking or investment advice.</p>
-  </footer>
+    {% if page == 'comparison' %}
+    <section class="compare-hero"><div class="wrap section-intro"><div><p class="eyebrow light">Comparison bench</p><h1>Put scale in perspective.</h1></div><p>Choose up to three governed operators on the company screen, then apply three independently configurable KPIs consistently across every card.</p></div></section>
+    <section class="wrap comparison-workspace">
+      <div class="kpi-controls" aria-label="Comparison KPI controls"><span>Compare on</span>{% for index in range(3) %}<label><small>KPI {{ index + 1 }}</small><select class="kpi-selector" data-slot="{{ index }}"><option value="loans" {{ 'selected' if index == 0 else '' }}>Customer loans</option><option value="owned" {{ 'selected' if index == 1 else '' }}>Owned/MSR mix</option><option value="growth" {{ 'selected' if index == 2 else '' }}>UPB growth</option><option value="upb">Servicing UPB</option></select></label>{% endfor %}</div>
+      <p id="bench-status" class="selection-status" role="status" aria-live="polite">{{ servicing_cards|length }} of 3 companies selected.</p>
+      {% if scale_assessment.status != 'comparable' %}<div class="scale-blocked" role="status"><strong>Relative portfolio scale unavailable</strong><span>The authoritative comparison is {{ scale_assessment.status|replace('_', ' ') }}; no cross-company ranking is drawn.</span><ul>{% for reason in scale_assessment.reasons %}<li>{{ reason }}</li>{% endfor %}</ul></div>{% endif %}
+      <div class="compare-grid" id="compare-grid">
+      {% set default_kpis = ['loans', 'owned', 'growth'] %}
+      {% for company in servicing_cards %}
+        <article class="compare-card" data-company-id="{{ company.id }}">
+          <header><span class="company-logo" aria-hidden="true">{{ company.ticker[:2] }}</span><div><h2>{{ company.ticker }}</h2><p>{{ company.legal_name }}</p></div><button class="remove-company" type="button" aria-label="Remove {{ company.legal_name }} from comparison">×</button></header>
+          <div class="compare-primary">{{ metric_value(company.upb) }}<span>Total servicing UPB · {{ company.period_label }}</span></div>
+          {% if company.relative_scale is not none %}<div class="bar-label"><span>Relative to largest comparable portfolio</span><b>{{ company.relative_scale }}%</b></div><div class="compare-bar" aria-label="{{ company.relative_scale }} percent of largest comparable portfolio"><span style="width: {{ company.relative_scale }}%"></span></div>{% else %}<p class="card-scale-unavailable">No relative scale · {{ company.scale_status|replace('_', ' ') }}</p>{% endif %}
+          <dl>{% for slot in range(3) %}<div class="kpi-slot" data-slot="{{ slot }}">{% for key, metric in company.kpis.items() %}<div class="kpi-option" data-key="{{ key }}" {{ 'hidden' if key != default_kpis[slot] else '' }}><dt>{{ metric.label }}</dt><dd>{{ metric_value(metric) }}</dd><small>{{ metric.note }}</small></div>{% endfor %}</div>{% endfor %}</dl>
+        </article>
+      {% endfor %}
+        <a class="add-card" href="/#universe"><span aria-hidden="true">+</span><strong>Add a company</strong><small>Choose from the governed universe</small></a>
+      </div>
+    </section>
+    <section class="wrap evidence-panel governed-verdicts" aria-labelledby="governed-verdict-title"><header><div><p class="eyebrow">Authoritative comparability</p><h2 id="governed-verdict-title">Governed verdicts and reasons</h2></div><p>These deterministic repository results control whether cross-company visual comparisons are permitted.</p></header>{% for comparison in comparisons %}<article class="verdict-card"><header><a href="/metrics/{{ comparison.metric_id }}">{{ comparison.metric_id|replace('_', ' ')|title }}</a><strong class="verdict">{{ comparison.status|replace('_', ' ') }}</strong></header><div><a class="provenance-trigger" href="{{ comparison.left.evidence_locator_url or '/api/v1/observations/' ~ comparison.left.id }}" data-observation-id="{{ comparison.left.id }}">{{ comparison.left.ticker }} · {{ comparison.left.reported_value }}</a><span>versus</span><a class="provenance-trigger" href="{{ comparison.right.evidence_locator_url or '/api/v1/observations/' ~ comparison.right.id }}" data-observation-id="{{ comparison.right.id }}">{{ comparison.right.ticker }} · {{ comparison.right.reported_value }}</a></div><ul>{% for reason in comparison.reasons %}<li>{{ reason }}</li>{% endfor %}</ul></article>{% else %}<p class="notice">No governed same-period comparison is available.</p>{% endfor %}</section>
+    {% endif %}
+
+    {% if page == 'earnings' %}
+    <section class="page-hero"><div class="wrap"><p class="eyebrow">Most recent earnings</p><h1>The quarter, distilled.</h1><p>Deterministic presentation summaries backed by the existing earnings-event and observation pipeline.</p></div></section>
+    <section class="wrap earnings-section">
+      <header class="earnings-head"><div><p class="eyebrow">Company brief</p><h2>Latest governed disclosure</h2></div><label class="field earnings-search"><span>Find a company</span><input id="earnings-search" type="search" list="earnings-companies" autocomplete="off" placeholder="Ticker or company"><datalist id="earnings-companies">{% for brief in earnings_briefs %}<option value="{{ brief.ticker }} · {{ brief.legal_name }}" data-company-id="{{ brief.company_id }}"></option>{% endfor %}</datalist></label></header>
+      <p id="earnings-status" class="selection-status" role="status" aria-live="polite"></p>
+      {% for brief in earnings_briefs %}
+      <article class="earnings-card" data-company-id="{{ brief.company_id }}" data-search="{{ brief.ticker|lower }} {{ brief.legal_name|lower }} {{ brief.platform|default('', true)|lower }}" {{ 'hidden' if not loop.first else '' }}>
+        <div class="earnings-meta"><span>{{ brief.reporting_period }}</span><span>Earnings date · {{ brief.earnings_date }}</span><b class="unavailable">Read: {{ brief.read }}</b></div>
+        <div class="earnings-main"><div><div class="earnings-company"><span class="company-logo" aria-hidden="true">{{ brief.ticker[:2] }}</span><span>{{ brief.legal_name }} · Platform not available</span></div><h2>{{ brief.headline }}</h2><p>{{ brief.summary }}</p><p class="derivation-label">Derived presentation summary · {{ brief.read_status }}</p><a class="official-link" href="{{ brief.source_url }}" target="_blank" rel="noreferrer">Open official earnings source <span aria-hidden="true">↗</span></a><a class="evidence-id" href="/api/v1/evidence/{{ brief.evidence_id }}">Evidence record {{ brief.evidence_id }}</a></div><aside class="takeaways"><p>KEY SIGNALS</p>{% for signal in brief.signals %}<div><span>0{{ loop.index }}</span><section><strong>{{ signal.label }}</strong>{{ metric_value(signal) }}<small>{{ signal.note }}</small></section></div>{% endfor %}</aside></div>
+      </article>
+      {% else %}<div class="empty"><strong>No governed earnings event is available.</strong><p>The interface does not substitute a stale or reference-site event.</p></div>{% endfor %}
+    </section>
+    {% endif %}
+
+    {% if page == 'quality' %}
+    <section class="page-hero"><div class="wrap"><p class="eyebrow">Trust center</p><h1>Coverage, freshness &amp; limitations.</h1><p>Every absent value retains its explicit state. SOURCE_NOT_CHECKED is not treated as evidence of omission.</p></div></section>
+    <section class="wrap quality-grid"><article><span>Freshness</span><strong>{{ quality.freshness_state|upper }}</strong><p>{{ quality.age_days if quality.age_days is not none else 'Unknown' }} days since retrieval</p></article><article><span>Coverage</span><strong>{{ quality.coverage_state|upper }}</strong><p>{{ quality.published_count }} published observations</p></article><article><span>Not disclosed</span><strong>{{ quality.not_disclosed_count }}</strong><p>Explicit missing states</p></article><article><span>Source not checked</span><strong>{{ quality.source_not_checked_count }}</strong><p>Pending source assessments · {{ quality.quarantined_candidate_count }} QUARANTINED</p></article></section>
+    <section class="wrap evidence-panel"><h2>Disclosure coverage</h2><div class="table-wrap"><table><caption>Coverage by issuer and reporting period.</caption><thead><tr><th>Issuer</th><th>Period</th><th>Reported</th><th>Not disclosed</th><th>Source not checked</th></tr></thead><tbody>{% for item in coverage %}<tr><td>{{ item.company_id|upper }}</td><td>{{ item.period_end }}</td><td>{{ item.reported }}</td><td>{{ item.missing }}</td><td>{{ item.source_not_checked }}</td></tr>{% endfor %}</tbody></table></div></section>
+    {% endif %}
+
+    {% if page == 'methodology' %}
+    <section class="page-hero"><div class="wrap"><p class="eyebrow">Methodology</p><h1>Meaning travels with every value.</h1><p>Servicing Lens is a presentation layer over the application’s governed public-evidence model.</p></div></section>
+    <section class="wrap method-grid"><article><span>01</span><h2>Official evidence first</h2><p>Filed SEC materials and official records outrank issuer copies. Search results and model recollection cannot support a number.</p></article><article><span>02</span><h2>Exact arithmetic</h2><p>Money, UPB, rates, growth, ratios, and presentation normalizations use Decimal in Python—never JavaScript financial math.</p></article><article><span>03</span><h2>Missing stays missing</h2><p>Customer loans, platform names, and sentiment remain unavailable where the governed pipeline has no field.</p></article><article><span>04</span><h2>Mix semantics remain explicit</h2><p>PFSI owned mix is owned-MSR UPB / total UPB. TFC shows bank-owned loans serviced / total UPB and is not described as MSR ownership.</p></article></section>
+    <section class="wrap evidence-panel catalog"><h2>Metric catalog</h2>{% for category, group in metric_groups.items() %}<section><h3>{{ category|replace('_', ' ')|title }}</h3>{% for metric in group %}<details><summary>{{ metric.display_name }} <code>{{ metric.id }}</code></summary><p>{{ metric.business_meaning }}</p></details>{% endfor %}</section>{% endfor %}</section>
+    {% endif %}
+  </main>
+
+  <dialog id="provenance-dialog" aria-labelledby="provenance-title" aria-describedby="provenance-description"><div class="dialog-frame"><header class="dialog-header"><div><p class="eyebrow">Complete evidence view</p><h2 id="provenance-title">Observation evidence</h2></div><button class="dialog-close" type="button" aria-label="Close evidence view">×</button></header><p id="provenance-description">Reported and normalized values, semantic context, immutable source identity, validation and revision history.</p><div id="provenance-status" role="status" aria-live="polite"></div><div id="provenance-content"></div></div></dialog>
+  <noscript><p class="noscript">JavaScript is disabled. Search, sorting, comparison selection, and KPI switching require JavaScript; all governed rows remain visible and every observation link still opens its precise retained-source locator.</p></noscript>
+  <footer class="site-footer"><div class="wrap footer-grid"><div><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><span>S</span><span>L</span></span><span class="brand-text">Servicing <b>Lens</b></span></a><p>Clearer context for a complex corner of housing finance.</p></div><div><strong>Coverage</strong><a href="/">Company universe</a><a href="/comparison">Comparison bench</a><a href="/earnings">Earnings brief</a></div><div><strong>Methodology</strong><p>Public company filings and earnings materials. Research and screening only—not investment advice.</p></div></div><div class="wrap footer-bottom"><span>Servicing Lens</span><span>Data periods vary by issuer · Verify at source</span></div></footer>
 </body>
 </html>
