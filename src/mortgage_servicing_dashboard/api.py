@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import AsyncIterator, Iterable
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from html.parser import HTMLParser
@@ -28,6 +29,15 @@ from mortgage_servicing_dashboard.database import (
     QuarantineCandidate,
     create_database_engine,
     default_database_url,
+)
+from mortgage_servicing_dashboard.presentation import (
+    CompanyIdentity,
+    EarningsIdentity,
+    ScaleAssessment,
+    normalize_companies,
+    normalize_earnings,
+    serialize_cards,
+    serialize_earnings,
 )
 from mortgage_servicing_dashboard.repository import (
     IntelligenceRepository,
@@ -721,7 +731,7 @@ def create_app(  # noqa: C901, PLR0915
         yield
 
     app = FastAPI(
-        title="Public Mortgage Servicing Intelligence",
+        title="Servicing Lens",
         version="0.1.0",
         description=(
             "Bounded, source-traceable public financial intelligence for two selected "
@@ -998,6 +1008,48 @@ def create_app(  # noqa: C901, PLR0915
         }
         quality = _quality_summary(repo)
         chart = _chart_model(page_rows, metric_id=metric_id, company_id=company_id)
+        presentation_companies = cast("list[CompanyIdentity]", companies_payload)
+        presentation_periods = (
+            {company["id"]: selected_period for company in presentation_companies}
+            if selected_period is not None
+            else None
+        )
+        cards = normalize_companies(
+            presentation_companies,
+            all_rows,
+            target_periods=presentation_periods,
+        )
+        earnings_events_payload = cast("list[EarningsIdentity]", repo.earnings_events())
+        earnings_briefs = normalize_earnings(
+            presentation_companies,
+            all_rows,
+            earnings_events_payload,
+        )
+        scale_comparison = (
+            repo.compare(
+                metric_id="total_servicing_upb",
+                period_end=date.fromisoformat(selected_period),
+            )
+            if selected_period is not None
+            else None
+        )
+        scale_assessment = ScaleAssessment(
+            status=scale_comparison.status if scale_comparison else "insufficient_information",
+            reasons=(
+                scale_comparison.reasons
+                if scale_comparison
+                else ("A governed same-period servicing UPB comparison is unavailable",)
+            ),
+        )
+        serialized_cards = serialize_cards(cards, scale_assessment=scale_assessment)
+        active_company = next(
+            (item for item in serialized_cards if item["id"] == company_id),
+            None,
+        )
+        active_metric = next(
+            (item for item in metrics_payload if item["id"] == metric_id),
+            None,
+        )
         return templates.TemplateResponse(
             request=request,
             name="dashboard.html",
@@ -1021,6 +1073,11 @@ def create_app(  # noqa: C901, PLR0915
                 "quality": quality,
                 "safe_source_url": _safe_source_url,
                 "model_calls_enabled": False,
+                "servicing_cards": serialized_cards,
+                "earnings_briefs": serialize_earnings(earnings_briefs),
+                "scale_assessment": asdict(scale_assessment),
+                "active_company": active_company,
+                "active_metric": active_metric,
             },
         )
 
@@ -1097,6 +1154,21 @@ def create_app(  # noqa: C901, PLR0915
             title="Pairwise comparison",
             metric_id=metric_id,
             period_end=period_end,
+        )
+
+    @app.get("/earnings", response_class=HTMLResponse, include_in_schema=False)
+    def earnings_page(
+        request: Request,
+        repo: RepositoryDependency,
+        metric_id: str = _DEFAULT_METRIC,
+    ) -> HTMLResponse:
+        """Render deterministic briefs from the existing earnings-event pipeline."""
+        return render(
+            request,
+            repo,
+            page="earnings",
+            title="Earnings brief",
+            metric_id=metric_id,
         )
 
     @app.get("/data-quality", response_class=HTMLResponse, include_in_schema=False)
