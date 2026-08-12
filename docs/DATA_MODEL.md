@@ -69,6 +69,14 @@ bytes.
 | \`quarantine_candidates\` | One unpublished extraction candidate and bounded metadata/excerpt reference; proposed semantics, conflicts, uncertainty, model/parser versions, state |
 | \`human_review_decisions\` | One attributable approve/reject/escalate decision; candidate, reviewer identity/role, reason, evidence snapshot, thread/run IDs, resulting revision/config version, timestamp |
 
+Migration `0002_phase2_structured_acquisition` adds filing identity, taxonomy,
+entity/context, exact scale, decimals, period, dimensions, and methodology to raw
+XBRL facts; native reporting scope, source family, RSSD, report date, unit/scale,
+and source revision to raw regulatory facts; and actual-versus-inferred window
+semantics to earnings events. Required regulatory scope is non-null and references
+the configured reporter's scope. Adapter replay never converts authoritative
+numeric text through binary floating point.
+
 ## Observation contract
 
 Every \`metric_observations\` row includes:

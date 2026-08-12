@@ -61,6 +61,28 @@ segment, and servicing subsidiary remain distinct even when they share a
 corporate family. SEC and regulatory values are not blended based on name or
 ownership alone.
 
+Phase 2 implements two explicit bulk shapes: tab-delimited FFIEC CDR Call Report
+rows for RSSD 852320 (Truist Bank) and caret-delimited FR Y-9C rows for RSSD
+1074156 (Truist Financial Corporation). NIC-style crosswalk rows verify ticker,
+CIK, RSSD, parent relationship, and effective dates. Adapter fixtures are marked
+`SYNTHETIC_TEST_DATA`; they test parsing but are not public observations.
+
+### Implemented live SEC boundary
+
+Live access occurs only after an explicit `--live` command and a validated
+`MSD_SEC_USER_AGENT`. The client permits official SEC HTTPS hosts, rejects
+redirects and user-info URLs, serializes requests at a conservative interval,
+uses bounded retry/backoff and response sizes, and verifies cached content.
+Original response bytes are retained by SHA-256 with representation
+`ORIGINAL_HTTP_RESPONSE` and capture method `sec_http_get`. Reacquiring changed
+bytes from the same URL creates a new content identity; conflicting observations
+enter quarantine.
+
+SEC company-facts and filing-level XBRL are parsed only from already acquired
+bytes. Mappings record concept, taxonomy, unit, exact Decimal scale, decimals,
+instant/duration period, and every dimension/member. XBRL and exhibit
+methodologies remain distinct and an exact mismatch never establishes precedence.
+
 ### Discovery-only material
 
 Search results, search snippets, news, aggregators, third-party transcripts, and
