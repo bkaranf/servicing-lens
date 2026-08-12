@@ -83,10 +83,15 @@ class FoundationWorkflow:
             A result that cannot represent automatic approval or execution.
         """
         assert_remote_tracing_disabled()
+        if classification is DataClassification.RESTRICTED_PRIVATE:
+            msg = "workflow rejects restricted/private classification"
+            raise ValueError(msg)
         request_id = uuid4().hex
         initial_state = FoundationWorkflowState(
             request_id=request_id,
-            data_classification=classification.value,
+            data_classification=(
+                "synthetic" if classification is DataClassification.SYNTHETIC else "public"
+            ),
             stage="received",
             requires_human_review=False,
         )

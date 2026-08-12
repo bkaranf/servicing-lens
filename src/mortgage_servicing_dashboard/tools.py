@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Literal, Protocol
 
 from langchain_core.tools import BaseTool, StructuredTool
+
+from mortgage_servicing_dashboard.repository import IntelligenceRepository
 
 
 @dataclass(frozen=True, slots=True)
 class CapabilitySnapshot:
     """Non-customer capability metadata safe to expose to a model."""
 
-    phase: Literal["foundation"]
+    phase: Literal["stage_a"]
     status: Literal["ready"]
     available: tuple[str, ...]
     unavailable: tuple[str, ...]
@@ -35,7 +38,7 @@ class CapabilitySnapshot:
 class GuardrailSnapshot:
     """Static policy metadata safe to expose to a model."""
 
-    accepted_data: tuple[Literal["public", "synthetic"], ...]
+    accepted_data: tuple[str, ...]
     customer_data_access: Literal["disabled"]
     operational_actions: Literal["disabled"]
     mortgage_calculations: Literal["not_implemented"]
@@ -74,7 +77,7 @@ class StaticFoundationInformation:
             A deterministic readiness snapshot.
         """
         return CapabilitySnapshot(
-            phase="foundation",
+            phase="stage_a",
             status="ready",
             available=(
                 "validated configuration",
@@ -82,10 +85,13 @@ class StaticFoundationInformation:
                 "LangChain agent wiring",
                 "LangGraph human-review orchestration boundary",
                 "Deep Agents research-draft worker boundary",
-                "static foundation tools",
+                "versioned two-company metric catalog",
+                "immutable evidence and bitemporal observations",
+                "read-only API and accessible dashboard",
+                "typed public-intelligence read tools",
+                "interruptible human-review ingestion graph",
             ),
             unavailable=(
-                "dashboard UI",
                 "customer or loan data access",
                 "mortgage calculations",
                 "servicing decisions",
@@ -100,7 +106,12 @@ class StaticFoundationInformation:
             A deterministic guardrail snapshot.
         """
         return GuardrailSnapshot(
-            accepted_data=("public", "synthetic"),
+            accepted_data=(
+                "public_filing",
+                "public_regulatory",
+                "issuer_public",
+                "synthetic_test",
+            ),
             customer_data_access="disabled",
             operational_actions="disabled",
             mortgage_calculations="not_implemented",
@@ -144,5 +155,138 @@ def build_foundation_tools(
                 "Return static privacy and operational guardrails. This tool has no "
                 "external-system access."
             ),
+        ),
+    )
+
+
+def build_intelligence_tools(  # noqa: C901
+    repository: IntelligenceRepository,
+) -> tuple[BaseTool, ...]:
+    """Build typed, bounded, read-only tools over published public observations."""
+
+    def list_companies() -> list[dict[str, object]]:
+        """Return the versioned selected-company universe."""
+        return repository.companies()
+
+    def get_company_profile(company_id: Literal["tfc", "pfsi"]) -> dict[str, object]:
+        """Return one selected company and its published observation count."""
+        company = next(item for item in repository.companies() if item["id"] == company_id)
+        return {
+            **company,
+            "observation_count": len(repository.observations(company_id=company_id)),
+        }
+
+    def list_metric_definitions() -> list[dict[str, object]]:
+        """Return all versioned metric semantic contracts."""
+        return repository.metrics()
+
+    def get_metric_series(
+        company_id: Literal["tfc", "pfsi"],
+        metric_id: str,
+    ) -> list[dict[str, object]]:
+        """Return a metric series for one selected issuer, including explicit missing rows."""
+        return [
+            item.as_dict()
+            for item in repository.observations(company_id=company_id, metric_id=metric_id)
+        ]
+
+    def list_observations(
+        company_id: Literal["tfc", "pfsi"] | None = None,
+        metric_id: str | None = None,
+        period_end: str | None = None,
+    ) -> list[dict[str, object]]:
+        """Read bounded observations using optional issuer, metric, and period filters."""
+        parsed_period = date.fromisoformat(period_end) if period_end is not None else None
+        return [
+            item.as_dict()
+            for item in repository.observations(
+                company_id=company_id,
+                metric_id=metric_id,
+                period_end=parsed_period,
+            )
+        ]
+
+    def compare_metric(metric_id: str, period_end: str) -> dict[str, object]:
+        """Assess TFC and PFSI pairwise comparability for one metric and period."""
+        result = repository.compare(metric_id=metric_id, period_end=date.fromisoformat(period_end))
+        return {"status": "insufficient_information"} if result is None else result.as_dict()
+
+    def get_observation_provenance(observation_id: str) -> dict[str, object]:
+        """Return the bounded source and semantic context for one observation identifier."""
+        result = repository.observation(observation_id)
+        return {"status": "not_found"} if result is None else result.as_dict()
+
+    def get_evidence(evidence_id: str) -> dict[str, object]:
+        """Return immutable public evidence metadata by content-addressed identifier."""
+        result = repository.evidence(evidence_id)
+        return {"status": "not_found"} if result is None else result
+
+    def get_disclosure_coverage() -> list[dict[str, object]]:
+        """Return reported-versus-not-disclosed counts by issuer and quarter."""
+        return repository.coverage()
+
+    def list_earnings_events() -> list[dict[str, object]]:
+        """Return the selected issuers' public disclosure events."""
+        return repository.earnings_events()
+
+    def get_pipeline_freshness() -> dict[str, object]:
+        """Return recorded dataset and knowledge-time freshness metadata."""
+        return repository.freshness()
+
+    return (
+        StructuredTool.from_function(
+            list_companies,
+            name="list_companies",
+            description="Read the versioned TFC/PFSI selected universe.",
+        ),
+        StructuredTool.from_function(
+            get_company_profile,
+            name="get_company_profile",
+            description="Read one selected company's public-data profile.",
+        ),
+        StructuredTool.from_function(
+            list_metric_definitions,
+            name="list_metric_definitions",
+            description="Read versioned servicing metric definitions and rules.",
+        ),
+        StructuredTool.from_function(
+            get_metric_series,
+            name="get_metric_series",
+            description="Read one versioned public metric series for TFC or PFSI.",
+        ),
+        StructuredTool.from_function(
+            list_observations,
+            name="list_observations",
+            description="Read observations with bounded issuer, metric, or period filters.",
+        ),
+        StructuredTool.from_function(
+            compare_metric,
+            name="compare_metric",
+            description="Read a deterministic pairwise comparability assessment.",
+        ),
+        StructuredTool.from_function(
+            get_observation_provenance,
+            name="get_observation_provenance",
+            description="Read source evidence and semantic metadata for one observation.",
+        ),
+        StructuredTool.from_function(
+            get_evidence,
+            name="get_evidence",
+            description="Read immutable evidence metadata and its authoritative locator.",
+        ),
+        StructuredTool.from_function(
+            get_disclosure_coverage,
+            name="get_disclosure_coverage",
+            description="Read explicit disclosure and missingness coverage.",
+        ),
+        StructuredTool.from_function(
+            list_earnings_events,
+            name="list_earnings_events",
+            description="Read selected-company public earnings disclosure events.",
+        ),
+        StructuredTool.from_function(
+            get_pipeline_freshness,
+            name="get_pipeline_freshness",
+            description="Read materialized dataset and knowledge-time freshness.",
         ),
     )

@@ -41,8 +41,13 @@ from mortgage_servicing_dashboard.privacy import (
     assert_remote_tracing_disabled,
     build_privacy_middleware,
 )
+from mortgage_servicing_dashboard.repository import IntelligenceRepository
 from mortgage_servicing_dashboard.state import DashboardContext, ResearchWorkerState
-from mortgage_servicing_dashboard.tools import FoundationInformationPort, build_foundation_tools
+from mortgage_servicing_dashboard.tools import (
+    FoundationInformationPort,
+    build_foundation_tools,
+    build_intelligence_tools,
+)
 
 _SYSTEM_PROMPT = """You are a restricted research and analysis worker for a future mortgage
 servicing dashboard. Work only with public or synthetic, de-identified material that has
@@ -227,7 +232,7 @@ class ResearchAnalysisWorker:
 
         request_id = uuid4().hex
         classification: Literal["public", "synthetic"] = (
-            "public" if prompt.classification is DataClassification.PUBLIC else "synthetic"
+            "synthetic" if prompt.classification is DataClassification.SYNTHETIC else "public"
         )
         state = ResearchWorkerState(
             messages=[HumanMessage(content=prompt.text)],
@@ -285,12 +290,13 @@ def _assert_profile_key_matches(model: str | BaseChatModel, profile_key: str) ->
         raise AgentConfigurationError(msg)
 
 
-def create_research_worker(
+def create_research_worker(  # noqa: PLR0913
     settings: AppSettings,
     *,
     model: str | BaseChatModel | None = None,
     profile_key: str | None = None,
     information: FoundationInformationPort | None = None,
+    repository: IntelligenceRepository | None = None,
     prompt_boundary: PromptBoundary | None = None,
 ) -> ResearchAnalysisWorker:
     """Construct a Deep Agents worker with delegation and filesystem access disabled.
@@ -300,6 +306,7 @@ def create_research_worker(
         model: Optional injected chat model for tests or controlled deployments.
         profile_key: Exact `provider:model` key for an injected model.
         information: Optional static foundation-information port.
+        repository: Optional authoritative public-intelligence read repository.
         prompt_boundary: Optional input boundary for dependency injection.
 
     Returns:
@@ -326,7 +333,11 @@ def create_research_worker(
         ),
     )
 
-    tools = list(build_foundation_tools(information))
+    tools = list(
+        build_intelligence_tools(repository)
+        if repository is not None
+        else build_foundation_tools(information)
+    )
     allowed_tool_names = frozenset(tool.name for tool in tools)
     privacy_middleware = cast(
         "tuple[AgentMiddleware[AgentState[Any], DashboardContext, Any], ...]",
