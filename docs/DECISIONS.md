@@ -204,6 +204,13 @@ retained-evidence byte counts and SHA-256 values, and an empty search for former
 repository build/tooling references. The standalone root recreates CI, scoped
 Git attributes, ignore rules, licensing, and consolidated contributor instructions.
 
+That verification passed on 2026-08-12 in a fresh GitHub clone at standalone
+commit `74d23d5c90811962c49b4f3e7828d2054b4c06ac`: locked sync and lock check,
+Ruff, Ruff format, strict Mypy, 84 socket-blocked tests at 91.33% branch
+coverage, deterministic doctor, provenance parsing, and the Alembic
+upgrade/check/downgrade/upgrade round trip all exited zero. Windows checkout
+preserved the two D-015 byte counts and SHA-256 values exactly.
+
 Rollback is non-destructive: discard the standalone clone or its new remote and
 repeat from the frozen source commit. The source repository is never a rollback
 target because extraction did not modify it.

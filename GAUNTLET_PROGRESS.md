@@ -88,7 +88,7 @@ status: ready; stage: A; universe: TFC, PFSI; all optional runtime switches: fal
 
 ## Standalone extraction
 
-- Verdict: **local gate passed; fresh-clone handoff pending**.
+- Verdict: **passed on 2026-08-12**.
 - The source application commit and subtree tree were frozen before filtering;
   D-013 records the complete old-to-new commit mapping and rollback method.
 - The extracted root contains application source, tests, migrations,
@@ -101,5 +101,8 @@ status: ready; stage: A; universe: TFC, PFSI; all optional runtime switches: fal
   format, strict Mypy, 84 socket-blocked tests at 91.33% branch coverage, the
   explicit Alembic upgrade/check/downgrade/upgrade round trip, deterministic
   doctor, and patch hygiene.
-- Phase 1 exits only after the new remote branch is cloned from scratch with
-  automatic line-ending conversion enabled and that clone passes the same gate.
+- A GitHub clone of `bkaranf/servicing-lens` branch
+  `bkaranf/repo/standalone-extraction` at `74d23d5c90811962c49b4f3e7828d2054b4c06ac`
+  was created from scratch with automatic line-ending conversion enabled. It
+  retained both exact evidence hashes and passed the same complete gate with a
+  clean worktree and no former-repository reference.
