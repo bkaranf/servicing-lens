@@ -16,8 +16,8 @@ mortgage calculations, servicing decisions, or account actions.
 - a fail-closed prompt boundary and LangChain PII middleware;
 - a network-free `doctor` CLI and deterministic unit tests.
 
-The package is intentionally separate from the upstream `libs/` packages so future
-application work does not complicate rebases from `langchain-ai/langchain`.
+The package was intentionally isolated from its former host repository so future
+application work could be extracted without coupling to unrelated packages.
 
 ## Three-layer architecture
 

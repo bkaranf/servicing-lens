@@ -1,0 +1,82 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
+    env:
+      LANGCHAIN_TRACING: "false"
+      LANGCHAIN_TRACING_V2: "false"
+      LANGSMITH_TRACING: "false"
+      MSD_ENABLE_DEEP_AGENT: "false"
+      MSD_ENABLE_LANGGRAPH_PERSISTENCE: "false"
+      MSD_ENABLE_MODEL_CALLS: "false"
+      MSI_CONFIG_DIR: ${{ github.workspace }}/config
+      RUFF_OUTPUT_FORMAT: github
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python and uv
+        uses: astral-sh/setup-uv@0ca8f610542aa7f4acaf39e65cf4eb3c35091883 # v7
+        with:
+          version: "0.12.1"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install locked development dependencies
+        run: uv sync --locked --group dev --no-sources
+
+      - name: Verify self-contained lockfile
+        run: uv lock --check --no-sources
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Type check
+        run: uv run mypy src tests
+
+      - name: Test with branch coverage
+        run: uv run pytest --cov=mortgage_servicing_dashboard --cov-report=term-missing
+
+      - name: Verify migration round trip
+        env:
+          MSI_DATABASE_URL: sqlite:///./.ci/migration.db
+        run: |
+          mkdir -p .ci
+          uv run alembic upgrade head
+          uv run alembic check
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+
+      - name: Verify patch hygiene
+        run: git diff --check
+
+      - name: Run safe readiness diagnostic
+        run: uv run msi doctor --json

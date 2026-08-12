@@ -92,4 +92,4 @@ this subtree and itself. It has read-only repository permissions, uses SHA-pinne
 external actions through the repository's `uv` setup, provides no secrets, and forces
 model calls, Deep Agents execution, LangGraph persistence, and remote tracing off. New
 checks belong there only when they validate this application; do not couple the project
-to unrelated monorepo release workflows.
+to unrelated repository release workflows.

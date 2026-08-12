@@ -6,7 +6,7 @@ Decision statuses are `Accepted`, `Proposed`, `Superseded`, or `Rejected`. An ac
 
 | ID | Status | Decision |
 | --- | --- | --- |
-| ADR-001 | Accepted | Isolate the application from upstream LangChain libraries |
+| ADR-001 | Accepted | Isolate the application from unrelated framework source |
 | ADR-002 | Accepted | Synthetic, internal, read-only decision support first |
 | ADR-003 | Accepted | LangChain + LangGraph + Deep Agents form a layered three-part agent foundation |
 | ADR-004 | Accepted | Deterministic domain and metric core is authoritative over model synthesis |
@@ -25,9 +25,9 @@ Decision statuses are `Accepted`, `Proposed`, `Superseded`, or `Rejected`. An ac
 
 **Status:** Accepted, 2026-08-11
 
-**Context:** This repository is an upstream LangChain monorepo. Product code must not complicate library versioning, tests, releases, or rebases.
+**Context:** The application originally shared a repository with unrelated framework source. Product code must not complicate that source's versioning, tests, releases, or rebases.
 
-**Decision:** Keep the application under `mortgage_servicing_dashboard/` with its own `pyproject.toml`, source, tests, docs, environment contract, and commands. Depend on local LangChain packages through supported package interfaces. Do not alter `libs/` to implement dashboard behavior.
+**Decision:** Keep the application under `mortgage_servicing_dashboard/` with its own `pyproject.toml`, source, tests, docs, environment contract, and commands. Depend on framework packages through supported package interfaces. Do not alter unrelated framework source to implement dashboard behavior.
 
 **Consequences:** Application dependencies and CI are independently managed. Reusable fixes to upstream packages require a separate contribution; application-specific shortcuts do not enter public APIs.
 

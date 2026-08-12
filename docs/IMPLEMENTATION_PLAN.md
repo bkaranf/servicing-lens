@@ -21,19 +21,18 @@ Deliver:
 - byte-preserved archive of the internal servicing-operations foundation;
 - the nine authoritative public-product documents and new handoff;
 - package/display/CLI naming for Public Mortgage Servicing Intelligence;
-- removal of editable \`../libs/langchain_v1\` and \`../libs/core\` overrides;
+- removal of path and editable dependency overrides;
 - deliberately regenerated \`uv.lock\` using released packages;
 - FastAPI, Pydantic, SQLAlchemy 2, Alembic, PostgreSQL driver, Jinja2/HTMX, and
   locally hosted chart dependencies/assets; and
-- a decision recording future extraction into a standalone repository.
+- a decision recording the completed history-preserving standalone extraction.
 
 Gate:
 
-- installation succeeds from \`mortgage_servicing_dashboard/\` without local
-  \`libs/\`;
+- installation succeeds from the repository root using released packages only;
 - lockfile review finds no unintended provider SDK, execution sandbox, unrestricted
   MCP, telemetry, or persistence dependency; and
-- upstream \`libs/\` remains unchanged.
+- the extracted history maps back to the frozen source commit.
 
 ## A1 — Verify source discovery and freeze the Stage A universe
 
@@ -192,7 +191,7 @@ Gate:
 - all source/evidence/calculation/reconciliation acceptance evidence is retained;
 - no borrower/customer/private servicing data or credential exists anywhere in the
   repository;
-- no upstream \`libs/\` change exists; and
+- no path or editable dependency override exists; and
 - the draft PR is opened against the intended repository without merging master.
 
 ## Required deterministic test inventory

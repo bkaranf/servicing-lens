@@ -1,6 +1,6 @@
 # Public Mortgage Servicing Intelligence documentation
 
-Status: Stage A recorded-data vertical slice closed; standalone extraction next
+Status: Stage A recorded-data vertical slice closed; standalone extraction complete
 
 Baseline date: 2026-08-12
 
@@ -14,7 +14,7 @@ The repository contains the safety foundation plus the Stage A persistence,
 recorded-evidence ingestion, read API, dashboard, provenance, comparability, and
 human-review slice. The acceptance gates in the implementation plan define the
 evidence required for each release. The existing SEC client is not CLI-wired;
-governed live acquisition starts in Phase 2 after standalone extraction.
+governed live acquisition starts in Phase 2.
 
 ## Authoritative documents
 

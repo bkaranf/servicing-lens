@@ -1,8 +1,9 @@
 # Stage A Gauntlet progress
 
-Branch: `bkaranf/mortgage-dashboard/stage-a-closure`
+Branch: `bkaranf/repo/standalone-extraction`
 
-Base: `origin/master` at `3139ad7c10b484e424af23744f9e5269de5bb4e4`
+Base: filtered standalone `main` at
+`ec758b6be35cd8363fcac7db94ba665d60b58b05`
 
 Audit date: 2026-08-12
 
@@ -84,3 +85,21 @@ status: ready; stage: A; universe: TFC, PFSI; all optional runtime switches: fal
 - Draft-PR evidence is recorded in the Phase 0 handoff and D-015. The
   pre-existing untracked `artifacts/` directory is
   user-owned and is not part of the closure commit.
+
+## Standalone extraction
+
+- Verdict: **local gate passed; fresh-clone handoff pending**.
+- The source application commit and subtree tree were frozen before filtering;
+  D-013 records the complete old-to-new commit mapping and rollback method.
+- The extracted root contains application source, tests, migrations,
+  configuration, proposals, governing documentation, released dependency pins,
+  consolidated contributor instructions, and standalone CI for Python 3.11 and
+  3.14.
+- Scoped Git attributes keep retained evidence binary. Both retained files match
+  the Stage A byte counts and SHA-256 values above after extraction.
+- The standalone local gate passes locked sync, lock validation, Ruff, Ruff
+  format, strict Mypy, 84 socket-blocked tests at 91.33% branch coverage, the
+  explicit Alembic upgrade/check/downgrade/upgrade round trip, deterministic
+  doctor, and patch hygiene.
+- Phase 1 exits only after the new remote branch is cloned from scratch with
+  automatic line-ending conversion enabled and that clone passes the same gate.

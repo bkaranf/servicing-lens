@@ -4,7 +4,7 @@ Copy the prompt below into the next Codex session.
 
 ---
 
-Work in `mortgage_servicing_dashboard/` inside this LangChain monorepo and implement Phase 1 of the Mortgage Servicing Dashboard foundation at maximum rigor. Begin by reading every applicable `AGENTS.md`, the application `README.md`, `QUALITY_GUIDE.md` if present, and all files under `docs/`, especially `IMPLEMENTATION_BACKLOG.md`, `ARCHITECTURE_DECISIONS.md`, `DATA_AND_INTERFACES.md`, and `SECURITY_PRIVACY_AND_COMPLIANCE.md`. Inspect the current package and dirty worktree before editing; preserve other people's work, do not revert unrelated changes, do not modify upstream `libs/` for application behavior, and do not commit or push.
+Work in `mortgage_servicing_dashboard/` and implement Phase 1 of the Mortgage Servicing Dashboard foundation at maximum rigor. Begin by reading every applicable `AGENTS.md`, the application `README.md`, `QUALITY_GUIDE.md` if present, and all files under `docs/`, especially `IMPLEMENTATION_BACKLOG.md`, `ARCHITECTURE_DECISIONS.md`, `DATA_AND_INTERFACES.md`, and `SECURITY_PRIVACY_AND_COMPLIANCE.md`. Inspect the current package and dirty worktree before editing; preserve other people's work, do not revert unrelated changes, do not modify unrelated framework source for application behavior, and do not commit or push.
 
 Outcome: deliver a runnable, accessible, internal read-only dashboard vertical slice using only independently generated **SYNTHETIC** data, plus a safe three-part LangChain + LangGraph + Deep Agents foundation. The dashboard must work fully with live model calls, remote tracing, persistence, and Deep Agents disabled. Do not connect real borrower data or any external servicing system. Do not build a servicing action workflow.
 

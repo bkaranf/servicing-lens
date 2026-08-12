@@ -9,7 +9,7 @@ Goal: convert this baseline and the safe package scaffold into an approved imple
 | ID | Pri | Backlog item | Acceptance criteria |
 | --- | --- | --- | --- |
 | FND-001 | P0 | Review product/domain baseline | Product, servicing operations, data, security/privacy, compliance/legal, accessibility, AI/model-risk, and engineering owners record approval or owned gaps; this is not production approval |
-| FND-002 | P0 | Confirm application boundary | Application remains isolated under `mortgage_servicing_dashboard/`; no product behavior changes upstream `libs/`; local `uv` commands are documented |
+| FND-002 | P0 | Confirm application boundary | Application remains isolated under `mortgage_servicing_dashboard/`; no product behavior changes unrelated framework source; local `uv` commands are documented |
 | FND-003 | P0 | Record stack ADR | Dashboard/API technology, dependency rationale, supported Python/runtime, local start path, accessibility approach, and deployment assumptions are recorded by superseding ADR-013 |
 | FND-004 | P0 | Assign definition/source owners | Every Phase 1 metric/field has business/data owner, proposed population, source, as-of semantics, and independent expected result |
 | FND-005 | P1 | Build traceability matrix | Each Phase 1 requirement maps to code, tests, UI/API evidence, security control, and owner; gaps fail phase exit |

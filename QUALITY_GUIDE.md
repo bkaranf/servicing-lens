@@ -1,6 +1,6 @@
 # Quality and integration guide
 
-This guide applies to \`mortgage_servicing_dashboard/\`. The normal gate is
+This guide applies to the repository root. The normal gate is
 deterministic, network-free, socket-blocked, credential-free, and fail-closed.
 Live source smoke tests are opt-in and never required for a normal local or CI
 pass.
@@ -150,8 +150,8 @@ Construction and negative tests prove:
 
 Every dependency change updates \`pyproject.toml\` and \`uv.lock\` together.
 Review the lock diff for unexpected provider SDKs, execution/sandbox packages,
-MCP clients, telemetry, persistence backends, or duplicate stacks. Editable
-\`../libs/\` sources are prohibited.
+MCP clients, telemetry, persistence backends, or duplicate stacks. Path and
+editable dependency overrides are prohibited.
 
 CI scans for credentials, private keys, tokens, real SEC contacts, restricted
 data, accidental borrower/customer fixtures, and unsafe logging. Expected
@@ -167,7 +167,8 @@ hash metadata.
 Before handoff:
 
 1. Run \`git diff --check\` and inspect the entire diff.
-2. Confirm upstream \`libs/\` is unchanged.
+2. Confirm retained evidence bytes and dependency locks are unchanged unless the
+   reviewed change explicitly requires them.
 3. Verify documentation labels incomplete behavior as planned and uses only TFC,
    PFSI, and Q3 2025–Q2 2026 for Stage A.
 4. Verify no production-ready, comprehensive-coverage, investment-advice, or
