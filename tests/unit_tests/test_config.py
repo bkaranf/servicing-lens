@@ -17,6 +17,7 @@ def test_safe_defaults_and_summary() -> None:
         enable_deep_agent=False,
         enable_langgraph_persistence=False,
         max_prompt_chars=2_000,
+        sec_user_agent=None,
     )
 
     assert settings.safe_summary() == {
@@ -27,6 +28,7 @@ def test_safe_defaults_and_summary() -> None:
         "deep_agent_enabled": False,
         "langgraph_persistence_enabled": False,
         "max_prompt_chars": 2_000,
+        "sec_user_agent_configured": False,
         "remote_tracing_allowed": False,
     }
 
@@ -59,3 +61,15 @@ def test_deep_agent_requires_live_model_switch() -> None:
 def test_safe_summary_hides_model_identifier() -> None:
     settings = AppSettings(model="test:private-deployment", enable_model_calls=False)
     assert "private-deployment" not in repr(settings.safe_summary())
+
+
+def test_sec_user_agent_is_optional_but_validated_and_not_disclosed() -> None:
+    settings = AppSettings(sec_user_agent="  Servicing Lens contact@example.test  ")
+    assert settings.sec_user_agent == "Servicing Lens contact@example.test"
+    assert settings.safe_summary()["sec_user_agent_configured"] is True
+    assert "contact@example.test" not in repr(settings.safe_summary())
+
+    with pytest.raises(ValidationError, match="SEC User-Agent"):
+        AppSettings(sec_user_agent="anonymous")
+    with pytest.raises(ValidationError, match="SEC User-Agent"):
+        AppSettings(sec_user_agent="app@example.test\r\nInjected: value")

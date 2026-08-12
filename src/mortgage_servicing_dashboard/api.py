@@ -255,9 +255,29 @@ class EarningsEventResponse(ReadResponse):
     ticker: str
     fiscal_year: int
     fiscal_quarter: int
+    period_end: str | None
     event_at: str
     evidence_id: str
     source_url: str
+    event_kind: str
+    source_kind: str
+    filing_accession: str | None
+    window_start: str | None
+    window_end: str | None
+    is_inferred: bool
+    inference_basis: list[str]
+
+
+class CalendarResponse(ReadResponse):
+    """Actual reporting event plus an explicitly inferred expected window."""
+
+    company_id: str
+    ticker: str
+    as_of: str
+    last_reported_period: dict[str, object]
+    next_expected_report_window: dict[str, object]
+    freshness_state: str
+    next_announced_event: dict[str, object] | None
 
 
 class FreshnessResponse(ReadResponse):
@@ -284,6 +304,8 @@ class FreshnessResponse(ReadResponse):
     age_days: int | None
     is_stale: bool
     freshness_state: str
+    calendar_freshness_state: str
+    calendar: list[dict[str, object]]
 
 
 def _asset_root() -> Path:
@@ -685,6 +707,17 @@ def _quality_summary(repo: IntelligenceRepository) -> dict[str, object]:
         stale_days = max((datetime.now(tz=UTC) - retrieved).days, 0)
     is_stale = stale_days is None or stale_days > _STALE_AFTER_DAYS
     freshness_state = "unavailable" if stale_days is None else ("stale" if is_stale else "current")
+    calendar_rows = cast("list[dict[str, object]]", freshness.get("calendar", []))
+    calendar_states = {str(item["freshness_state"]) for item in calendar_rows}
+    calendar_freshness_state = (
+        "AWAITING_EXPECTED_FILING"
+        if "AWAITING_EXPECTED_FILING" in calendar_states
+        else (
+            "WITHIN_EXPECTED_WINDOW"
+            if "WITHIN_EXPECTED_WINDOW" in calendar_states
+            else "NOT_YET_EXPECTED"
+        )
+    )
     return {
         **freshness,
         "reported_count": reported,
@@ -697,6 +730,7 @@ def _quality_summary(repo: IntelligenceRepository) -> dict[str, object]:
         "age_days": stale_days,
         "is_stale": is_stale,
         "freshness_state": freshness_state,
+        "calendar_freshness_state": calendar_freshness_state,
     }
 
 
@@ -948,6 +982,14 @@ def create_app(  # noqa: C901, PLR0915
         offset: int = 0,
     ) -> list[dict[str, object]]:
         return _page(repo.earnings_events(), limit=limit, offset=offset)
+
+    @app.get(
+        "/api/v1/calendar",
+        response_model=list[CalendarResponse],
+        tags=["events"],
+    )
+    def calendar(repo: RepositoryDependency) -> list[dict[str, object]]:
+        return repo.calendar()
 
     @app.get(
         "/api/v1/pipeline/freshness",

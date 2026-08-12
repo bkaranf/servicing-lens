@@ -1,0 +1,49 @@
+{
+  "_fixture_classification": "SYNTHETIC_TEST_DATA",
+  "cik": 92230,
+  "entityName": "Synthetic TFC XBRL Fixture",
+  "facts": {
+    "tfc": {
+      "LoansServicedForOthersUnpaidPrincipalBalance": {
+        "label": "Loans serviced for others unpaid principal balance",
+        "description": "Synthetic exact value for deterministic parser tests.",
+        "units": {
+          "USD": [
+            {
+              "end": "2026-06-30",
+              "val": 298658000000,
+              "accn": "0000092230-26-000099",
+              "fy": 2026,
+              "fp": "Q2",
+              "form": "10-Q",
+              "filed": "2026-07-31",
+              "frame": "CY2026Q2I",
+              "decimals": -6
+            }
+          ]
+        }
+      }
+    },
+    "us-gaap": {
+      "MortgageServicingRightsFairValue": {
+        "label": "Mortgage servicing rights fair value",
+        "description": "Synthetic exact value for deterministic parser tests.",
+        "units": {
+          "USD": [
+            {
+              "end": "2026-06-30",
+              "val": 2450000000,
+              "accn": "0000092230-26-000099",
+              "fy": 2026,
+              "fp": "Q2",
+              "form": "10-Q",
+              "filed": "2026-07-31",
+              "frame": "CY2026Q2I",
+              "decimals": -6
+            }
+          ]
+        }
+      }
+    }
+  }
+}

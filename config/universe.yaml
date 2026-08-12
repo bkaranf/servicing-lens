@@ -1,4 +1,4 @@
-version: "stage-a-2026-08-11"
+version: "phase-2-acquisition-2026-08-12"
 display_name: "Selected publicly traded U.S. mortgage servicers"
 companies:
   - id: tfc
@@ -9,6 +9,35 @@ companies:
     fiscal_year_end: "12-31"
     reporting_entity: tfc_registrant
     reporting_scope: tfc_consolidated_residential_mortgage_servicing
+    regulatory_reporting_entities:
+      - id: tfc_bhc_regulatory_reporter
+        legal_name: "Truist Financial Corporation"
+        entity_type: BANK_HOLDING_COMPANY
+        relationship_type: REGULATED_AS
+        parent_entity_id: tfc_registrant
+        scope:
+          id: tfc_bhc_regulatory
+          name: "Truist consolidated holding-company regulatory scope"
+          portfolio_population: bank_holding_company_consolidated
+          methodology: "FR Y-9C consolidated holding-company reporting; never interchangeable with SEC or depository scope."
+        identifiers:
+          - scheme: RSSD
+            value: "1074156"
+            source_url: "https://www.ffiec.gov/npw/Institution/Profile/1074156"
+      - id: truist_bank_regulatory_reporter
+        legal_name: "Truist Bank"
+        entity_type: INSURED_DEPOSITORY_INSTITUTION
+        relationship_type: OWNS
+        parent_entity_id: tfc_bhc_regulatory_reporter
+        scope:
+          id: truist_bank_regulatory
+          name: "Truist Bank depository regulatory scope"
+          portfolio_population: depository_institution_only
+          methodology: "FFIEC Call Report depository-institution reporting; never interchangeable with holding-company or SEC scope."
+        identifiers:
+          - scheme: RSSD
+            value: "852320"
+            source_url: "https://www.ffiec.gov/npw/Institution/Profile/852320"
   - id: pfsi
     legal_name: "PennyMac Financial Services, Inc."
     ticker: PFSI

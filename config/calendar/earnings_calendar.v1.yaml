@@ -1,0 +1,74 @@
+version: "earnings-calendar-1.0.0"
+
+# The expected window uses only prior EDGAR filing lags for the same fiscal
+# quarter. Issuer IR announcements are displayed separately and never alter it.
+inference:
+  method: matching_fiscal_quarter_min_max_filing_lag
+  lookback_matching_periods: 3
+  minimum_matching_periods: 2
+  padding_days: 1
+  maximum_lag_days: 120
+
+companies:
+  - company_id: tfc
+    ticker: TFC
+    cik: "0000092230"
+    fiscal_quarter_ends: ["03-31", "06-30", "09-30", "12-31"]
+    edgar_submissions_url: "https://data.sec.gov/submissions/CIK0000092230.json"
+    investor_relations_events_url: "https://ir.truist.com/events-and-presentations/default.aspx"
+    investor_relations_hosts: ["ir.truist.com"]
+
+  - company_id: pfsi
+    ticker: PFSI
+    cik: "0001745916"
+    fiscal_quarter_ends: ["03-31", "06-30", "09-30", "12-31"]
+    edgar_submissions_url: "https://data.sec.gov/submissions/CIK0001745916.json"
+    investor_relations_events_url: "https://ir.pennymacfinancial.com/events-and-presentations/default.aspx"
+    investor_relations_hosts: ["ir.pennymacfinancial.com"]
+
+# Actual SEC 8-K Item 2.02 / EX-99 earnings events. These rows carry filing
+# identity and dates only; expected windows are calculated by deterministic code.
+# Each locator is an official SEC archive URL verified from the submissions index.
+official_filing_history:
+  tfc:
+    - accession: "0000092230-23-000077"
+      period_end: "2023-09-30"
+      accepted_at: "2023-10-19T10:05:16Z"
+      exhibit_type: "EX-99.1"
+      exhibit_url: "https://www.sec.gov/Archives/edgar/data/92230/000009223023000077/ex991-pr3q23.htm"
+    - accession: "0000092230-24-000071"
+      period_end: "2024-09-30"
+      accepted_at: "2024-10-17T10:01:39Z"
+      exhibit_type: "EX-99.1"
+      exhibit_url: "https://www.sec.gov/Archives/edgar/data/92230/000009223024000071/ex991-pr3q24.htm"
+    - accession: "0000092230-25-000150"
+      period_end: "2025-09-30"
+      accepted_at: "2025-10-17T10:30:51Z"
+      exhibit_type: "EX-99.1"
+      exhibit_url: "https://www.sec.gov/Archives/edgar/data/92230/000009223025000150/ex991-pr3q25.htm"
+    - accession: "0000092230-26-000096"
+      period_end: "2026-06-30"
+      accepted_at: "2026-07-17T10:30:36Z"
+      exhibit_type: "EX-99.2"
+      exhibit_url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000096/ex992-qpsx2q26.htm"
+  pfsi:
+    - accession: "0001104659-23-111756"
+      period_end: "2023-09-30"
+      accepted_at: "2023-10-26T20:30:24Z"
+      exhibit_type: "EX-99.1"
+      exhibit_url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465923111756/tm2329187d1_ex99-1.htm"
+    - accession: "0001104659-24-110583"
+      period_end: "2024-09-30"
+      accepted_at: "2024-10-22T20:31:42Z"
+      exhibit_type: "EX-99.1"
+      exhibit_url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465924110583/tm2426615d1_ex99-1.htm"
+    - accession: "0001104659-25-101260"
+      period_end: "2025-09-30"
+      accepted_at: "2025-10-21T20:30:40Z"
+      exhibit_type: "EX-99.1"
+      exhibit_url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925101260/tm2529157d1_ex99-1.htm"
+    - accession: "0001104659-26-088174"
+      period_end: "2026-06-30"
+      accepted_at: "2026-07-29T20:31:12Z"
+      exhibit_type: "EX-99.1"
+      exhibit_url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926088174/tm2621541d1_ex99-1.htm"

@@ -1,0 +1,11 @@
+{
+  "classification": "SYNTHETIC_TEST_DATA",
+  "description": "Synthetic event history in normalized official EDGAR filing-index and issuer IR event shapes.",
+  "events_are_public_observations": false,
+  "source_references": {
+    "tfc_edgar": "https://data.sec.gov/submissions/CIK0000092230.json",
+    "tfc_issuer_ir": "https://ir.truist.com/events-and-presentations/default.aspx",
+    "pfsi_edgar": "https://data.sec.gov/submissions/CIK0001745916.json",
+    "pfsi_issuer_ir": "https://ir.pennymacfinancial.com/events-and-presentations/default.aspx"
+  }
+}

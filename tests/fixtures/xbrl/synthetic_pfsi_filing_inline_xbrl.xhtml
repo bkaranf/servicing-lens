@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"
+      xmlns:xbrli="http://www.xbrl.org/2003/instance"
+      xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+      xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
+      xmlns:pfsi="https://synthetic.example.test/pfsi/2026"
+      xmlns:us-gaap="http://fasb.org/us-gaap/2026">
+  <head>
+    <title>SYNTHETIC_TEST_DATA filing-level inline XBRL</title>
+  </head>
+  <body>
+    <div style="display:none">
+      <ix:resources>
+        <xbrli:context id="I2026Q2OwnedMsr">
+          <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">1745916</xbrli:identifier>
+            <xbrli:segment>
+              <xbrldi:explicitMember dimension="pfsi:ServicingPortfolioAxis">pfsi:OwnedMortgageServicingRightsMember</xbrldi:explicitMember>
+            </xbrli:segment>
+          </xbrli:entity>
+          <xbrli:period>
+            <xbrli:instant>2026-06-30</xbrli:instant>
+          </xbrli:period>
+        </xbrli:context>
+        <xbrli:context id="D2026Q2Servicing">
+          <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0001745916</xbrli:identifier>
+            <xbrli:segment>
+              <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">pfsi:ServicingSegmentMember</xbrldi:explicitMember>
+            </xbrli:segment>
+          </xbrli:entity>
+          <xbrli:period>
+            <xbrli:startDate>2026-04-01</xbrli:startDate>
+            <xbrli:endDate>2026-06-30</xbrli:endDate>
+          </xbrli:period>
+        </xbrli:context>
+        <xbrli:unit id="USD">
+          <xbrli:measure>iso4217:USD</xbrli:measure>
+        </xbrli:unit>
+      </ix:resources>
+    </div>
+    <p>
+      Owned MSR UPB:
+      <ix:nonFraction name="pfsi:UnpaidPrincipalBalanceOfLoansUnderlyingOwnedMortgageServicingRights"
+                      contextRef="I2026Q2OwnedMsr" unitRef="USD" decimals="-6" scale="6">410500</ix:nonFraction>
+    </p>
+    <p>
+      Loan servicing fees:
+      <ix:nonFraction name="pfsi:LoanServicingFees"
+                      contextRef="D2026Q2Servicing" unitRef="USD" decimals="-6" scale="6">312.4</ix:nonFraction>
+    </p>
+  </body>
+</html>
