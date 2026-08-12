@@ -61,6 +61,9 @@ packages = ["src/mortgage_servicing_dashboard"]
 [tool.pytest.ini_options]
 addopts = "--disable-socket --strict-config --strict-markers -q"
 testpaths = ["tests/unit_tests"]
+markers = [
+    "live: opt-in network smoke tests against official public sources",
+]
 
 [tool.coverage.run]
 branch = true

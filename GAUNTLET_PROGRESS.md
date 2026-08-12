@@ -23,8 +23,9 @@ contracts, retained evidence, migrations, and tests remain authoritative.
 - Hash-verified parsing produces 36 published observations. The catalog grid
   also retains 220 `SOURCE_NOT_CHECKED` cells and one quarantined candidate;
   none is mislabeled `NOT_DISCLOSED`.
-- The graph has 16 substantive Stage A nodes. XBRL and bank-regulatory extraction
-  are Phase 2 adapters, not placeholder Stage A nodes.
+- The graph has 16 substantive Stage A nodes. Phase 2 XBRL and bank-regulatory
+  adapters now run behind the applicable acquisition/parse/map/reconcile service
+  boundaries; they are not additional placeholder graph nodes.
 - Run keys are content/config/parser-derived, retries are bounded to three,
   terminal states are explicit, and deterministic failures fail closed.
 - CLI approve and reject both rebuild the deterministic graph to its interrupt

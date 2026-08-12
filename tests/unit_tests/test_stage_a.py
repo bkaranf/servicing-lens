@@ -61,11 +61,7 @@ from mortgage_servicing_dashboard.repository import (
     load_stage_a_configuration,
     seed_stage_a,
 )
-from mortgage_servicing_dashboard.sources import (
-    DisabledBankRegulatoryAdapter,
-    PublicSourceError,
-    SecClient,
-)
+from mortgage_servicing_dashboard.sources import PublicSourceError, SecClient
 from mortgage_servicing_dashboard.tools import build_intelligence_tools
 
 
@@ -490,8 +486,6 @@ def test_sec_client_success_cache_retries_and_boundaries(tmp_path: Path) -> None
     with pytest.raises(PublicSourceError, match="bounded retries"):
         client.acquire("https://data.sec.gov/submissions/CIK.json")
     client.close()
-    with pytest.raises(PublicSourceError, match="not configured"):
-        DisabledBankRegulatoryAdapter().facts(rssd_id="123", period_end="2026-06-30")
 
 
 def test_privacy_classifications_public_identifiers_and_contacts() -> None:

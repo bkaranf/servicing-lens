@@ -1,0 +1,10 @@
+{
+  "classification": "SYNTHETIC_TEST_DATA",
+  "description": "Synthetic numeric rows in official-style FFIEC CDR, FR Y-9C, and NIC delimited shapes.",
+  "numeric_values_are_public_observations": false,
+  "source_references": {
+    "ffiec_cdr": "https://cdr.ffiec.gov/public/PWS/DownloadBulkData.aspx",
+    "fr_y9c": "https://www.ffiec.gov/npw/FinancialReport/FinancialDataDownload",
+    "nic_tfc": "https://www.ffiec.gov/npw/Institution/Profile/1074156"
+  }
+}

@@ -22,6 +22,7 @@ from mortgage_servicing_dashboard.database import (
     EarningsEvent,
     EligibleSourceAssessment,
     EntityIdentifier,
+    EntityRelationship,
     Filing,
     FilingDocument,
     FiscalCalendarRegime,
@@ -34,6 +35,8 @@ from mortgage_servicing_dashboard.database import (
     ObservationRevision,
     PipelineRun,
     QuarantineCandidate,
+    RawRegulatoryFact,
+    RawXbrlFact,
     ReportingEntity,
     ReportingScope,
     Security,
@@ -53,6 +56,7 @@ from mortgage_servicing_dashboard.domain import (
 )
 from mortgage_servicing_dashboard.sources import (
     AcquiredDocument,
+    LiveSecAcquisition,
     RecordedEvidenceAcquirer,
     RecordedSourceDefinition,
     StageARecordedDocumentParser,
@@ -214,72 +218,128 @@ def _seed_universe(
     inserted = 0
     for company in companies:
         company_id = str(company["id"])
-        if session.get(Company, company_id) is not None:
-            continue
         entity_id = str(company["reporting_entity"])
         scope_id = str(company["reporting_scope"])
-        session.add(
-            Company(
-                id=company_id,
-                legal_name=str(company["legal_name"]),
-                ticker=str(company["ticker"]),
-                classification=str(company["classification"]),
-                universe_version=str(universe["version"]),
-                active=True,
+        if session.get(Company, company_id) is None:
+            session.add(
+                Company(
+                    id=company_id,
+                    legal_name=str(company["legal_name"]),
+                    ticker=str(company["ticker"]),
+                    classification=str(company["classification"]),
+                    universe_version=str(universe["version"]),
+                    active=True,
+                )
             )
-        )
-        session.add(
-            Security(
-                id=f"{company_id}:common",
-                company_id=company_id,
-                ticker=str(company["ticker"]),
-                exchange="NYSE",
-                security_type="common_stock",
+            session.add(
+                Security(
+                    id=f"{company_id}:common",
+                    company_id=company_id,
+                    ticker=str(company["ticker"]),
+                    exchange="NYSE",
+                    security_type="common_stock",
+                )
             )
-        )
-        session.add(
-            ReportingEntity(
-                id=entity_id,
-                company_id=company_id,
-                legal_name=str(company["legal_name"]),
-                entity_type="SEC_REGISTRANT",
+            session.add(
+                ReportingEntity(
+                    id=entity_id,
+                    company_id=company_id,
+                    legal_name=str(company["legal_name"]),
+                    entity_type="SEC_REGISTRANT",
+                )
             )
-        )
-        population = (
-            "residential_servicing_for_others_and_bank_owned"
-            if company_id == "tfc"
-            else "owned_msr_subservicing_and_held_for_sale"
-        )
-        session.add(
-            ReportingScope(
-                id=scope_id,
-                reporting_entity_id=entity_id,
-                name=scope_id.replace("_", " ").title(),
-                portfolio_population=population,
-                methodology="Issuer-defined public servicing disclosure scope.",
+            population = (
+                "residential_servicing_for_others_and_bank_owned"
+                if company_id == "tfc"
+                else "owned_msr_subservicing_and_held_for_sale"
             )
-        )
-        session.add(
-            EntityIdentifier(
-                id=f"{entity_id}:cik",
-                reporting_entity_id=entity_id,
-                scheme="SEC_CIK",
-                value=str(company["cik"]),
-                valid_from=date(1900, 1, 1),
-                valid_to=None,
+            session.add(
+                ReportingScope(
+                    id=scope_id,
+                    reporting_entity_id=entity_id,
+                    name=scope_id.replace("_", " ").title(),
+                    portfolio_population=population,
+                    methodology="Issuer-defined public servicing disclosure scope.",
+                )
             )
-        )
-        session.add(
-            FiscalCalendarRegime(
-                id=f"{entity_id}:calendar",
-                reporting_entity_id=entity_id,
-                fiscal_year_end_month=12,
-                fiscal_year_end_day=31,
-                effective_from=date(1900, 1, 1),
-                effective_to=None,
+            session.add(
+                EntityIdentifier(
+                    id=f"{entity_id}:cik",
+                    reporting_entity_id=entity_id,
+                    scheme="SEC_CIK",
+                    value=str(company["cik"]),
+                    valid_from=date(1900, 1, 1),
+                    valid_to=None,
+                )
             )
+            session.add(
+                FiscalCalendarRegime(
+                    id=f"{entity_id}:calendar",
+                    reporting_entity_id=entity_id,
+                    fiscal_year_end_month=12,
+                    fiscal_year_end_day=31,
+                    effective_from=date(1900, 1, 1),
+                    effective_to=None,
+                )
+            )
+            inserted += 1
+
+        regulatory_entities = cast(
+            "list[dict[str, Any]]", company.get("regulatory_reporting_entities", [])
         )
-        inserted += 1
+        for regulatory in regulatory_entities:
+            regulatory_entity_id = str(regulatory["id"])
+            if session.get(ReportingEntity, regulatory_entity_id) is None:
+                session.add(
+                    ReportingEntity(
+                        id=regulatory_entity_id,
+                        company_id=company_id,
+                        legal_name=str(regulatory["legal_name"]),
+                        entity_type=str(regulatory["entity_type"]),
+                    )
+                )
+            scope = cast("dict[str, Any]", regulatory["scope"])
+            regulatory_scope_id = str(scope["id"])
+            if session.get(ReportingScope, regulatory_scope_id) is None:
+                session.add(
+                    ReportingScope(
+                        id=regulatory_scope_id,
+                        reporting_entity_id=regulatory_entity_id,
+                        name=str(scope["name"]),
+                        portfolio_population=str(scope["portfolio_population"]),
+                        methodology=str(scope["methodology"]),
+                    )
+                )
+            parent_entity_id = str(regulatory.get("parent_entity_id", entity_id))
+            relationship_id = f"{parent_entity_id}:{regulatory_entity_id}"
+            if session.get(EntityRelationship, relationship_id) is None:
+                session.add(
+                    EntityRelationship(
+                        id=relationship_id,
+                        parent_entity_id=parent_entity_id,
+                        child_entity_id=regulatory_entity_id,
+                        relationship_type=str(regulatory["relationship_type"]),
+                        valid_from=date(1900, 1, 1),
+                        valid_to=None,
+                        known_from=datetime(2026, 8, 12, tzinfo=UTC),
+                        known_to=None,
+                    )
+                )
+            identifiers = cast("list[dict[str, Any]]", regulatory["identifiers"])
+            for identifier in identifiers:
+                scheme = str(identifier["scheme"])
+                identifier_id = f"{regulatory_entity_id}:{scheme.lower()}"
+                if session.get(EntityIdentifier, identifier_id) is None:
+                    session.add(
+                        EntityIdentifier(
+                            id=identifier_id,
+                            reporting_entity_id=regulatory_entity_id,
+                            scheme=scheme,
+                            value=str(identifier["value"]),
+                            valid_from=date(1900, 1, 1),
+                            valid_to=None,
+                        )
+                    )
     return inserted
 
 
@@ -467,8 +527,9 @@ def _seed_evidence(
                 )
             )
             company_entity = f"{source.company_id}_registrant"
-            session.add(
-                Filing(
+            filing = session.scalar(select(Filing).where(Filing.accession == source.accession))
+            if filing is None:
+                filing = Filing(
                     id=f"filing:{key}",
                     reporting_entity_id=company_entity,
                     form_type="8-K EXHIBIT",
@@ -477,28 +538,45 @@ def _seed_evidence(
                     period_end=date.fromisoformat(source.period_end),
                     amendment_of_id=None,
                 )
-            )
-            session.add(
-                FilingDocument(
-                    id=f"document:{key}",
-                    filing_id=f"filing:{key}",
-                    sequence=1,
-                    document_type="earnings_exhibit",
-                    filename=source.url.rsplit("/", maxsplit=1)[-1],
-                    source_url=source.url,
+                session.add(filing)
+                session.flush()
+            if session.get(FilingDocument, f"document:{key}") is None:
+                session.add(
+                    FilingDocument(
+                        id=f"document:{key}",
+                        filing_id=filing.id,
+                        sequence=1,
+                        document_type="earnings_exhibit",
+                        filename=source.url.rsplit("/", maxsplit=1)[-1],
+                        source_url=source.url,
+                    )
                 )
-            )
             event_quarter = ((int(source.period_end[5:7]) - 1) // 3) + 1
-            session.add(
-                EarningsEvent(
-                    id=f"earnings:{key}",
-                    company_id=source.company_id,
-                    fiscal_year=int(source.period_end[:4]),
-                    fiscal_quarter=event_quarter,
-                    event_at=source.published_at,
-                    evidence_id=evidence_id,
+            existing_event = session.scalar(
+                select(EarningsEvent).where(
+                    EarningsEvent.company_id == source.company_id,
+                    EarningsEvent.filing_accession == source.accession,
                 )
             )
+            if existing_event is None:
+                session.add(
+                    EarningsEvent(
+                        id=f"earnings:{key}",
+                        company_id=source.company_id,
+                        fiscal_year=int(source.period_end[:4]),
+                        fiscal_quarter=event_quarter,
+                        period_end=date.fromisoformat(source.period_end),
+                        event_at=source.published_at,
+                        evidence_id=evidence_id,
+                        event_kind="FILED_ACTUAL",
+                        source_kind="SEC_8_K_EX_99",
+                        filing_accession=source.accession,
+                        window_start=None,
+                        window_end=None,
+                        is_inferred=False,
+                        inference_basis=[],
+                    )
+                )
             inserted += 1
     session.flush()
     return inserted
@@ -1080,6 +1158,520 @@ def seed_stage_a(
     )
 
 
+def _live_pipeline_run(
+    session: Session,
+    *,
+    acquisitions: tuple[LiveSecAcquisition, ...],
+    config_version: str,
+    known_at: datetime,
+) -> tuple[PipelineRun, bool]:
+    run_key = _stable_hash(
+        {
+            "mode": "live-sec",
+            "config_version": config_version,
+            "evidence": sorted(item.acquired_document.sha256 for item in acquisitions),
+            "parsers": sorted(item.runtime_definition.parser_version for item in acquisitions),
+        }
+    )
+    run_id = f"pipeline:live-sec:{run_key[:23]}"
+    existing = session.get(PipelineRun, run_id)
+    if existing is not None:
+        return existing, False
+    run = PipelineRun(
+        id=run_id,
+        run_key=run_key,
+        status="RUNNING",
+        thread_id=f"thread:live-sec:{run_key[:20]}",
+        started_at=known_at,
+        completed_at=None,
+        error_count=0,
+        retry_count=0,
+        requested_company_id=(
+            acquisitions[0].company_id
+            if len({item.company_id for item in acquisitions}) == 1
+            else None
+        ),
+        requested_periods=sorted({item.runtime_definition.period_end for item in acquisitions}),
+        code_version="phase-2-live-sec-v1",
+        config_version=config_version,
+        parser_version="2.0.0",
+        terminal_outcomes={
+            "PUBLISHED": 0,
+            "NOT_DISCLOSED": 0,
+            "SOURCE_NOT_CHECKED": 0,
+            "QUARANTINED": 0,
+            "FAILED": 0,
+        },
+    )
+    session.add(run)
+    session.flush()
+    return run, True
+
+
+def _persist_live_sec_evidence(
+    session: Session,
+    *,
+    acquisition: LiveSecAcquisition,
+    run: PipelineRun,
+) -> tuple[str, bool]:
+    source = acquisition.runtime_definition
+    document = acquisition.acquired_document
+    evidence_id = f"evidence:{acquisition.source_key}"
+    existing_content = session.scalar(
+        select(SourceEvidence).where(
+            SourceEvidence.content_sha256 == document.sha256,
+            SourceEvidence.byte_length == document.byte_length,
+        )
+    )
+    if existing_content is not None:
+        if (
+            existing_content.representation != "ORIGINAL_HTTP_RESPONSE"
+            or existing_content.capture_method != "sec_http_get"
+        ):
+            msg = "live SEC bytes already exist under incompatible evidence metadata"
+            raise ValueError(msg)
+        return existing_content.id, False
+    if session.get(SourceEvidence, evidence_id) is not None:
+        msg = "live SEC evidence identity exists with different immutable bytes"
+        raise ValueError(msg)
+    session.add(
+        SourceEvidence(
+            id=evidence_id,
+            source_class=source.source_class,
+            original_url=source.url,
+            retrieved_at=document.retrieved_at,
+            published_at=source.published_at,
+            accession_or_identifier=source.accession,
+            content_sha256=document.sha256,
+            byte_length=document.byte_length,
+            media_type=document.media_type,
+            representation="ORIGINAL_HTTP_RESPONSE",
+            capture_method="sec_http_get",
+            parser_version=source.parser_version,
+            acquisition_run_id=run.id,
+            reporting_entity_candidate=f"{source.company_id}_registrant",
+            reporting_period_candidate=source.period_end,
+            retention_location=f"content-sha256://{document.sha256}",
+            bounded_excerpt=(
+                "Exact original SEC HTTP response retained immutably; "
+                "bounded row text is recorded on observation lineage."
+            ),
+            response_status=document.status_code,
+            etag=document.etag,
+            last_modified=document.last_modified,
+        )
+    )
+    filing = session.scalar(select(Filing).where(Filing.accession == source.accession))
+    if filing is None:
+        metadata = acquisition.discovered_filing
+        filing_id = f"filing:sec:{source.accession.replace('-', '')}"
+        filed_at = metadata.acceptance_at or datetime.combine(
+            metadata.filing_date,
+            time.min,
+            tzinfo=UTC,
+        )
+        filing = Filing(
+            id=filing_id,
+            reporting_entity_id=f"{source.company_id}_registrant",
+            form_type=metadata.form,
+            accession=source.accession,
+            filed_at=filed_at,
+            period_end=metadata.report_date or date.fromisoformat(source.period_end),
+            amendment_of_id=None,
+        )
+        session.add(filing)
+        session.flush()
+    document_id = f"document:sec:{document.sha256[:24]}"
+    if session.get(FilingDocument, document_id) is None:
+        session.add(
+            FilingDocument(
+                id=document_id,
+                filing_id=filing.id,
+                sequence=1,
+                document_type=acquisition.discovered_filing.form,
+                filename=source.url.rsplit("/", maxsplit=1)[-1],
+                source_url=source.url,
+            )
+        )
+    existing_event = session.scalar(
+        select(EarningsEvent).where(
+            EarningsEvent.company_id == source.company_id,
+            EarningsEvent.filing_accession == source.accession,
+        )
+    )
+    if existing_event is None:
+        event_period_end = date.fromisoformat(source.period_end)
+        session.add(
+            EarningsEvent(
+                id=f"earnings:sec:{document.sha256[:24]}",
+                company_id=source.company_id,
+                fiscal_year=event_period_end.year,
+                fiscal_quarter=((event_period_end.month - 1) // 3) + 1,
+                period_end=event_period_end,
+                event_at=acquisition.discovered_filing.acceptance_at or source.published_at,
+                evidence_id=evidence_id,
+                event_kind="FILED_ACTUAL",
+                source_kind="SEC_8_K_EX_99",
+                filing_accession=source.accession,
+                window_start=None,
+                window_end=None,
+                is_inferred=False,
+                inference_basis=[],
+            )
+        )
+    session.flush()
+    return evidence_id, True
+
+
+def _live_observation_id(
+    session: Session,
+    candidate: ParsedObservationCandidate,
+) -> tuple[str, int]:
+    prefix = (
+        f"observation:{candidate.company_id}:{candidate.period_end.isoformat()}:"
+        f"{candidate.metric_id}:v"
+    )
+    revisions = [
+        int(value.rsplit(":v", maxsplit=1)[-1])
+        for value in session.scalars(
+            select(MetricObservation.id).where(MetricObservation.id.like(f"{prefix}%"))
+        )
+        if value.rsplit(":v", maxsplit=1)[-1].isdigit()
+    ]
+    revision_number = max(revisions, default=0) + 1
+    return f"{prefix}{revision_number}", revision_number
+
+
+def _link_live_candidate(
+    session: Session,
+    *,
+    candidate: ParsedObservationCandidate,
+    evidence_id: str,
+    run: PipelineRun,
+    known_at: datetime,
+) -> str:
+    active = session.scalars(
+        select(MetricObservation).where(
+            MetricObservation.metric_version_id
+            == f"{candidate.metric_id}:{candidate.metric_version}",
+            MetricObservation.reporting_entity_id == candidate.reporting_entity_id,
+            MetricObservation.reporting_scope_id == candidate.reporting_scope_id,
+            MetricObservation.period_end == candidate.period_end,
+            MetricObservation.knowledge_to.is_(None),
+        )
+    ).all()
+    matching = next(
+        (
+            item
+            for item in active
+            if item.semantic_key_digest == candidate.semantic_key_digest
+            and item.value == candidate.normalized_value
+            and item.observation_state == candidate.observation_state.value
+        ),
+        None,
+    )
+    if matching is not None:
+        if session.get(ObservationEvidence, (matching.id, evidence_id)) is None:
+            session.add(
+                ObservationEvidence(
+                    observation_id=matching.id,
+                    evidence_id=evidence_id,
+                    evidence_role="corroborating_original_response",
+                    locator=candidate.evidence_locator,
+                    raw_label=candidate.raw_label,
+                    raw_value=candidate.raw_value,
+                    disclosed_unit=candidate.unit,
+                    disclosed_scale=candidate.reported_scale,
+                    extraction_method=candidate.extraction_method,
+                    validation_status=QualityState.VALIDATED.value,
+                )
+            )
+        return "LINKED"
+    conflicting = [
+        item for item in active if item.observation_state != ObservationState.NOT_DISCLOSED.value
+    ]
+    if conflicting:
+        quarantine_id = (
+            f"quarantine:live-sec:{candidate.company_id}:"
+            f"{candidate.metric_id}:{candidate.period_end.isoformat()}:"
+            f"{candidate.semantic_key_digest[:12]}"
+        )
+        if session.get(QuarantineCandidate, quarantine_id) is None:
+            session.add(
+                QuarantineCandidate(
+                    id=quarantine_id,
+                    pipeline_run_id=run.id,
+                    proposed_metric_id=candidate.metric_id,
+                    raw_source_label=candidate.raw_label,
+                    raw_value=candidate.raw_value,
+                    proposed_normalized_value=candidate.normalized_value,
+                    unit=candidate.unit,
+                    scale=candidate.reported_scale,
+                    period_end=candidate.period_end,
+                    reporting_entity_id=candidate.reporting_entity_id,
+                    reporting_scope_id=candidate.reporting_scope_id,
+                    methodology=candidate.methodology,
+                    evidence_id=evidence_id,
+                    evidence_locator=candidate.evidence_locator,
+                    bounded_excerpt="Live original response conflicts with an active observation.",
+                    confidence=Decimal("1.0000"),
+                    conflicts_and_uncertainties=[
+                        "deterministic live extraction disagrees with retained active observation",
+                        *[f"active observation {item.id}={item.value}" for item in conflicting],
+                    ],
+                    model_and_prompt_version=None,
+                    status="PENDING",
+                )
+            )
+        return "QUARANTINED"
+
+    for item in active:
+        item.knowledge_to = known_at
+    observation_id, revision_number = _live_observation_id(session, candidate)
+    prior_id = max(active, key=lambda item: item.revision_number).id if active else None
+    session.add(
+        MetricObservation(
+            id=observation_id,
+            metric_version_id=f"{candidate.metric_id}:{candidate.metric_version}",
+            reporting_entity_id=candidate.reporting_entity_id,
+            reporting_scope_id=candidate.reporting_scope_id,
+            period_start=candidate.period_start,
+            period_end=candidate.period_end,
+            fiscal_year=candidate.fiscal_year,
+            fiscal_quarter=candidate.fiscal_quarter,
+            period_type=candidate.period_type,
+            value=candidate.normalized_value,
+            currency=candidate.currency,
+            unit=candidate.unit,
+            scale=candidate.reported_scale,
+            reported_decimals=candidate.reported_decimals,
+            reported_precision=_reported_precision(candidate),
+            observation_state=candidate.observation_state.value,
+            methodology=candidate.methodology,
+            evidence_locator=candidate.evidence_locator,
+            extraction_method=candidate.extraction_method,
+            parser_metadata={
+                "parser_name": candidate.parser_name,
+                "parser_version": candidate.parser_version,
+                "source_mode": "live-sec-original-http-response",
+            },
+            validation_summary=validate_candidate(candidate).summary,
+            publication_state=PublicationState.PUBLISHED.value,
+            revision_number=revision_number,
+            semantic_key_digest=candidate.semantic_key_digest,
+            valid_from=candidate.period_end,
+            valid_to=None,
+            knowledge_from=known_at,
+            knowledge_to=None,
+            supersedes_observation_id=prior_id,
+            quality_state=QualityState.VALIDATED.value,
+            reported_label=candidate.raw_label,
+            reported_value=candidate.raw_value,
+            published_at=known_at,
+        )
+    )
+    session.add(
+        ObservationEvidence(
+            observation_id=observation_id,
+            evidence_id=evidence_id,
+            evidence_role="primary",
+            locator=candidate.evidence_locator,
+            raw_label=candidate.raw_label,
+            raw_value=candidate.raw_value,
+            disclosed_unit=candidate.unit,
+            disclosed_scale=candidate.reported_scale,
+            extraction_method=candidate.extraction_method,
+            validation_status=QualityState.VALIDATED.value,
+        )
+    )
+    session.add(
+        ObservationRevision(
+            id=f"revision:{observation_id}:{revision_number}",
+            observation_id=observation_id,
+            prior_observation_id=prior_id,
+            reason=f"deterministic live SEC publication by {run.id}",
+            created_at=known_at,
+        )
+    )
+    return "PUBLISHED"
+
+
+def ingest_live_sec_acquisitions(
+    engine: Engine,
+    acquisitions: tuple[LiveSecAcquisition, ...],
+    *,
+    config_dir: Path | None = None,
+) -> dict[str, int]:
+    """Persist and deterministically parse opt-in live SEC acquisitions.
+
+    Existing equivalent observations gain corroborating original-response lineage.
+    A disagreement with an active published value is quarantined rather than
+    silently preferred. Repeated runs over identical bytes are idempotent.
+    """
+    if not acquisitions:
+        msg = "at least one live SEC acquisition is required"
+        raise ValueError(msg)
+    initialize_schema(engine)
+    root = config_directory(config_dir)
+    universe, catalog, data = load_stage_a_configuration(root)
+    companies = cast("list[dict[str, Any]]", universe["companies"])
+    company_by_id = {str(item["id"]): item for item in companies}
+    quarters = cast("list[dict[str, Any]]", data["quarters"])
+    known_at = max(item.retained_at for item in acquisitions)
+    parser = StageARecordedDocumentParser()
+    counts = {"evidence": 0, "published": 0, "linked": 0, "quarantined": 0}
+    with Session(engine) as session:
+        _seed_universe(session, universe=universe, companies=companies)
+        _seed_metrics(session, cast("list[dict[str, Any]]", catalog["metrics"]))
+        run, created = _live_pipeline_run(
+            session,
+            acquisitions=acquisitions,
+            config_version=str(data["dataset_version"]),
+            known_at=known_at,
+        )
+        if not created:
+            return counts
+        for acquisition in acquisitions:
+            source = acquisition.runtime_definition
+            if source.company_id not in company_by_id:
+                msg = f"live SEC company is outside the configured universe: {source.company_id}"
+                raise ValueError(msg)
+            evidence_id, evidence_inserted = _persist_live_sec_evidence(
+                session,
+                acquisition=acquisition,
+                run=run,
+            )
+            counts["evidence"] += int(evidence_inserted)
+            candidates = parser.parse(
+                source=source,
+                content=acquisition.acquired_document.content,
+                company=company_by_id[source.company_id],
+                quarters=quarters,
+            )
+            for candidate in candidates:
+                validation = validate_candidate(candidate)
+                if not validation.valid:
+                    msg = (
+                        "live SEC candidate validation failed closed: "
+                        f"{candidate.candidate_id}:{validation.code}"
+                    )
+                    raise ValueError(msg)
+                outcome = _link_live_candidate(
+                    session,
+                    candidate=candidate,
+                    evidence_id=evidence_id,
+                    run=run,
+                    known_at=known_at,
+                )
+                counts[outcome.lower()] += 1
+        run.status = "AWAITING_REVIEW" if counts["quarantined"] else "COMPLETED"
+        run.completed_at = known_at
+        run.terminal_outcomes = {
+            "PUBLISHED": counts["published"] + counts["linked"],
+            "NOT_DISCLOSED": 0,
+            "SOURCE_NOT_CHECKED": 0,
+            "QUARANTINED": counts["quarantined"],
+            "FAILED": 0,
+        }
+        session.commit()
+    return counts
+
+
+def persist_xbrl_facts(
+    engine: Engine,
+    facts: tuple[Any, ...],
+    *,
+    filing_id: str | None = None,
+) -> int:
+    """Retain replayable exact XBRL facts after evidence acquisition.
+
+    The typed adapter owns validation. This boundary refuses missing evidence and
+    stores raw text plus every context semantic needed to replay mapping later.
+    """
+    initialize_schema(engine)
+    inserted = 0
+    with Session(engine) as session:
+        if filing_id is not None and session.get(Filing, filing_id) is None:
+            raise KeyError(filing_id)
+        for fact in facts:
+            if session.get(SourceEvidence, fact.evidence_id) is None:
+                raise KeyError(fact.evidence_id)
+            fact_id = f"raw-xbrl:{_stable_hash((fact.evidence_id, fact.locator))[:64]}"
+            if session.get(RawXbrlFact, fact_id) is not None:
+                continue
+            session.add(
+                RawXbrlFact(
+                    id=fact_id,
+                    evidence_id=fact.evidence_id,
+                    filing_id=filing_id,
+                    concept=fact.concept,
+                    taxonomy=fact.taxonomy,
+                    entity_identifier=fact.entity_identifier,
+                    context_ref=fact.context_id,
+                    raw_value=fact.raw_value,
+                    unit_ref=fact.unit,
+                    decimals=(str(fact.decimals) if fact.decimals is not None else None),
+                    scale=fact.scale,
+                    period_type=fact.period_type.value,
+                    period_start=fact.period_start,
+                    period_end=fact.period_end,
+                    instant=(fact.period_end if fact.period_type.value == "instant" else None),
+                    dimensions={item.dimension: item.member for item in fact.dimensions},
+                    methodology=(
+                        "SEC_COMPANY_FACTS_XBRL"
+                        if fact.source.value == "SEC_COMPANY_FACTS"
+                        else "SEC_FILING_XBRL"
+                    ),
+                )
+            )
+            inserted += 1
+        session.commit()
+    return inserted
+
+
+def persist_regulatory_facts(
+    engine: Engine,
+    facts: tuple[Any, ...],
+    *,
+    evidence_id: str,
+) -> int:
+    """Retain native reporter-scoped regulatory facts without scope blending."""
+    initialize_schema(engine)
+    inserted = 0
+    with Session(engine) as session:
+        if session.get(SourceEvidence, evidence_id) is None:
+            raise KeyError(evidence_id)
+        for fact in facts:
+            fact_id = f"raw-regulatory:{fact.fact_id[:64]}"
+            if session.get(RawRegulatoryFact, fact_id) is not None:
+                continue
+            if session.get(ReportingEntity, fact.reporting_entity_id) is None:
+                raise KeyError(fact.reporting_entity_id)
+            if session.get(ReportingScope, fact.reporting_scope_id) is None:
+                raise KeyError(fact.reporting_scope_id)
+            session.add(
+                RawRegulatoryFact(
+                    id=fact_id,
+                    evidence_id=evidence_id,
+                    reporting_entity_id=fact.reporting_entity_id,
+                    reporting_scope_id=fact.reporting_scope_id,
+                    source_family=fact.source_family.value,
+                    rssd_id=fact.rssd_id,
+                    schedule=fact.schedule,
+                    item_code=fact.item,
+                    report_date=fact.report_date,
+                    period_type=fact.period_type,
+                    unit=fact.unit,
+                    scale=fact.scale,
+                    raw_value=fact.raw_value,
+                    revision_identifier=fact.revision,
+                )
+            )
+            inserted += 1
+        session.commit()
+    return inserted
+
+
 def _as_of_instant(as_of: datetime | date | None) -> datetime:
     if as_of is None:
         return utc_now()
@@ -1182,12 +1774,74 @@ class IntelligenceRepository:
                     "ticker": company.ticker,
                     "fiscal_year": event.fiscal_year,
                     "fiscal_quarter": event.fiscal_quarter,
+                    "period_end": event.period_end.isoformat() if event.period_end else None,
                     "event_at": event.event_at.isoformat(),
                     "evidence_id": evidence.id,
                     "source_url": evidence.original_url,
+                    "event_kind": event.event_kind,
+                    "source_kind": event.source_kind,
+                    "filing_accession": event.filing_accession,
+                    "window_start": (
+                        event.window_start.isoformat() if event.window_start else None
+                    ),
+                    "window_end": event.window_end.isoformat() if event.window_end else None,
+                    "is_inferred": event.is_inferred,
+                    "inference_basis": event.inference_basis,
                 }
                 for event, company, evidence in session.execute(statement)
             ]
+
+    def calendar(
+        self,
+        *,
+        as_of: datetime | date | None = None,
+        config_dir: Path | None = None,
+    ) -> list[dict[str, object]]:
+        """Return actual last reports and conspicuously inferred filing windows."""
+        from mortgage_servicing_dashboard.calendar import (  # noqa: PLC0415
+            build_earnings_calendar_from_official_config,
+        )
+
+        instant = _as_of_instant(as_of)
+        config_path = config_directory(config_dir) / "calendar" / "earnings_calendar.v1.yaml"
+        companies = {str(item["id"]): item for item in self.companies()}
+        payload: list[dict[str, object]] = []
+        for company_id in sorted(companies):
+            result = build_earnings_calendar_from_official_config(
+                config_path=config_path,
+                company_id=company_id,
+                as_of=instant,
+            )
+            reported = result.last_reported_period
+            window = result.inferred_window
+            payload.append(
+                {
+                    "company_id": company_id,
+                    "ticker": companies[company_id]["ticker"],
+                    "as_of": instant.isoformat(),
+                    "last_reported_period": {
+                        "period_end": reported.period_end.isoformat(),
+                        "event_id": reported.filing_event_id,
+                        "accepted_at": reported.accepted_at.isoformat(),
+                        "accession": reported.accession,
+                        "filing_url": reported.filing_url,
+                        "exhibit_url": reported.exhibit_url,
+                        "is_inferred": reported.is_inferred,
+                    },
+                    "next_expected_report_window": {
+                        "expected_period_end": window.expected_period_end.isoformat(),
+                        "window_start": window.window_start.isoformat(),
+                        "window_end": window.window_end.isoformat(),
+                        "is_inferred": window.is_inferred,
+                        "method": window.method,
+                        "config_version": window.config_version,
+                        "inference_basis": list(window.inference_basis),
+                    },
+                    "freshness_state": result.freshness_state.value,
+                    "next_announced_event": None,
+                }
+            )
+        return payload
 
     def freshness(self) -> dict[str, object]:
         """Return evidence, publication, pipeline, and quarantine freshness."""
@@ -1275,6 +1929,7 @@ class IntelligenceRepository:
             "pipeline_status": run.status if run is not None else "NOT_RUN",
             "terminal_outcomes": run.terminal_outcomes if run is not None else {},
             "model_calls_enabled": False,
+            "calendar": self.calendar(),
         }
 
     def _observation_statement(

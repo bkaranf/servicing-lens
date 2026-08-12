@@ -197,9 +197,10 @@ Gate:
 ## Required deterministic test inventory
 
 Stage A fixtures cover retained SEC filing exhibits and earnings-release tables.
-SEC submissions, company facts, filing-level XBRL, investor-presentation PDF
-text, FFIEC/FR Y-9C/NIC records, and broader corporate-action scenarios are Phase
-2 and later deterministic-fixture requirements.
+Phase 2 adds deterministic SEC submissions, company-facts, filing-level XBRL,
+FFIEC/FR Y-9C/NIC, and calendar fixtures. Synthetic adapter fixtures are marked
+test-only and never published as public observations; live smoke tests remain
+explicitly opt-in.
 
 Tests cover:
 
@@ -243,9 +244,10 @@ Stage A exits only when all 15 product-scope acceptance outcomes pass together.
 Passing unit tests while provenance, source coverage, UI, review, or
 reconciliation is incomplete is not exit.
 
-Stage A exited on 2026-08-12 under D-015. The governing objective requires, in
-order: standalone repository extraction; live SEC/XBRL/regulatory/calendar
-adapters; TFC/PFSI metric deepening; exactly two additional banks and two
+Stage A exited on 2026-08-12 under D-015 and standalone extraction completed
+under D-013. Phase 2 implements live SEC/XBRL/regulatory/calendar adapters and
+must pass its full exit gate before TFC/PFSI metric deepening begins. The remaining
+order is: metric deepening; exactly two additional banks and two
 additional nonbanks over Q3 2025 through Q2 2026; and UI alignment last. Issuers
 and metrics must be reassessed from official evidence; the Stage A configuration
 is not silently generalized.

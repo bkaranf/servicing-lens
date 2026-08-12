@@ -7,6 +7,7 @@ import json
 import os
 import sys
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,13 +23,18 @@ from mortgage_servicing_dashboard.database import (
     create_database_engine,
     default_database_url,
 )
-from mortgage_servicing_dashboard.ingestion import run_cli_review_resume
+from mortgage_servicing_dashboard.ingestion import (
+    discover_live_sec_filings,
+    run_cli_review_resume,
+    run_live_sec_ingestion,
+)
 from mortgage_servicing_dashboard.repository import (
     IntelligenceRepository,
     load_stage_a_configuration,
     prepare_stage_a,
     seed_stage_a,
 )
+from mortgage_servicing_dashboard.sources import PublicSourceError
 from mortgage_servicing_dashboard.tools import StaticFoundationInformation
 
 
@@ -45,13 +51,27 @@ def build_parser() -> argparse.ArgumentParser:
         child = subparsers.add_parser(command, help=f"{command} the Stage A database.")
         child.add_argument("--database-url")
         child.add_argument("--config-dir", type=Path)
+    calendar = subparsers.add_parser(
+        "calendar",
+        help="Show actual reports and separately labeled inferred filing windows.",
+    )
+    calendar.add_argument("--database-url")
+    calendar.add_argument("--config-dir", type=Path)
+    calendar.add_argument("--as-of", help="Optional ISO knowledge-time cutoff.")
     discover = subparsers.add_parser("discover", help="List configured authoritative sources.")
     discover.add_argument("--company", choices=("TFC", "PFSI"))
     discover.add_argument("--config-dir", type=Path)
+    discover.add_argument("--live", action="store_true", help="Query official SEC submissions.")
     for command in ("ingest", "validate"):
         child = subparsers.add_parser(command, help=f"{command} all recorded Stage A evidence.")
         child.add_argument("--database-url")
         child.add_argument("--config-dir", type=Path)
+        if command == "ingest":
+            child.add_argument(
+                "--live",
+                action="store_true",
+                help="Acquire official SEC responses before deterministic publication.",
+            )
     review = subparsers.add_parser("review", help="List or decide quarantined candidates.")
     review.add_argument("action", choices=("list", "approve", "reject"))
     review.add_argument("--database-url")
@@ -108,6 +128,99 @@ def _database_url(explicit: str | None) -> str:
     return explicit or os.environ.get("MSI_DATABASE_URL") or default_database_url()
 
 
+def _live_sec_identity(settings: AppSettings) -> tuple[int, str | None]:
+    try:
+        return 0, settings.require_sec_user_agent()
+    except ValueError as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 2, None
+
+
+def _discover_live(args: argparse.Namespace, settings: AppSettings) -> int:
+    exit_code, user_agent = _live_sec_identity(settings)
+    if user_agent is None:
+        return exit_code
+    try:
+        filings = discover_live_sec_filings(
+            user_agent=user_agent,
+            company=args.company,
+            config_dir=args.config_dir,
+        )
+    except (PublicSourceError, ValueError) as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 1
+    print(
+        json.dumps(
+            {
+                "mode": "live",
+                "filings": [filing.as_payload() for filing in filings],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _ingest_live(args: argparse.Namespace, settings: AppSettings) -> int:
+    exit_code, user_agent = _live_sec_identity(settings)
+    if user_agent is None:
+        return exit_code
+    try:
+        acquisitions = run_live_sec_ingestion(
+            user_agent=user_agent,
+            config_dir=args.config_dir,
+        )
+    except (PublicSourceError, ValueError) as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 1
+    engine = create_database_engine(_database_url(args.database_url))
+    try:
+        from mortgage_servicing_dashboard.repository import (  # noqa: PLC0415
+            ingest_live_sec_acquisitions,
+        )
+
+        inserted = ingest_live_sec_acquisitions(
+            engine,
+            acquisitions,
+            config_dir=args.config_dir,
+        )
+    except (PublicSourceError, ValueError) as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 1
+    finally:
+        engine.dispose()
+    print(
+        json.dumps(
+            {
+                "database": "ready",
+                "mode": "live",
+                "acquired": len(acquisitions),
+                "evidence": [item.as_payload() for item in acquisitions],
+                "inserted": inserted,
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _calendar_command(engine: Any, args: argparse.Namespace) -> int:
+    try:
+        as_of = datetime.fromisoformat(args.as_of) if args.as_of else None
+        calendar_payload = IntelligenceRepository(engine).calendar(
+            as_of=as_of,
+            config_dir=args.config_dir,
+        )
+    except ValueError as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        engine.dispose()
+        return 2
+    print(json.dumps({"calendar": calendar_payload}, indent=2, sort_keys=True))
+    engine.dispose()
+    return 0
+
+
 def _review_candidate(engine: Any, args: argparse.Namespace) -> tuple[int, dict[str, object]]:
     """List candidates or record one auditable decision."""
     with Session(engine) as session:
@@ -157,7 +270,7 @@ def _review_candidate(engine: Any, args: argparse.Namespace) -> tuple[int, dict[
     }
 
 
-def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911
+def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0912
     """Dispatch deterministic CLI operations."""
     args = build_parser().parse_args(argv)
     command = args.command or "doctor"
@@ -179,6 +292,8 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911
         return 0
 
     if command == "discover":
+        if args.live:
+            return _discover_live(args, settings)
         _, _, data = load_stage_a_configuration(getattr(args, "config_dir", None))
         company_id = args.company.lower() if args.company else None
         sources = [
@@ -188,6 +303,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911
         ]
         print(json.dumps({"sources": sources}, indent=2, sort_keys=True))
         return 0
+
+    if command == "ingest" and args.live:
+        return _ingest_live(args, settings)
 
     database_url = _database_url(getattr(args, "database_url", None))
     if getattr(args, "config_dir", None) is not None:
@@ -200,6 +318,8 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911
         engine.dispose()
         return exit_code
     counts = seed_stage_a(engine, config_dir=getattr(args, "config_dir", None))
+    if command == "calendar":
+        return _calendar_command(engine, args)
     if command in {"init-db", "seed", "ingest"}:
         print(json.dumps({"database": "ready", "inserted": counts}, sort_keys=True))
         engine.dispose()
