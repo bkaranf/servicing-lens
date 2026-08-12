@@ -1,0 +1,291 @@
+manifest_version: "1.0.0"
+issuer_id: wfc
+cik: "0000072971"
+classification: PUBLIC_CORPORATE_DOCUMENT
+retention_policy: IMMUTABLE_CONTENT_ADDRESSED
+research_only: true
+
+# Exact response bodies acquired from official SEC HTTPS endpoints with the
+# repository's controlled SecClient. No parsed value in this manifest is a
+# publication candidate.
+sources:
+  - evidence_id: phase4-wfc-sec-submissions-20260812
+    source_key: wfc_sec_submissions
+    source_class: SEC_SUBMISSIONS_INDEX
+    url: "https://data.sec.gov/submissions/CIK0000072971.json"
+    retrieved_at: "2026-08-12T15:33:39.128116+00:00"
+    media_type: application/json
+    byte_length: 187031
+    sha256: "42ea84e1bd1eda90ed32e9ee64baf618e87e3b97ece1c94a2cad615201870880"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/42/42ea84e1bd1eda90ed32e9ee64baf618e87e3b97ece1c94a2cad615201870880.bin
+    locator: "$.name, $.cik, $.tickers, $.exchanges, $.fiscalYearEnd, and $.filings.recent accession entries"
+
+  - &q3_release
+    evidence_id: phase4-wfc-2025q3-earnings-release
+    source_key: wfc_2025q3_earnings
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2025Q3"
+    form: 8-K
+    document_type: EX-99.1
+    accession: "0000072971-25-000239"
+    accepted_at: "2025-10-14T10:28:31Z"
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297125000239/wfc3qer10-14x25ex991xrelea.htm"
+    retrieved_at: "2026-08-12T15:34:46.000147+00:00"
+    last_modified: "Tue, 14 Oct 2025 10:29:01 GMT"
+    media_type: text/html
+    byte_length: 399925
+    sha256: "5a8e80ceeef19157f250b3ef5e38a78b7e7a7e6e232112ea06061f6f69689a43"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/5a/5a8e80ceeef19157f250b3ef5e38a78b7e7a7e6e232112ea06061f6f69689a43.bin
+    locator: "Wells Fargo Reports Third Quarter 2025 Financial Results; company-wide and segment discussion"
+
+  - <<: *q3_release
+    evidence_id: phase4-wfc-2025q3-quarterly-supplement
+    source_key: wfc_2025q3_supplement
+    source_class: SEC_FILING_EXHIBIT
+    document_type: EX-99.2
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297125000239/wfc3qer10-14x25ex992xsuppl.htm"
+    retrieved_at: "2026-08-12T15:34:46.150824+00:00"
+    byte_length: 3036591
+    sha256: "4d8c1dd977271d49b91cecd16008336fa0bc25947dd0173d713f1d2d46d4f332"
+    path: sha256/4d/4d8c1dd977271d49b91cecd16008336fa0bc25947dd0173d713f1d2d46d4f332.bin
+    locator: "Consumer Banking and Lending > Home Lending selected metrics; preliminary quarterly financial data"
+
+  - <<: *q3_release
+    evidence_id: phase4-wfc-2025q3-presentation
+    source_key: wfc_2025q3_presentation
+    source_class: SEC_FILING_EXHIBIT_FURNISHED
+    document_type: EX-99.3
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297125000239/ex993-wellsfargo3q25pres.htm"
+    retrieved_at: "2026-08-12T15:34:46.242133+00:00"
+    byte_length: 55944
+    sha256: "86bd553a6127e71d60c15c3737e6e2a4a306793ec3382f35512ff8532f90e43d"
+    path: sha256/86/86bd553a6127e71d60c15c3737e6e2a4a306793ec3382f35512ff8532f90e43d.bin
+    locator: "3Q25 Financial Results presentation; complete scoped mortgage/servicing check"
+
+  - evidence_id: phase4-wfc-2025q3-10q
+    source_key: wfc_2025q3_10q
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2025Q3"
+    form: 10-Q
+    document_type: 10-Q
+    accession: "0000072971-25-000253"
+    accepted_at: "2025-10-31T20:23:21Z"
+    report_date: "2025-09-30"
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297125000253/wfc-20250930.htm"
+    retrieved_at: "2026-08-12T15:34:46.583210+00:00"
+    last_modified: "Fri, 31 Oct 2025 20:24:04 GMT"
+    media_type: text/html
+    byte_length: 10931659
+    sha256: "d18f1f6ea6fe1495feeab027a39708a928a64b5de7113648d9e6755d8299b26d"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/d1/d18f1f6ea6fe1495feeab027a39708a928a64b5de7113648d9e6755d8299b26d.bin
+    locator: "Note 6 Mortgage Banking Activities and Consumer Banking and Lending Home Lending tables"
+
+  - &q4_release
+    evidence_id: phase4-wfc-2025q4-earnings-release
+    source_key: wfc_2025q4_earnings
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2025Q4"
+    form: 8-K
+    document_type: EX-99.1
+    accession: "0000072971-26-000009"
+    accepted_at: "2026-01-14T11:28:36Z"
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000009/wfc4qer01-14x26ex991xrelea.htm"
+    retrieved_at: "2026-08-12T15:34:46.640300+00:00"
+    last_modified: "Wed, 14 Jan 2026 11:29:01 GMT"
+    media_type: text/html
+    byte_length: 419822
+    sha256: "f97fabe3cf8d9ba5119aa8b21538f22b1cd9ee74618f40d0d457d2a4d41eabf0"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/f9/f97fabe3cf8d9ba5119aa8b21538f22b1cd9ee74618f40d0d457d2a4d41eabf0.bin
+    locator: "Wells Fargo Reports Fourth Quarter 2025 Financial Results; company-wide and segment discussion"
+
+  - <<: *q4_release
+    evidence_id: phase4-wfc-2025q4-quarterly-supplement
+    source_key: wfc_2025q4_supplement
+    source_class: SEC_FILING_EXHIBIT
+    document_type: EX-99.2
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000009/wfc4qer01-14x26ex992xsuppl.htm"
+    retrieved_at: "2026-08-12T15:34:46.910469+00:00"
+    byte_length: 3109205
+    sha256: "798821e113c3d4cfb4c659d57310626faa8bede6aff849f798dfbfa3669ccb1a"
+    path: sha256/79/798821e113c3d4cfb4c659d57310626faa8bede6aff849f798dfbfa3669ccb1a.bin
+    locator: "Consumer Banking and Lending > Home Lending selected metrics; preliminary quarterly financial data"
+
+  - <<: *q4_release
+    evidence_id: phase4-wfc-2025q4-presentation
+    source_key: wfc_2025q4_presentation
+    source_class: SEC_FILING_EXHIBIT_FURNISHED
+    document_type: EX-99.3
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000009/ex993-wellsfargo4q25pres.htm"
+    retrieved_at: "2026-08-12T15:34:47.070102+00:00"
+    byte_length: 52561
+    sha256: "fd361d329bcba6a9d768ca566d4d3ac84d2ff8e7887dc2164fe65421e5a99687"
+    path: sha256/fd/fd361d329bcba6a9d768ca566d4d3ac84d2ff8e7887dc2164fe65421e5a99687.bin
+    locator: "4Q25 Financial Results presentation; complete scoped mortgage/servicing check"
+
+  - &q4_periodic
+    evidence_id: phase4-wfc-2025-10k-cover
+    source_key: wfc_2025_10k_cover
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2025Q4"
+    form: 10-K
+    document_type: 10-K
+    accession: "0000072971-26-000133"
+    accepted_at: "2026-02-24T21:46:31Z"
+    report_date: "2025-12-31"
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000133/wfc-20251231_d2.htm"
+    retrieved_at: "2026-08-12T15:34:47.369264+00:00"
+    last_modified: "Tue, 24 Feb 2026 21:47:14 GMT"
+    media_type: text/html
+    byte_length: 359609
+    sha256: "63f0906ae441374efdd57b759c550ad69982fcfe41c737f1c39e9679e57379a5"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/63/63f0906ae441374efdd57b759c550ad69982fcfe41c737f1c39e9679e57379a5.bin
+    locator: "Form 10-K cover: legal registrant name, CIK, WFC common-stock ticker, NYSE, fiscal year end"
+
+  - <<: *q4_periodic
+    evidence_id: phase4-wfc-2025-annual-report-ex13
+    source_key: wfc_2025q4_annual_report
+    document_type: EX-13
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000133/wfc-20251231.htm"
+    retrieved_at: "2026-08-12T15:34:47.634896+00:00"
+    byte_length: 11595621
+    sha256: "735e46f5ea0b238ad639fdf8020c8a64dca0dde1abb7601f2111a88e5400912f"
+    path: sha256/73/735e46f5ea0b238ad639fdf8020c8a64dca0dde1abb7601f2111a88e5400912f.bin
+    locator: "Financial Review and Note 6 Mortgage Banking Activities incorporated into Form 10-K"
+
+  - &q1_release
+    evidence_id: phase4-wfc-2026q1-earnings-release
+    source_key: wfc_2026q1_earnings
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2026Q1"
+    form: 8-K
+    document_type: EX-99.1
+    accession: "0000072971-26-000213"
+    accepted_at: "2026-04-14T10:28:12Z"
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000213/wfc1qer04-14x26ex991xrelea.htm"
+    retrieved_at: "2026-08-12T15:34:47.675508+00:00"
+    last_modified: "Tue, 14 Apr 2026 10:28:40 GMT"
+    media_type: text/html
+    byte_length: 409839
+    sha256: "fb3bd356ca3de780fe66a4b62da56aac9982cd3a692599b879ec0ce89ca22f87"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/fb/fb3bd356ca3de780fe66a4b62da56aac9982cd3a692599b879ec0ce89ca22f87.bin
+    locator: "Wells Fargo Reports First Quarter 2026 Financial Results; company-wide and segment discussion"
+
+  - <<: *q1_release
+    evidence_id: phase4-wfc-2026q1-quarterly-supplement
+    source_key: wfc_2026q1_supplement
+    source_class: SEC_FILING_EXHIBIT
+    document_type: EX-99.2
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000213/wfc1qer04-14x26ex992xsuppl.htm"
+    retrieved_at: "2026-08-12T15:34:47.943166+00:00"
+    byte_length: 2618909
+    sha256: "4b9fdc67d712c987fcd277298ae0bdaef7934f930e8061c831a403056f09518e"
+    path: sha256/4b/4b9fdc67d712c987fcd277298ae0bdaef7934f930e8061c831a403056f09518e.bin
+    locator: "Consumer Banking and Lending > Home Lending selected metrics; changed 1Q26 preliminary format"
+
+  - <<: *q1_release
+    evidence_id: phase4-wfc-2026q1-presentation
+    source_key: wfc_2026q1_presentation
+    source_class: SEC_FILING_EXHIBIT_FURNISHED
+    document_type: EX-99.3
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000213/ex993-wellsfargo1q26pres.htm"
+    retrieved_at: "2026-08-12T15:34:48.127377+00:00"
+    byte_length: 59863
+    sha256: "22ea6836e41bfb0428796924fa8d92c8121a8d6145573279043a1d75dccb55c3"
+    path: sha256/22/22ea6836e41bfb0428796924fa8d92c8121a8d6145573279043a1d75dccb55c3.bin
+    locator: "1Q26 Financial Results presentation; complete scoped mortgage/servicing check"
+
+  - evidence_id: phase4-wfc-2026q1-10q
+    source_key: wfc_2026q1_10q
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2026Q1"
+    form: 10-Q
+    document_type: 10-Q
+    accession: "0000072971-26-000217"
+    accepted_at: "2026-04-29T21:05:34Z"
+    report_date: "2026-03-31"
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000217/wfc-20260331.htm"
+    retrieved_at: "2026-08-12T15:34:48.511347+00:00"
+    last_modified: "Wed, 29 Apr 2026 21:06:24 GMT"
+    media_type: text/html
+    byte_length: 8552078
+    sha256: "0d3068dec310c9adcd7fd8f9250f1b699e05ab81cf8bd77515964ea75ac16014"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/0d/0d3068dec310c9adcd7fd8f9250f1b699e05ab81cf8bd77515964ea75ac16014.bin
+    locator: "Note 6 Mortgage Banking Activities and Consumer Banking and Lending Home Lending tables"
+
+  - &q2_release
+    evidence_id: phase4-wfc-2026q2-earnings-release
+    source_key: wfc_2026q2_earnings
+    source_class: SEC_FILING_EXHIBIT
+    fiscal_period: "2026Q2"
+    form: 8-K
+    document_type: EX-99.1
+    accession: "0000072971-26-000288"
+    accepted_at: "2026-07-14T10:28:21Z"
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000288/wfc2qer07-14x26ex991xrelea.htm"
+    retrieved_at: "2026-08-12T15:34:48.551305+00:00"
+    last_modified: "Tue, 14 Jul 2026 10:28:52 GMT"
+    media_type: text/html
+    byte_length: 411746
+    sha256: "7d60f83afe02a1b0d80ffa581a3f6063f2b3286a71b96c75b8f837d6f8389220"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/7d/7d60f83afe02a1b0d80ffa581a3f6063f2b3286a71b96c75b8f837d6f8389220.bin
+    locator: "Wells Fargo Reports Second Quarter 2026 Financial Results; company-wide and segment discussion"
+
+  - <<: *q2_release
+    evidence_id: phase4-wfc-2026q2-quarterly-supplement
+    source_key: wfc_2026q2_supplement
+    source_class: SEC_FILING_EXHIBIT
+    document_type: EX-99.2
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000288/wfc2qer07-14x26ex992xsuppl.htm"
+    retrieved_at: "2026-08-12T15:34:48.853839+00:00"
+    byte_length: 3050358
+    sha256: "2234de425302d20cd5cef1b014442c520864970001b354fb4ab28c600036ab08"
+    path: sha256/22/2234de425302d20cd5cef1b014442c520864970001b354fb4ab28c600036ab08.bin
+    locator: "Consumer Banking and Lending > Home Lending selected metrics; preliminary quarterly financial data"
+
+  - <<: *q2_release
+    evidence_id: phase4-wfc-2026q2-presentation
+    source_key: wfc_2026q2_presentation
+    source_class: SEC_FILING_EXHIBIT_FURNISHED
+    document_type: EX-99.3
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000288/ex993-wellsfargo2q26pres.htm"
+    retrieved_at: "2026-08-12T15:34:48.966711+00:00"
+    byte_length: 47366
+    sha256: "fa1e87c2839596a0b03e8f5432847856211b297f8c67ba37397bd80f5ae6bb73"
+    path: sha256/fa/fa1e87c2839596a0b03e8f5432847856211b297f8c67ba37397bd80f5ae6bb73.bin
+    locator: "2Q26 Financial Results presentation; complete scoped mortgage/servicing check"
+
+  - evidence_id: phase4-wfc-2026q2-10q
+    source_key: wfc_2026q2_10q
+    source_class: SEC_PERIODIC_FILING
+    fiscal_period: "2026Q2"
+    form: 10-Q
+    document_type: 10-Q
+    accession: "0000072971-26-000302"
+    accepted_at: "2026-07-28T20:46:31Z"
+    report_date: "2026-06-30"
+    url: "https://www.sec.gov/Archives/edgar/data/72971/000007297126000302/wfc-20260630.htm"
+    retrieved_at: "2026-08-12T15:34:49.229633+00:00"
+    last_modified: "Tue, 28 Jul 2026 20:48:11 GMT"
+    media_type: text/html
+    byte_length: 10648938
+    sha256: "bd81be90cdcfd43877d280b274d1f1865c4b7e2a0498e2a3767bedc0fa049686"
+    representation: ORIGINAL_HTTP_RESPONSE
+    capture_method: sec_http_get
+    path: sha256/bd/bd81be90cdcfd43877d280b274d1f1865c4b7e2a0498e2a3767bedc0fa049686.bin
+    locator: "Note 6 Mortgage Banking Activities and Consumer Banking and Lending Home Lending tables"

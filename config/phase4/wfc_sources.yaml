@@ -1,0 +1,347 @@
+version: "phase4-wfc-research-1.0.0"
+status: DISCLOSURE_MAP_RESEARCH_ONLY
+knowledge_at: "2026-08-12T15:34:49.229633Z"
+publication_authorized: false
+parser_implemented: false
+manifest: ../recorded_evidence/phase4/wfc/manifest.v1.yaml
+
+identity:
+  company_id: wfc
+  legal_name: Wells Fargo & Company
+  sec_conformed_name: WELLS FARGO & COMPANY/MN
+  ticker: WFC
+  exchange: NYSE
+  cik: "0000072971"
+  fiscal_year_end: "12-31"
+  fiscal_calendar: CALENDAR_YEAR
+  bhc_rssd: "1120754"
+  depository_name: Wells Fargo Bank, National Association
+  depository_rssd: "451965"
+  identity_evidence:
+    - source_key: wfc_sec_submissions
+      locator: "$.name, $.cik, $.tickers[0], $.exchanges[0], $.fiscalYearEnd"
+    - source_key: wfc_2025_10k_cover
+      locator: "Form 10-K cover: exact registrant name; WFC common stock; NYSE; document fiscal year focus 2025 and year end December 31"
+    - source_key: wfc_2025q4_annual_report
+      locator: "Item 1: Wells Fargo & Company is a Delaware financial holding company and bank holding company; Wells Fargo Bank, N.A. is the principal subsidiary"
+    - official_url: "https://www.ffiec.gov/npw/Institution/TopHoldings"
+      locator: "Large Holding Companies, 2026-03-31: WELLS FARGO & COMPANY, RSSD ID 1120754"
+      retained_here: false
+    - official_url: "https://cdr.ffiec.gov/Public/Reports/UbprReport.aspx?idrssd=451965&rptCycleIds=45&rptid=283"
+      locator: "UBPR institution header: WELLS FARGO BANK, NATIONAL ASSOCIATION, ID_RSSD 451965; BHC RSSD 1120754"
+      retained_here: false
+
+reporting_entities:
+  - id: wfc_sec_registrant
+    legal_name: Wells Fargo & Company
+    type: SEC_REGISTRANT
+    consolidation: Wells Fargo & Company and Subsidiaries
+  - id: wfc_bhc_regulatory_reporter
+    legal_name: Wells Fargo & Company
+    type: BANK_HOLDING_COMPANY
+    rssd: "1120754"
+  - id: wells_fargo_bank_na_regulatory_reporter
+    legal_name: Wells Fargo Bank, National Association
+    type: INSURED_DEPOSITORY_INSTITUTION
+    rssd: "451965"
+  - id: wfc_home_lending_operating_unit
+    legal_name: Home Lending
+    type: DISCLOSED_OPERATING_UNIT
+    parent_reporting_entity_id: wfc_sec_registrant
+    source_label: Consumer Banking and Lending - Home Lending
+
+reporting_scopes:
+  - id: wfc_consolidated_residential_mortgage_servicing
+    reporting_entity_id: wfc_sec_registrant
+    category: SERVICING_FOR_OTHERS
+    source_labels: ["Loans serviced for others", "Third party mortgage loans serviced"]
+    population: residential mortgages serviced for others
+    exclusions: [residential mortgage loans subserviced for others]
+  - id: wfc_managed_residential_mortgage_servicing
+    reporting_entity_id: wfc_sec_registrant
+    category: TOTAL_SERVICING_PORTFOLIO
+    source_label: Total managed servicing portfolio
+    population: residential mortgages
+    available_periods: ["2025-09-30", "2025-12-31"]
+    boundary_note: "The 2026 Note 6 format no longer reports this managed total; loans-serviced-for-others is not substituted."
+  - id: wfc_owned_residential_loans_serviced
+    reporting_entity_id: wfc_sec_registrant
+    category: BANK_OWNED_LOANS_SERVICED
+    source_label: Owned loans serviced
+    population: residential mortgages
+    available_periods: ["2025-09-30", "2025-12-31"]
+  - id: wfc_owned_residential_msr
+    reporting_entity_id: wfc_sec_registrant
+    category: OWNED_MSR_PORTFOLIO
+    source_label: Residential MSRs at fair value
+  - id: wfc_mortgage_banking_servicing_economics
+    reporting_entity_id: wfc_sec_registrant
+    category: COMBINED_MORTGAGE_BANKING_SEGMENT
+    source_label: Note 6 Mortgage Banking Activities - total net servicing income
+    inclusions: [servicing fees, late charges, ancillary fees, unreimbursed costs, MSR realization, valuation changes, economic hedges]
+  - id: wfc_home_lending_owned_loan_metrics
+    reporting_entity_id: wfc_home_lending_operating_unit
+    category: CONSOLIDATED_COMPANY
+    legal_consolidation_boundary: Wells Fargo & Company and Subsidiaries
+    business_boundary: Home Lending disclosed operating unit
+    portfolio_population: owned Home Lending loans
+    source_label: Home lending loans 30+ days delinquency rate
+    exclusions: [government-insured-or-guaranteed loans, loans held for sale, nonaccrual loans]
+    canonical_servicing_scope: false
+  - id: wfc_bhc_regulatory
+    reporting_entity_id: wfc_bhc_regulatory_reporter
+    category: BANK_HOLDING_COMPANY_REGULATORY
+  - id: wells_fargo_bank_na_regulatory
+    reporting_entity_id: wells_fargo_bank_na_regulatory_reporter
+    category: DEPOSITORY_INSTITUTION_REGULATORY
+
+quarters:
+  Q3_2025: {fiscal_year: 2025, fiscal_quarter: 3, period_start: "2025-07-01", period_end: "2025-09-30"}
+  Q4_2025: {fiscal_year: 2025, fiscal_quarter: 4, period_start: "2025-10-01", period_end: "2025-12-31"}
+  Q1_2026: {fiscal_year: 2026, fiscal_quarter: 1, period_start: "2026-01-01", period_end: "2026-03-31"}
+  Q2_2026: {fiscal_year: 2026, fiscal_quarter: 2, period_start: "2026-04-01", period_end: "2026-06-30"}
+
+eligible_source_sets:
+  Q3_2025: [wfc_2025q3_earnings, wfc_2025q3_supplement, wfc_2025q3_presentation, wfc_2025q3_10q]
+  Q4_2025: [wfc_2025q4_earnings, wfc_2025q4_supplement, wfc_2025q4_presentation, wfc_2025_10k_cover, wfc_2025q4_annual_report]
+  Q1_2026: [wfc_2026q1_earnings, wfc_2026q1_supplement, wfc_2026q1_presentation, wfc_2026q1_10q]
+  Q2_2026: [wfc_2026q2_earnings, wfc_2026q2_supplement, wfc_2026q2_presentation, wfc_2026q2_10q]
+
+regulatory_research_expectations:
+  status: REGULATORY_RESEARCH_NOT_ACQUIRED
+  rule: >-
+    SEC evidence does not establish regulatory-source completeness. Native BHC
+    and depository reports remain separate research and reconciliation sources;
+    none of the configured items is eligible to populate an incompatible current
+    WFC grid cell merely because it describes related servicing economics.
+  report_dates: ["2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+  sources:
+    - family: FR_Y9C
+      reporter_rssd: "1120754"
+      reporting_scope_id: wfc_bhc_regulatory
+      official_url: "https://www.ffiec.gov/npw/FinancialReport/FinancialDataDownload"
+      expected_items:
+        - {series: BHCKB804, schedule: HC-S, item: M2.a, semantic: residential_servicing_for_others_with_recourse}
+        - {series: BHCKB805, schedule: HC-S, item: M2.b, semantic: residential_servicing_for_others_without_recourse}
+        - {series: BHCKF699, schedule: HC-S, item: M2.c, semantic: residential_servicing_for_others_in_foreclosure}
+        - {series: BHCKB492, schedule: HI, item: 5.f, semantic: net_servicing_fees_all_financial_assets}
+        - {series: BHCK3164, schedule: HC-M, item: 12.a, semantic: mortgage_servicing_assets_carrying_amount}
+        - {series: BHCK6438, schedule: HC-M, item: 12.a.1, semantic: mortgage_servicing_assets_fair_value}
+    - family: FFIEC_CDR_CALL
+      reporter_rssd: "451965"
+      reporting_scope_id: wells_fargo_bank_na_regulatory
+      official_url: "https://cdr.ffiec.gov/public/PWS/DownloadBulkData.aspx"
+      expected_items:
+        - {series: RCFDB804, alternate_series: RCONB804, schedule: RC-S, item: M2.a, semantic: residential_servicing_for_others_with_recourse}
+        - {series: RCFDB805, alternate_series: RCONB805, schedule: RC-S, item: M2.b, semantic: residential_servicing_for_others_without_recourse}
+        - {series: RCFDF699, alternate_series: RCONF699, schedule: RC-S, item: M2.c, semantic: residential_servicing_for_others_in_foreclosure}
+        - {series: RIADB492, schedule: RI, item: 5.f, semantic: net_servicing_fees_all_financial_assets}
+        - {series: RCFD3164, alternate_series: RCON3164, schedule: RC-M, item: 2.a, semantic: mortgage_servicing_assets_carrying_amount}
+        - {series: RCFDA590, alternate_series: RCONA590, schedule: RC-M, item: 2.a.1, semantic: mortgage_servicing_assets_estimated_fair_value}
+  research_only_not_grid_eligible:
+    - source_items: [BHCKB492, RIADB492]
+      reason: >-
+        B492 is YTD net servicing fees across mortgages, credit cards, and other
+        financial assets. It is not the current contractual
+        servicing/subservicing fee-income metric and cannot satisfy the grid.
+    - source_items: [BHCKF699, RCFDF699, RCONF699]
+      related_denominator_items: [BHCKB804, BHCKB805, RCFDB804, RCONB804, RCFDB805, RCONB805]
+      reason: >-
+        These native regulatory facts measure 1-4 family residential assets
+        serviced for others. The current foreclosure_upb and
+        foreclosure_upb_rate definitions require PFSI's owned_msr_and_msl
+        population, so regulatory research cannot satisfy either grid metric.
+  reconciliation_metric_ids:
+    - servicing_for_others_upb
+    - msr_fair_value
+    - msr_ending_balance
+
+source_state_policy:
+  earnings_release_and_supplement: PRELIMINARY_REPORTED
+  periodic_filing: REPORTED_ACTUAL
+  rule: "Never carry a prior-period comparison column forward as the selected current-period fact. A later 10-Q/10-K fact is a separate final revision, not an unrecorded overwrite."
+
+check_profiles:
+  portfolio:
+    supplement_region: "Consumer Banking and Lending > Home Lending selected metrics, exact current-period column and footnotes"
+    periodic_region: "Note 6 Mortgage Banking Activities, residential mortgage servicing population table"
+    presentation_region: "complete Home Lending and mortgage-servicing scoped-label check"
+    release_region: "complete Home Lending and mortgage-servicing scoped-label check"
+  servicing_economics:
+    supplement_region: "Consumer Banking and Lending > Home Lending > Mortgage banking"
+    periodic_region: "Note 6 Mortgage Banking Activities, servicing-fee and mortgage-banking income tables"
+    presentation_region: "complete servicing income/expense scoped-label check"
+    release_region: "complete servicing income/expense scoped-label check"
+  msr:
+    supplement_region: "Home Lending selected metrics, current-period MSR carrying-value row where present"
+    periodic_region: "Note 6 Mortgage Banking Activities, residential MSR roll-forward and valuation tables"
+    presentation_region: "complete MSR scoped-label check"
+    release_region: "complete MSR scoped-label check"
+  delinquency:
+    supplement_region: "Home Lending selected metrics and exact delinquency footnotes"
+    periodic_region: "Consumer Banking and Lending Home Lending metrics plus Note 3 owned-loan credit-quality tables"
+    presentation_region: "complete servicing-population delinquency scoped-label check"
+    release_region: "complete servicing-population delinquency scoped-label check"
+  composition:
+    supplement_region: "Home Lending selected metrics and complete investor/program mix check"
+    periodic_region: "Note 6 Mortgage Banking Activities and complete residential-servicing investor/program mix check"
+    presentation_region: "complete servicing investor/program mix scoped-label check"
+    release_region: "complete servicing investor/program mix scoped-label check"
+
+disclosures:
+  servicing_for_others_upb:
+    scope_id: wfc_consolidated_residential_mortgage_servicing
+    period_evidence:
+      Q3_2025: {source_key: wfc_2025q3_10q, locator: "Note 6, Sep 30 2025 residential mortgages, Total serviced for others excluding subserviced for others"}
+      Q4_2025: {source_key: wfc_2025q4_annual_report, locator: "Note 6, Dec 31 2025 residential mortgages, Total serviced for others excluding subserviced for others"}
+      Q1_2026: {source_key: wfc_2026q1_10q, locator: "Note 6, Mar 31 2026 residential mortgages, Loans serviced for others"}
+      Q2_2026: {source_key: wfc_2026q2_10q, locator: "Note 6, Jun 30 2026 residential mortgages, Loans serviced for others, unpaid principal balance"}
+    reconciliation: "Earnings supplements report more precise preliminary third-party-serviced amounts; periodic filings report rounded final USD billions. Both exclude residential subservicing."
+  total_servicing_upb:
+    scope_id: wfc_managed_residential_mortgage_servicing
+    period_evidence:
+      Q3_2025: {source_key: wfc_2025q3_10q, locator: "Note 6, Sep 30 2025 residential mortgages, Total managed servicing portfolio"}
+      Q4_2025: {source_key: wfc_2025q4_annual_report, locator: "Note 6, Dec 31 2025 residential mortgages, Total managed servicing portfolio"}
+    missing_2026: "The 2026 Note 6 format reports loans serviced for others but no managed total or owned-loans-serviced component."
+  bank_owned_loans_serviced_upb:
+    scope_id: wfc_owned_residential_loans_serviced
+    period_evidence:
+      Q3_2025: {source_key: wfc_2025q3_10q, locator: "Note 6, Sep 30 2025 residential mortgages, Owned loans serviced"}
+      Q4_2025: {source_key: wfc_2025q4_annual_report, locator: "Note 6, Dec 31 2025 residential mortgages, Owned loans serviced"}
+    missing_2026: "The owned-loans-serviced row is absent from the changed 2026 Note 6 format."
+  servicing_revenue:
+    scope_id: wfc_mortgage_banking_servicing_economics
+    source_methodology: WFC_TOTAL_NET_SERVICING_INCOME_INCLUDING_MSR_MARKS_AND_HEDGES
+    period_evidence:
+      Q3_2025: {source_key: wfc_2025q3_10q, state: REPORTED_ACTUAL, locator: "Note 6, quarter ended September 30 2025, Total net servicing income"}
+      Q1_2026: {source_key: wfc_2026q1_10q, state: REPORTED_ACTUAL, locator: "Note 6, quarter ended March 31 2026, Total net servicing income"}
+      Q2_2026: {source_key: wfc_2026q2_10q, state: REPORTED_ACTUAL, locator: "Note 6, quarter ended June 30 2026, Total net servicing income"}
+    missing_q4: "The preliminary Home Lending Net servicing income row is not proven to share the Note 6 Total net servicing income boundary; Q3 values differ, so Q4 is not substituted into this metric."
+    boundary_note: "The Note 6 issuer total includes valuation and hedge effects; it is not base servicing-fee income or operating-only revenue. Preliminary supplement facts remain separate source facts until an exact semantic bridge exists."
+  msr_fair_value:
+    scope_id: wfc_owned_residential_msr
+    period_evidence: &msr_end_evidence
+      Q3_2025: {source_key: wfc_2025q3_10q, locator: "Note 6, Residential MSRs at fair value, end of period, quarter ended September 30 2025"}
+      Q4_2025: {source_key: wfc_2025q4_annual_report, locator: "Note 6, Residential MSRs at fair value, end of period, year ended December 31 2025"}
+      Q1_2026: {source_key: wfc_2026q1_10q, locator: "Note 6, Residential MSRs at fair value, end of period, quarter ended March 31 2026"}
+      Q2_2026: {source_key: wfc_2026q2_10q, locator: "Note 6, Residential MSRs at fair value, end of period, quarter ended June 30 2026"}
+  msr_ending_balance:
+    scope_id: wfc_owned_residential_msr
+    period_evidence: *msr_end_evidence
+  msr_realization_or_amortization:
+    scope_id: wfc_owned_residential_msr
+    period_evidence:
+      Q3_2025: {source_key: wfc_2025q3_10q, locator: "Note 6, Changes due to collection/realization of expected cash flows, quarter ended September 30 2025"}
+      Q1_2026: {source_key: wfc_2026q1_10q, locator: "Note 6, Changes due to collection/realization of expected cash flows, quarter ended March 31 2026"}
+      Q2_2026: {source_key: wfc_2026q2_10q, locator: "Note 6, Changes due to collection/realization of expected cash flows, quarter ended June 30 2026"}
+    missing_q4: "The 10-K row is annual; no exact standalone Q4 realization row is disclosed and no subtraction is authorized."
+  msr_fair_value_market_change:
+    scope_id: wfc_owned_residential_msr
+    period_evidence:
+      Q3_2025: {source_key: wfc_2025q3_10q, locator: "Note 6, Changes in fair value of MSRs due to market interest rates, quarter ended September 30 2025"}
+      Q1_2026: {source_key: wfc_2026q1_10q, locator: "Note 6, Changes in fair value of MSRs due to market interest rates, quarter ended March 31 2026"}
+      Q2_2026: {source_key: wfc_2026q2_10q, locator: "Note 6, Changes in fair value of MSRs due to market interest rates, quarter ended June 30 2026"}
+    missing_q4: "The 10-K row is annual; no exact standalone Q4 market-change row is disclosed."
+  msr_fair_value_assumption_change:
+    scope_id: wfc_owned_residential_msr
+    period_evidence:
+      Q3_2025: {source_key: wfc_2025q3_10q, locator: "Note 6, Changes in fair value of MSRs due to other valuation inputs or assumptions, quarter ended September 30 2025"}
+      Q1_2026: {source_key: wfc_2026q1_10q, locator: "Note 6, Changes in fair value of MSRs due to other valuation inputs or assumptions, quarter ended March 31 2026"}
+      Q2_2026: {source_key: wfc_2026q2_10q, locator: "Note 6, Changes in fair value of MSRs due to other valuation inputs or assumptions, quarter ended June 30 2026"}
+    missing_q4: "The 10-K row is annual; no exact standalone Q4 other-input/assumption change is disclosed."
+  msr_hedging_result:
+    scope_id: wfc_owned_residential_msr
+    period_evidence:
+      Q3_2025: {source_key: wfc_2025q3_10q, locator: "Note 6, Net derivative gain (losses) from economic hedges, quarter ended September 30 2025"}
+      Q1_2026: {source_key: wfc_2026q1_10q, locator: "Note 6, Net derivative gains (losses) from economic hedges, quarter ended March 31 2026"}
+      Q2_2026: {source_key: wfc_2026q2_10q, locator: "Note 6, Net derivative gains (losses) from economic hedges, quarter ended June 30 2026"}
+    missing_q4: "The 10-K row is annual; no exact standalone Q4 hedge result is disclosed."
+  msr_fair_value_inputs_or_assumptions_change:
+    scope_id: wfc_owned_residential_msr
+    assessment: NOT_DISCLOSED_INCOMPATIBLE_METHODOLOGY
+    rule: "WFC separately discloses market-interest-rate and other-input/assumption changes; those components are not relabeled as the catalog's combined-only metric."
+  msr_fair_value_multiple_of_related_upb:
+    assessment: DERIVABLE_RESEARCH_ONLY
+    formula: msr_fair_value / servicing_for_others_upb
+    periods: [Q3_2025, Q4_2025, Q1_2026, Q2_2026]
+    rule: "Requires future governed WFC scope-bridge and publication implementation; no derived value is configured here."
+  msr_fair_value_bps_of_related_upb:
+    assessment: DERIVABLE_RESEARCH_ONLY
+    formula: (msr_fair_value / servicing_for_others_upb) * 10000
+    periods: [Q3_2025, Q4_2025, Q1_2026, Q2_2026]
+    rule: "Requires future governed WFC scope-bridge and publication implementation; no derived value is configured here."
+
+matrix_statuses:
+  all_reported: &all_r {Q3_2025: R, Q4_2025: R, Q1_2026: R, Q2_2026: R}
+  all_derived: &all_d {Q3_2025: D, Q4_2025: D, Q1_2026: D, Q2_2026: D}
+  all_missing: &all_nd {Q3_2025: ND, Q4_2025: ND, Q1_2026: ND, Q2_2026: ND}
+  q3_q4_reported: &q3_q4_r {Q3_2025: R, Q4_2025: R, Q1_2026: ND, Q2_2026: ND}
+  quarterly_except_q4: &except_q4_r {Q3_2025: R, Q4_2025: ND, Q1_2026: R, Q2_2026: R}
+
+eligible_source_assessment:
+  assessment_version: "1.0.0"
+  expected_cells: 212
+  classification_counts: {R: 31, D: 8, ND: 173, SOURCE_NOT_CHECKED: 0}
+  cells:
+    servicing_for_others_upb: {periods: *all_r, check_profile: portfolio, scope_id: wfc_consolidated_residential_mortgage_servicing, rationale: "Exact final residential loans-serviced-for-others UPB in each periodic filing; preliminary supplement reconciles at its disclosed rounding."}
+    total_servicing_upb: {periods: *q3_q4_r, check_profile: portfolio, scope_id: wfc_managed_residential_mortgage_servicing, rationale: "Exact managed residential total in 2025; changed 2026 format does not disclose it."}
+    owned_msr_upb: {periods: *all_nd, check_profile: portfolio, rationale: "No UPB explicitly limited to loans underlying owned residential MSRs; loans serviced for others is not relabeled."}
+    servicing_loan_count: {periods: *all_nd, check_profile: portfolio, rationale: "No loan count for the disclosed residential servicing population."}
+    subservicing_upb: {periods: *all_nd, check_profile: portfolio, rationale: "Third-party serviced excludes subservicing; rounded serviced-and-subserviced rows do not isolate an exact subservicing amount."}
+    bank_owned_loans_serviced_upb: {periods: *q3_q4_r, check_profile: portfolio, scope_id: wfc_owned_residential_loans_serviced, rationale: "Exact 2025 residential Owned loans serviced row; absent after the 2026 Note 6 format change."}
+    interim_servicing_upb: {periods: *all_nd, check_profile: portfolio, rationale: "No interim-servicing population disclosed."}
+    servicing_revenue: {periods: *except_q4_r, check_profile: servicing_economics, scope_id: wfc_mortgage_banking_servicing_economics, rationale: "Exact Note 6 Total net servicing income for Q3/Q1/Q2; the preliminary Q4 Net servicing income boundary is not proven equivalent and is not substituted."}
+    servicing_fee_income: {periods: *all_nd, check_profile: servicing_economics, rationale: "SEC contractual fees are combined with late/ancillary fees. Regulatory B492 is YTD net servicing fees across mortgages, credit cards, and other financial assets, so it is incompatible with the current grid definition."}
+    ancillary_servicing_income: {periods: *all_nd, check_profile: servicing_economics, rationale: "Late charges and ancillary fees are not isolated from contractual servicing fees."}
+    servicing_operating_expense: {periods: *all_nd, check_profile: servicing_economics, rationale: "Unreimbursed servicing costs is a partial component, not complete servicing operating expense."}
+    servicing_pretax_income: {periods: *all_nd, check_profile: servicing_economics, rationale: "No servicing-only pretax result."}
+    servicing_adjusted_pretax_income: {periods: *all_nd, check_profile: servicing_economics, rationale: "No issuer-reported adjusted servicing-only pretax result and reconciliation."}
+    cost_to_service_per_loan: {periods: *all_nd, check_profile: servicing_economics, rationale: "No compatible serving expense and beginning/ending servicing loan counts; valuation cost-to-service assumptions are prohibited substitutes."}
+    weighted_average_servicing_fee_bps: {periods: *all_nd, check_profile: servicing_economics, rationale: "Weighted average loan rate is borrower note rate, not contractual servicing fee rate."}
+    msr_fair_value: {periods: *all_r, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Exact residential MSRs at fair value ending balance."}
+    msr_beginning_balance: {periods: *all_nd, check_profile: msr, rationale: "Opening rows occur at the actual opening instant, not the selected quarter-end instant; no grid relabeling."}
+    msr_additions: {periods: *all_nd, check_profile: msr, rationale: "Originations/purchases is combined and cannot isolate additions."}
+    msr_purchases: {periods: *all_nd, check_profile: msr, rationale: "Originations/purchases is combined and cannot isolate purchases."}
+    msr_sales: {periods: *all_nd, check_profile: msr, rationale: "Sales and other is combined; no exact sales-only row."}
+    msr_realization_or_amortization: {periods: *except_q4_r, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Exact quarterly collection/realization row except Q4, where only annual is disclosed."}
+    msr_fair_value_market_change: {periods: *except_q4_r, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Exact quarterly market-interest-rate change except Q4, where only annual is disclosed."}
+    msr_fair_value_assumption_change: {periods: *except_q4_r, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Exact quarterly other valuation-input/assumption change except Q4, where only annual is disclosed."}
+    msr_ending_balance: {periods: *all_r, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Exact residential MSR ending balance."}
+    delinquency_30_plus_count_rate: &owned_loan_delinq_nd {periods: *all_nd, check_profile: delinquency, rationale: "The reported Home Lending 30+ rate is an owned-loan measure, excludes government-insured/guaranteed, HFS, and nonaccrual loans, and is not a servicing-population count rate."}
+    delinquency_60_plus_count_rate: *owned_loan_delinq_nd
+    delinquency_90_plus_count_rate: *owned_loan_delinq_nd
+    government_servicing_upb: &mix_nd {periods: *all_nd, check_profile: composition, rationale: "No exact same-population servicing component under this canonical category."}
+    conventional_servicing_upb: *mix_nd
+    gnma_servicing_upb: *mix_nd
+    fnma_servicing_upb: *mix_nd
+    fhlmc_servicing_upb: *mix_nd
+    delinquency_30_plus_upb_rate: *owned_loan_delinq_nd
+    delinquency_60_plus_upb_rate: *owned_loan_delinq_nd
+    delinquency_90_plus_upb_rate: *owned_loan_delinq_nd
+    foreclosure_upb_rate: {periods: *all_nd, check_profile: delinquency, rationale: "Current definition requires PFSI owned_msr_and_msl population. WFC SEC Home Lending is wrong-scope, and regulatory F699/B804/B805 servicing-for-others facts are research-only and ineligible for this grid metric."}
+    reo_upb: {periods: *all_nd, check_profile: delinquency, rationale: "Consolidated foreclosed assets and owned residential loans in foreclosure are different populations, not servicing-scope REO UPB."}
+    msr_hedging_result: {periods: *except_q4_r, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Exact quarterly economic-hedge result except Q4, where only annual is disclosed."}
+    msr_fair_value_inputs_or_assumptions_change: {periods: *all_nd, check_profile: msr, rationale: "WFC separately discloses market and other-input/assumption changes; the components are not relabeled as the catalog's combined-only metric."}
+    msr_realization_passage_time_and_other: {periods: *all_nd, check_profile: msr, rationale: "WFC discloses collection/realization, not the broader combined realization/passage-of-time/other methodology."}
+    msr_fair_value_multiple_of_related_upb: {periods: *all_d, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Research-ready exact ratio from fair value and same-date servicing-for-others UPB; publication awaits governed WFC scope bridge."}
+    msr_fair_value_bps_of_related_upb: {periods: *all_d, check_profile: msr, scope_id: wfc_owned_residential_msr, rationale: "Research-ready exact multiple times 10,000; publication awaits governed WFC scope bridge."}
+    capitalized_servicing_rate_on_additions: {periods: *all_nd, check_profile: msr, rationale: "Neither additions nor additions-related UPB is separately disclosed."}
+    fha_servicing_upb: *mix_nd
+    va_servicing_upb: *mix_nd
+    usda_servicing_upb: *mix_nd
+    closed_end_second_lien_servicing_upb: *mix_nd
+    other_servicing_upb: *mix_nd
+    owned_msr_msl_upb: {periods: *all_nd, check_profile: composition, rationale: "WFC does not use PFSI's owned-MSR-and-MSL table population."}
+    msr_additions_related_upb: {periods: *all_nd, check_profile: msr, rationale: "No exact UPB related to the combined Originations/purchases row."}
+    delinquency_30_to_89_upb: *owned_loan_delinq_nd
+    delinquency_90_plus_upb: *owned_loan_delinq_nd
+    foreclosure_upb: {periods: *all_nd, check_profile: delinquency, rationale: "Current definition requires PFSI owned_msr_and_msl population. WFC does not disclose that population; regulatory F699 servicing-for-others is a different, ineligible boundary."}
+
+coverage_gaps:
+  - "No servicing-population loan count, count-based delinquency, or 60+/90+ servicing delinquency disclosure."
+  - "The only Home Lending 30+ rate is an owned-loan measure with explicit government-insured/guaranteed, HFS, and nonaccrual exclusions."
+  - "The 2026 Note 6 format drops the 2025 managed-servicing and owned-loans-serviced rows; loans serviced for others is preserved as a distinct scope."
+  - "Q4 periodic MSR flows are annual. No annual-minus-YTD subtraction is authorized, so Q4 flow components remain ND unless the earnings supplement reports an exact current-quarter row."
+  - "Contractually specified servicing fees are inseparable from late charges and ancillary fees."
+  - "Originations/purchases and Sales and other are combined roll-forward rows; additions, purchases, and sales remain ND."
+  - "FR Y-9C and Call Report bytes are not yet retained. B492, B804/B805, F699, 3164, and 6438/A590 remain separate regulatory research and reconciliation items, not authority to satisfy incompatible grid definitions."
