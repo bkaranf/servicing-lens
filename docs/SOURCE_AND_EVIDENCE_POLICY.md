@@ -82,8 +82,9 @@ Every acquired document or payload receives:
 - timezone-aware retrieval timestamp;
 - publication or filing timestamp;
 - accession or regulatory identifier when applicable;
-- SHA-256 hash of the exact original bytes;
+- SHA-256 hash of the exact retained representation bytes;
 - media type and byte length;
+- representation type and capture method;
 - parser name and version;
 - acquisition pipeline-run ID;
 - reporting-entity candidate;
@@ -91,10 +92,16 @@ Every acquired document or payload receives:
 - HTTP validators and response status when applicable; and
 - retention location.
 
-Original bytes are immutable and content-addressed. Reacquiring different bytes
-from the same URL creates new evidence; it never rewrites the earlier record.
-Parses, OCR, tables, and XBRL normalizations are reproducible derivatives and do
-not replace original evidence.
+Retained bytes are immutable and content-addressed. When the acquisition adapter
+captures an HTTP response body, those are the original response bytes. A recorded
+browser DOM serialization is instead labeled \`RECORDED_RENDERED_DOM\` with its
+capture method; it must never be described as the original HTTP response. It may
+support deterministic recorded replay only when it is the complete rendered
+document from an official filing URL, carries the SEC accession, is hash and
+length verified before parsing, and has a locator that resolves in the retained
+view. Reacquiring different bytes from the same URL creates new evidence; it never
+rewrites the earlier record. Parses, OCR, tables, and XBRL normalizations remain
+reproducible derivatives and do not replace an original response when one exists.
 
 Raw document bodies remain outside graph state, model prompts, tool results, logs,
 and checkpoints. Those surfaces carry source IDs and bounded metadata references.

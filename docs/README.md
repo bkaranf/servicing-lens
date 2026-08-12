@@ -43,7 +43,9 @@ It is historical context only and is not authoritative for this product.
 ## Non-negotiable contract
 
 1. Deterministic code, not a model, owns financial values and calculations.
-2. Original public evidence is immutable and content-addressed.
+2. Retained public evidence is immutable, content-addressed, and truthfully
+   labeled by representation and capture method; recorded browser DOM is not
+   called an original HTTP response.
 3. Every displayed value carries observation and evidence identities plus a
    resolvable source locator.
 4. Money, balances, rates, and derived values use exact \`Decimal\`/database

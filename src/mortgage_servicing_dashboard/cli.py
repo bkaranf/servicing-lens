@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sys
@@ -18,7 +17,6 @@ from sqlalchemy.orm import Session
 
 from mortgage_servicing_dashboard.config import AppSettings
 from mortgage_servicing_dashboard.database import (
-    HumanReviewDecision,
     QuarantineCandidate,
     create_database_engine,
     default_database_url,
@@ -58,7 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--candidate-id")
     review.add_argument("--reviewer", default="local-reviewer")
     review.add_argument("--rationale", default="reviewed against public evidence")
-    review.add_argument("--thread-id", default="cli-review")
+    review.add_argument("--thread-id")
     review.add_argument("--config-dir", type=Path)
     serve = subparsers.add_parser("serve", help="Serve the dashboard and read-only API.")
     serve.add_argument("--database-url")
@@ -128,29 +126,25 @@ def _review_candidate(engine: Any, args: argparse.Namespace) -> tuple[int, dict[
             }
         if not args.candidate_id:
             return 2, {"error": "--candidate-id is required for approve or reject"}
-        candidate = session.get(QuarantineCandidate, args.candidate_id)
-        if candidate is None:
-            return 3, {"error": "candidate not found"}
-        decision_id = hashlib.sha256(
-            f"{candidate.id}:{args.action}:{args.thread_id}".encode()
-        ).hexdigest()[:32]
-        if session.get(HumanReviewDecision, decision_id) is None:
-            session.add(
-                HumanReviewDecision(
-                    id=decision_id,
-                    candidate_id=candidate.id,
-                    decision=args.action.upper(),
-                    reviewer=args.reviewer,
-                    rationale=args.rationale,
-                    thread_id=args.thread_id,
-                    resulting_observation_id=None,
-                )
-            )
-        candidate.status = (
-            "APPROVED_PENDING_REVALIDATION" if args.action == "approve" else "REJECTED"
+    if not args.thread_id:
+        return 2, {"error": "--thread-id is required for approve or reject"}
+    repository = IntelligenceRepository(engine)
+    try:
+        result = repository.record_review_decision(
+            candidate_id=args.candidate_id,
+            decision=args.action,
+            reviewer=args.reviewer,
+            rationale=args.rationale,
+            thread_id=args.thread_id,
         )
-        session.commit()
-        return 0, {"candidate_id": candidate.id, "status": candidate.status}
+    except KeyError:
+        return 3, {"error": "candidate not found"}
+    except ValueError as error:
+        return 4, {"error": str(error)}
+    return 0, {
+        "candidate_id": result["candidate_id"],
+        "status": result["status"],
+    }
 
 
 def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911

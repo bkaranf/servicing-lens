@@ -1,117 +1,238 @@
-dataset_version: "stage-a-recorded-2026-08-11"
+dataset_version: "stage-a-recorded-dom-2026-08-12"
+knowledge_at: "2026-08-12T02:50:00Z"
 quarters:
   - {label: "Q3 2025", fiscal_year: 2025, fiscal_quarter: 3, period_start: "2025-07-01", period_end: "2025-09-30"}
   - {label: "Q4 2025", fiscal_year: 2025, fiscal_quarter: 4, period_start: "2025-10-01", period_end: "2025-12-31"}
   - {label: "Q1 2026", fiscal_year: 2026, fiscal_quarter: 1, period_start: "2026-01-01", period_end: "2026-03-31"}
   - {label: "Q2 2026", fiscal_year: 2026, fiscal_quarter: 2, period_start: "2026-04-01", period_end: "2026-06-30"}
+
+# This file contains identity, acquisition, and deterministic parser recipes only.
+# Financial observations are extracted from the retained documents below; no
+# authoritative numeric observation is configured here.
 sources:
-  tfc_2025_q3:
+  tfc_2026_q2_qps:
     company_id: tfc
-    source_class: SEC_EARNINGS_EXHIBIT
-    accession: "0000092230-25-000150"
-    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223025000150/ex992-qpsx3q25.htm"
-    published_at: "2025-10-17T12:00:00Z"
-    period_end: "2025-09-30"
-    media_type: "text/html"
-    excerpt: "Truist quarterly performance summary; residential mortgage servicing portfolio and income table."
-  tfc_2025_q4:
-    company_id: tfc
-    source_class: SEC_EARNINGS_EXHIBIT
-    accession: "0000092230-26-000023"
-    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000023/ex992-qpsx4q25.htm"
-    published_at: "2026-01-16T12:00:00Z"
-    period_end: "2025-12-31"
-    media_type: "text/html"
-    excerpt: "Truist quarterly performance summary; residential mortgage servicing portfolio and income table."
-  tfc_2026_q1:
-    company_id: tfc
-    source_class: SEC_EARNINGS_EXHIBIT
-    accession: "0000092230-26-000039"
-    url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000039/ex992-qpsx1q26.htm"
-    published_at: "2026-04-17T12:00:00Z"
-    period_end: "2026-03-31"
-    media_type: "text/html"
-    excerpt: "Truist quarterly performance summary; residential mortgage servicing portfolio and income table."
-  tfc_2026_q2:
-    company_id: tfc
-    source_class: SEC_EARNINGS_EXHIBIT
+    source_class: SEC_FILING_EXHIBIT
     accession: "0000092230-26-000096"
     url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000096/ex992-qpsx2q26.htm"
     published_at: "2026-07-17T12:00:00Z"
     period_end: "2026-06-30"
     media_type: "text/html"
-    excerpt: "Truist quarterly performance summary; residential mortgage servicing portfolio and income table."
-  pfsi_2025_q3:
+    representation: RECORDED_RENDERED_DOM
+    capture_method: official_page_browser_dom_serialization
+    fixture_path: "recorded_evidence/sec-tfc-2026q2-qps-ex99-2.html"
+    byte_length: 1697426
+    content_sha256: "7353334b2f40cb48d0ed6dc6756378e93260d2e2b6541ea37d800790057a7883"
+    locator: "Selected Mortgage Banking Information & Additional Information, page 10, As of/For the Quarter Ended table"
+    parser_name: stage_a_servicing_table
+    parser_version: "2.0.0"
+    rows:
+      - metric_id: servicing_revenue
+        raw_label: "Residential mortgage servicing income before MSR valuation"
+        period_type: duration
+        periods: ["2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: issuer_nonsegment_income
+      - metric_id: servicing_for_others_upb
+        raw_label: "Loans serviced for others"
+        period_type: instant
+        periods: ["2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: reported_residential_servicing_for_others
+      - metric_id: bank_owned_loans_serviced_upb
+        raw_label: "Bank-owned loans serviced"
+        period_type: instant
+        periods: ["2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: reported_bank_owned_residential_loans_serviced
+      - metric_id: total_servicing_upb
+        raw_label: "Total servicing portfolio"
+        period_type: instant
+        periods: ["2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: issuer_reported_total_residential_servicing
+      - metric_id: weighted_average_servicing_fee_bps
+        raw_label: "Weighted-average servicing fee on mortgage loans serviced for others"
+        period_type: instant
+        periods: ["2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30"]
+        reported_scale: percent
+        canonical_unit: basis_points
+        normalization: percent_to_basis_points
+        methodology: issuer_reported_rate_normalized_to_bps
+
+  pfsi_2026_q2_earnings:
     company_id: pfsi
-    source_class: SEC_PERIODIC_FILING
-    accession: "0001104659-25-103162"
-    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925103162/pfsi-20250930x10q.htm"
-    published_at: "2025-11-07T12:00:00Z"
-    period_end: "2025-09-30"
-    media_type: "text/html"
-    excerpt: "PFSI Form 10-Q; servicing portfolio, MSR, and segment disclosures."
-  pfsi_2025_q4:
-    company_id: pfsi
-    source_class: SEC_PERIODIC_FILING
-    accession: "0001104659-26-018142"
-    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926018142/pfsi-20251231x10k.htm"
-    published_at: "2026-02-27T12:00:00Z"
-    period_end: "2025-12-31"
-    media_type: "text/html"
-    excerpt: "PFSI Form 10-K; servicing portfolio, MSR, and segment disclosures."
-  pfsi_2026_q1:
-    company_id: pfsi
-    source_class: SEC_PERIODIC_FILING
-    accession: "0001104659-26-055690"
-    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926055690/pfsi-20260331x10q.htm"
-    published_at: "2026-05-08T12:00:00Z"
-    period_end: "2026-03-31"
-    media_type: "text/html"
-    excerpt: "PFSI Form 10-Q; servicing portfolio, MSR, and segment disclosures."
-  pfsi_2026_q2:
-    company_id: pfsi
-    source_class: SEC_PERIODIC_FILING
-    accession: "0001104659-26-090486"
-    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm"
-    published_at: "2026-08-07T12:00:00Z"
+    source_class: SEC_FILING_EXHIBIT
+    accession: "0001104659-26-088174"
+    url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926088174/tm2621541d1_ex99-1.htm"
+    published_at: "2026-07-29T12:00:00Z"
     period_end: "2026-06-30"
     media_type: "text/html"
-    excerpt: "PFSI Form 10-Q; servicing portfolio, MSR, and segment disclosures."
-observations:
-  # Values retain the precision displayed by each issuer. USD observations are in millions.
-  - {company_id: tfc, quarter: "Q3 2025", metric_id: servicing_for_others_upb, value: "221274", reported_value: "$221,274", source: tfc_2025_q3, label: "Residential mortgage servicing for others", methodology: reported_qps}
-  - {company_id: tfc, quarter: "Q4 2025", metric_id: servicing_for_others_upb, value: "228383", reported_value: "$228,383", source: tfc_2025_q4, label: "Residential mortgage servicing for others", methodology: reported_qps}
-  - {company_id: tfc, quarter: "Q1 2026", metric_id: servicing_for_others_upb, value: "233870", reported_value: "$233,870", source: tfc_2026_q1, label: "Residential mortgage servicing for others", methodology: reported_qps}
-  - {company_id: tfc, quarter: "Q2 2026", metric_id: servicing_for_others_upb, value: "240764", reported_value: "$240,764", source: tfc_2026_q2, label: "Residential mortgage servicing for others", methodology: reported_qps}
-  - {company_id: tfc, quarter: "Q3 2025", metric_id: bank_owned_loans_serviced_upb, value: "58396", reported_value: "$58,396", source: tfc_2025_q3, label: "Residential mortgage loans owned and serviced", methodology: reported_qps}
-  - {company_id: tfc, quarter: "Q4 2025", metric_id: bank_owned_loans_serviced_upb, value: "57583", reported_value: "$57,583", source: tfc_2025_q4, label: "Residential mortgage loans owned and serviced", methodology: reported_qps}
-  - {company_id: tfc, quarter: "Q1 2026", metric_id: bank_owned_loans_serviced_upb, value: "57386", reported_value: "$57,386", source: tfc_2026_q1, label: "Residential mortgage loans owned and serviced", methodology: reported_qps}
-  - {company_id: tfc, quarter: "Q2 2026", metric_id: bank_owned_loans_serviced_upb, value: "57894", reported_value: "$57,894", source: tfc_2026_q2, label: "Residential mortgage loans owned and serviced", methodology: reported_qps}
-  - {company_id: tfc, quarter: "Q3 2025", metric_id: total_servicing_upb, value: "279670", reported_value: "$279,670", source: tfc_2025_q3, label: "Total residential mortgage servicing", methodology: derived_reported_components, state: DERIVED}
-  - {company_id: tfc, quarter: "Q4 2025", metric_id: total_servicing_upb, value: "285966", reported_value: "$285,966", source: tfc_2025_q4, label: "Total residential mortgage servicing", methodology: derived_reported_components, state: DERIVED}
-  - {company_id: tfc, quarter: "Q1 2026", metric_id: total_servicing_upb, value: "291256", reported_value: "$291,256", source: tfc_2026_q1, label: "Total residential mortgage servicing", methodology: derived_reported_components, state: DERIVED}
-  - {company_id: tfc, quarter: "Q2 2026", metric_id: total_servicing_upb, value: "298658", reported_value: "$298,658", source: tfc_2026_q2, label: "Total residential mortgage servicing", methodology: derived_reported_components, state: DERIVED}
-  - {company_id: tfc, quarter: "Q3 2025", metric_id: weighted_average_servicing_fee_bps, value: "28", reported_value: "0.28%", source: tfc_2025_q3, label: "Weighted average servicing fee", methodology: converted_percent_to_bps, state: DERIVED}
-  - {company_id: tfc, quarter: "Q4 2025", metric_id: weighted_average_servicing_fee_bps, value: "28", reported_value: "0.28%", source: tfc_2025_q4, label: "Weighted average servicing fee", methodology: converted_percent_to_bps, state: DERIVED}
-  - {company_id: tfc, quarter: "Q1 2026", metric_id: weighted_average_servicing_fee_bps, value: "29", reported_value: "0.29%", source: tfc_2026_q1, label: "Weighted average servicing fee", methodology: converted_percent_to_bps, state: DERIVED}
-  - {company_id: tfc, quarter: "Q2 2026", metric_id: weighted_average_servicing_fee_bps, value: "29", reported_value: "0.29%", source: tfc_2026_q2, label: "Weighted average servicing fee", methodology: converted_percent_to_bps, state: DERIVED}
-  - {company_id: tfc, quarter: "Q3 2025", metric_id: servicing_revenue, value: "74", reported_value: "$74", source: tfc_2025_q3, label: "Residential mortgage servicing income before MSR valuation", methodology: issuer_nonsegment_income}
-  - {company_id: tfc, quarter: "Q4 2025", metric_id: servicing_revenue, value: "77", reported_value: "$77", source: tfc_2025_q4, label: "Residential mortgage servicing income before MSR valuation", methodology: issuer_nonsegment_income}
-  - {company_id: tfc, quarter: "Q1 2026", metric_id: servicing_revenue, value: "82", reported_value: "$82", source: tfc_2026_q1, label: "Residential mortgage servicing income before MSR valuation", methodology: issuer_nonsegment_income}
-  - {company_id: tfc, quarter: "Q2 2026", metric_id: servicing_revenue, value: "70", reported_value: "$70", source: tfc_2026_q2, label: "Residential mortgage servicing income before MSR valuation", methodology: issuer_nonsegment_income}
-  - {company_id: pfsi, quarter: "Q3 2025", metric_id: total_servicing_upb, value: "716600", reported_value: "$716.6 billion", source: pfsi_2025_q3, label: "Total servicing portfolio", methodology: issuer_total_including_subservicing}
-  - {company_id: pfsi, quarter: "Q4 2025", metric_id: total_servicing_upb, value: "733614", reported_value: "$733,613,822 thousand", source: pfsi_2025_q4, label: "Total servicing portfolio", methodology: issuer_total_including_subservicing}
-  - {company_id: pfsi, quarter: "Q1 2026", metric_id: total_servicing_upb, value: "720324", reported_value: "$720,324,379 thousand", source: pfsi_2026_q1, label: "Total servicing portfolio", methodology: issuer_total_including_subservicing}
-  - {company_id: pfsi, quarter: "Q2 2026", metric_id: total_servicing_upb, value: "731000", reported_value: "$731 billion", source: pfsi_2026_q2, label: "Total servicing portfolio", methodology: issuer_total_including_subservicing}
-  - {company_id: pfsi, quarter: "Q3 2025", metric_id: owned_msr_upb, value: "470282", reported_value: "$470,281,735 thousand", source: pfsi_2025_q3, label: "UPB underlying MSRs", methodology: owned_msr_population}
-  - {company_id: pfsi, quarter: "Q4 2025", metric_id: owned_msr_upb, value: "462035", reported_value: "$462,035,445 thousand", source: pfsi_2025_q4, label: "UPB underlying MSRs and mortgage loans", methodology: owned_msr_population}
-  - {company_id: pfsi, quarter: "Q1 2026", metric_id: owned_msr_upb, value: "473995", reported_value: "$473,995,365 thousand", source: pfsi_2026_q1, label: "UPB underlying MSRs and mortgage loans", methodology: owned_msr_population}
-  - {company_id: pfsi, quarter: "Q2 2026", metric_id: owned_msr_upb, value: "488000", reported_value: "$488 billion", source: pfsi_2026_q2, label: "Owned servicing portfolio", methodology: owned_servicing_including_held_for_sale}
-  - {company_id: pfsi, quarter: "Q3 2025", metric_id: servicing_pretax_income, value: "157", reported_value: "$157", source: pfsi_2025_q3, label: "Servicing segment pretax income", methodology: gaap_servicing_segment}
-  - {company_id: pfsi, quarter: "Q4 2025", metric_id: servicing_pretax_income, value: "37", reported_value: "$37", source: pfsi_2025_q4, label: "Servicing segment pretax income", methodology: gaap_servicing_segment}
-  - {company_id: pfsi, quarter: "Q1 2026", metric_id: servicing_pretax_income, value: "13", reported_value: "$13", source: pfsi_2026_q1, label: "Servicing segment pretax income", methodology: gaap_servicing_segment}
-  - {company_id: pfsi, quarter: "Q2 2026", metric_id: servicing_pretax_income, value: "22", reported_value: "$22", source: pfsi_2026_q2, label: "Servicing segment pretax income", methodology: gaap_servicing_segment}
-  - {company_id: pfsi, quarter: "Q2 2026", metric_id: servicing_fee_income, value: "536", reported_value: "$536", source: pfsi_2026_q2, label: "Loan servicing fees", methodology: reported_periodic_filing}
-  - {company_id: pfsi, quarter: "Q2 2026", metric_id: servicing_operating_expense, value: "76", reported_value: "$76", source: pfsi_2026_q2, label: "Servicing operating expenses", methodology: reported_periodic_filing}
-  - {company_id: pfsi, quarter: "Q2 2026", metric_id: servicing_adjusted_pretax_income, value: "99", reported_value: "$99", source: pfsi_2026_q2, label: "Adjusted pretax income", methodology: issuer_nongaap_reconciled, state: DERIVED}
-  - {company_id: pfsi, quarter: "Q2 2026", metric_id: delinquency_30_plus_count_rate, value: "4.1", reported_value: "4.1%", source: pfsi_2026_q2, label: "30+ day delinquency rate", methodology: issuer_reported_count_rate}
+    representation: RECORDED_RENDERED_DOM
+    capture_method: official_page_browser_dom_serialization
+    fixture_path: "recorded_evidence/sec-pfsi-2026q2-earnings-ex99-1.html"
+    byte_length: 741531
+    content_sha256: "db128f08fa4fff4835e13467e6dc18f081983b64618ada3e6a7ee7097ade78cf"
+    locator: "Servicing Segment Profitability and Key Metrics, pages 12-13"
+    parser_name: stage_a_servicing_table
+    parser_version: "2.0.0"
+    rows:
+      - metric_id: servicing_pretax_income
+        raw_label: "Servicing pretax income"
+        row_occurrence: -1
+        period_type: duration
+        periods: ["2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: gaap_servicing_segment
+      - metric_id: total_servicing_upb
+        raw_label: "Total UPB"
+        row_occurrence: -1
+        period_type: instant
+        periods: ["2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30"]
+        reported_scale: billions
+        canonical_unit: USD
+        normalization: usd_from_billions
+        methodology: issuer_total_including_subservicing_and_held_for_sale
+      - metric_id: owned_msr_upb
+        raw_label: "Owned MSR UPB"
+        period_type: instant
+        periods: ["2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30"]
+        reported_scale: billions
+        canonical_unit: USD
+        normalization: usd_from_billions
+        methodology: owned_msr_population
+      - metric_id: servicing_fee_income
+        raw_label: "Loan servicing fees"
+        period_type: duration
+        periods: ["2026-06-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: issuer_reported_quarter
+      - metric_id: servicing_operating_expense
+        raw_label: "Operating expenses"
+        period_type: duration
+        periods: ["2026-06-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: issuer_reported_operating_expense
+      - metric_id: servicing_adjusted_pretax_income
+        raw_label: "Servicing pretax income net of valuation related changes"
+        period_type: duration
+        periods: ["2026-06-30"]
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        methodology: issuer_reported_non_gaap_reconciled
+      - metric_id: delinquency_60_plus_count_rate
+        raw_label: "60+ Day Delinquency"
+        row_occurrence: -1
+        period_type: instant
+        periods: ["2026-06-30"]
+        reported_scale: percent
+        canonical_unit: percent
+        normalization: percent_to_ratio
+        methodology: issuer_reported_owned_portfolio_rate
+    quarantine_rows:
+      - candidate_id: candidate-pfsi-2026q2-expenses-excluding-valuation
+        proposed_metric_id: servicing_operating_expense
+        raw_label: "Expenses excluding valuation-related items"
+        row_occurrence: 0
+        value_index: 0
+        period_end: "2026-06-30"
+        reported_scale: millions
+        canonical_unit: USD
+        normalization: usd_from_millions
+        proposed_methodology: composite_non_valuation_expense
+        conflict: "Composite includes operating, payoff-related, credit-loss, and interest expense and cannot be mapped to servicing_operating_expense."
+
+# Missingness is governed separately from extraction. These groups expand to one
+# retained assessment record for every company/period/metric cell. The earnings
+# exhibits were checked, but the eligible periodic filings below were not
+# retained and evaluated for every catalog metric. Therefore absent cells remain
+# SOURCE_NOT_CHECKED and must not be published as NOT_DISCLOSED.
+eligible_source_assessment:
+  assessment_version: "1.0.0"
+  metric_ids:
+    - servicing_for_others_upb
+    - total_servicing_upb
+    - owned_msr_upb
+    - servicing_loan_count
+    - subservicing_upb
+    - bank_owned_loans_serviced_upb
+    - interim_servicing_upb
+    - servicing_revenue
+    - servicing_fee_income
+    - ancillary_servicing_income
+    - servicing_operating_expense
+    - servicing_pretax_income
+    - servicing_adjusted_pretax_income
+    - cost_to_service_per_loan
+    - weighted_average_servicing_fee_bps
+    - msr_fair_value
+    - msr_beginning_balance
+    - msr_additions
+    - msr_purchases
+    - msr_sales
+    - msr_realization_or_amortization
+    - msr_fair_value_market_change
+    - msr_fair_value_assumption_change
+    - msr_ending_balance
+    - delinquency_30_plus_count_rate
+    - delinquency_60_plus_count_rate
+    - delinquency_90_plus_count_rate
+    - government_servicing_upb
+    - conventional_servicing_upb
+    - gnma_servicing_upb
+    - fnma_servicing_upb
+    - fhlmc_servicing_upb
+  companies:
+    tfc:
+      assessment_status: SOURCE_NOT_CHECKED
+      checked_evidence_ids: ["evidence:tfc_2026_q2_qps"]
+      checked_locators:
+        - "Selected Mortgage Banking Information & Additional Information, page 10, As of/For the Quarter Ended table"
+      rationale: "The retained Q2 performance-summary exhibit reports selected mortgage-banking rows across four quarters, but the eligible periodic filing for each period has not been retained and evaluated for every catalog metric. Exhibit silence cannot establish NOT_DISCLOSED."
+      period_filing_inventory:
+        "2025-09-30":
+          - {source_class: SEC_FILING_EXHIBIT, accession: "0000092230-26-000096", retained_evidence_id: "evidence:tfc_2026_q2_qps", review_status: CHECKED, locator: "page 10 selected mortgage banking table; 2025-09-30 column"}
+          - {source_class: SEC_PERIODIC_FILING, form: 10-Q, accession: "0000092230-25-000157", url: "https://www.sec.gov/Archives/edgar/data/92230/000009223025000157/tfc-20250930.htm", retained_evidence_id: null, review_status: NOT_RETAINED_NOT_CHECKED, locator: "NOT_EVALUATED"}
+        "2025-12-31":
+          - {source_class: SEC_FILING_EXHIBIT, accession: "0000092230-26-000096", retained_evidence_id: "evidence:tfc_2026_q2_qps", review_status: CHECKED, locator: "page 10 selected mortgage banking table; 2025-12-31 column"}
+          - {source_class: SEC_PERIODIC_FILING, form: 10-K, accession: "0000092230-26-000030", url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000030/tfc-20251231.htm", retained_evidence_id: null, review_status: NOT_RETAINED_NOT_CHECKED, locator: "NOT_EVALUATED"}
+        "2026-03-31":
+          - {source_class: SEC_FILING_EXHIBIT, accession: "0000092230-26-000096", retained_evidence_id: "evidence:tfc_2026_q2_qps", review_status: CHECKED, locator: "page 10 selected mortgage banking table; 2026-03-31 column"}
+          - {source_class: SEC_PERIODIC_FILING, form: 10-Q, accession: "0000092230-26-000062", url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000062/tfc-20260331.htm", retained_evidence_id: null, review_status: NOT_RETAINED_NOT_CHECKED, locator: "NOT_EVALUATED"}
+        "2026-06-30":
+          - {source_class: SEC_FILING_EXHIBIT, accession: "0000092230-26-000096", retained_evidence_id: "evidence:tfc_2026_q2_qps", review_status: CHECKED, locator: "page 10 selected mortgage banking table; 2026-06-30 column"}
+          - {source_class: SEC_PERIODIC_FILING, form: 10-Q, accession: "0000092230-26-000099", url: "https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm", retained_evidence_id: null, review_status: NOT_RETAINED_NOT_CHECKED, locator: "NOT_EVALUATED"}
+    pfsi:
+      assessment_status: SOURCE_NOT_CHECKED
+      checked_evidence_ids: ["evidence:pfsi_2026_q2_earnings"]
+      checked_locators:
+        - "Servicing Segment Profitability and Key Metrics, pages 12-13"
+      rationale: "The retained Q2 earnings exhibit reports selected servicing rows across four quarters, but the eligible periodic filing for each period has not been retained and evaluated for every catalog metric. Exhibit silence cannot establish NOT_DISCLOSED."
+      period_filing_inventory:
+        "2025-09-30":
+          - {source_class: SEC_FILING_EXHIBIT, accession: "0001104659-26-088174", retained_evidence_id: "evidence:pfsi_2026_q2_earnings", review_status: CHECKED, locator: "pages 12-13 servicing tables; 2025-09-30 column"}
+          - {source_class: SEC_PERIODIC_FILING, form: 10-Q, accession: "0001104659-25-103162", url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465925103162/pfsi-20250930x10q.htm", retained_evidence_id: null, review_status: NOT_RETAINED_NOT_CHECKED, locator: "NOT_EVALUATED"}
+        "2025-12-31":
+          - {source_class: SEC_FILING_EXHIBIT, accession: "0001104659-26-088174", retained_evidence_id: "evidence:pfsi_2026_q2_earnings", review_status: CHECKED, locator: "pages 12-13 servicing tables; 2025-12-31 column"}
+          - {source_class: SEC_PERIODIC_FILING, form: 10-K, accession: "0001104659-26-018142", url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926018142/pfsi-20251231x10k.htm", retained_evidence_id: null, review_status: NOT_RETAINED_NOT_CHECKED, locator: "NOT_EVALUATED"}
+        "2026-03-31":
+          - {source_class: SEC_FILING_EXHIBIT, accession: "0001104659-26-088174", retained_evidence_id: "evidence:pfsi_2026_q2_earnings", review_status: CHECKED, locator: "pages 12-13 servicing tables; 2026-03-31 column"}
+          - {source_class: SEC_PERIODIC_FILING, form: 10-Q, accession: "0001104659-26-055690", url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926055690/pfsi-20260331x10q.htm", retained_evidence_id: null, review_status: NOT_RETAINED_NOT_CHECKED, locator: "NOT_EVALUATED"}
+        "2026-06-30":
+          - {source_class: SEC_FILING_EXHIBIT, accession: "0001104659-26-088174", retained_evidence_id: "evidence:pfsi_2026_q2_earnings", review_status: CHECKED, locator: "pages 12-13 servicing tables; 2026-06-30 column"}
+          - {source_class: SEC_PERIODIC_FILING, form: 10-Q, accession: "0001104659-26-090486", url: "https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm", retained_evidence_id: null, review_status: NOT_RETAINED_NOT_CHECKED, locator: "NOT_EVALUATED"}

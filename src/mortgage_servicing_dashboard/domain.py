@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 
@@ -26,6 +29,26 @@ class QualityState(StrEnum):
     REJECTED = "REJECTED"
 
 
+class PublicationState(StrEnum):
+    """Repository publication disposition, separate from financial state."""
+
+    CANDIDATE = "CANDIDATE"
+    QUARANTINED = "QUARANTINED"
+    VALIDATED = "VALIDATED"
+    PUBLISHED = "PUBLISHED"
+    REJECTED = "REJECTED"
+    SUPERSEDED = "SUPERSEDED"
+
+
+class TerminalOutcome(StrEnum):
+    """Explicit cell-level pipeline terminal outcome."""
+
+    PUBLISHED = "PUBLISHED"
+    NOT_DISCLOSED = "NOT_DISCLOSED"
+    QUARANTINED = "QUARANTINED"
+    FAILED = "FAILED"
+
+
 class ComparabilityStatus(StrEnum):
     """Pairwise comparability outcome."""
 
@@ -45,7 +68,7 @@ _SCALES = {
 }
 
 
-def parse_decimal(raw_value: str, *, scale: str = "ones") -> Decimal:
+def parse_decimal(raw_value: object, *, scale: str = "ones") -> Decimal:
     """Parse a reported number exactly, including commas and parentheses.
 
     Args:
@@ -61,6 +84,9 @@ def parse_decimal(raw_value: str, *, scale: str = "ones") -> Decimal:
     if scale not in _SCALES:
         msg = f"unsupported scale: {scale}"
         raise ValueError(msg)
+    if not isinstance(raw_value, str):
+        msg = "authoritative numeric input must be source text, never float"
+        raise TypeError(msg)
     cleaned = raw_value.strip().replace(",", "").replace("$", "")
     negative = cleaned.startswith("(") and cleaned.endswith(")")
     if negative:
@@ -70,7 +96,155 @@ def parse_decimal(raw_value: str, *, scale: str = "ones") -> Decimal:
     except InvalidOperation as error:
         msg = "reported value is not an exact decimal"
         raise ValueError(msg) from error
+    if not value.is_finite():
+        msg = "reported value must be a finite exact decimal"
+        raise ValueError(msg)
     return (-value if negative else value) * _SCALES[scale]
+
+
+def normalize_reported_value(raw_value: str, *, rule: str) -> Decimal:
+    """Normalize source text to the metric's canonical exact unit.
+
+    Args:
+        raw_value: Numeric text taken directly from retained evidence.
+        rule: Versioned deterministic normalization recipe.
+
+    Returns:
+        Exact canonical value without a binary-float conversion.
+
+    Raises:
+        ValueError: If the recipe is not allow-listed.
+        TypeError: If the authoritative input is not text.
+    """
+    scale_by_rule = {
+        "identity": "ones",
+        "usd_from_millions": "millions",
+        "usd_from_billions": "billions",
+        "percent_to_ratio": "percent",
+    }
+    if rule in scale_by_rule:
+        return parse_decimal(raw_value, scale=scale_by_rule[rule])
+    if rule == "percent_to_basis_points":
+        return parse_decimal(raw_value) * Decimal(100)
+    msg = f"unsupported normalization rule: {rule}"
+    raise ValueError(msg)
+
+
+def decimal_places(raw_value: str) -> int:
+    """Return source-displayed decimal places without parsing through float.
+
+    Args:
+        raw_value: Exact source numeric text.
+
+    Returns:
+        Count of digits displayed after the decimal point.
+    """
+    cleaned = raw_value.strip().strip("()").replace(",", "").replace("$", "")
+    _, dot, fractional = cleaned.partition(".")
+    return len(fractional) if dot else 0
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedObservationCandidate:
+    """Deterministic candidate extracted from one retained evidence row."""
+
+    candidate_id: str
+    company_id: str
+    metric_id: str
+    metric_version: str
+    period_start: date | None
+    period_end: date
+    fiscal_year: int
+    fiscal_quarter: int
+    period_type: str
+    raw_label: str
+    raw_value: str
+    normalized_value: Decimal
+    currency: str | None
+    unit: str
+    reported_scale: str
+    reported_decimals: int
+    observation_state: ObservationState
+    methodology: str
+    reporting_entity_id: str
+    reporting_scope_id: str
+    evidence_id: str
+    evidence_locator: str
+    extraction_method: str
+    parser_name: str
+    parser_version: str
+
+    @property
+    def semantic_key_digest(self) -> str:
+        """Return a stable semantic identity independent of acquisition time."""
+        identity = {
+            "metric_version": self.metric_version,
+            "reporting_entity_id": self.reporting_entity_id,
+            "reporting_scope_id": self.reporting_scope_id,
+            "period_start": self.period_start.isoformat() if self.period_start else None,
+            "period_end": self.period_end.isoformat(),
+            "period_type": self.period_type,
+            "observation_state": self.observation_state.value,
+            "methodology": self.methodology,
+            "currency": self.currency,
+            "unit": self.unit,
+        }
+        encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        return hashlib.sha256(encoded).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationResult:
+    """Fail-closed deterministic validation result."""
+
+    valid: bool
+    code: str
+    summary: str
+
+
+def validate_candidate(candidate: ParsedObservationCandidate) -> ValidationResult:
+    """Validate required candidate semantics before repository publication.
+
+    Args:
+        candidate: Fully resolved deterministic extraction candidate.
+
+    Returns:
+        Stable validation result suitable for persistence and audit.
+    """
+    required_text = (
+        candidate.company_id,
+        candidate.metric_id,
+        candidate.metric_version,
+        candidate.raw_label,
+        candidate.raw_value,
+        candidate.reporting_entity_id,
+        candidate.reporting_scope_id,
+        candidate.evidence_id,
+        candidate.evidence_locator,
+    )
+    if any(not value.strip() for value in required_text):
+        return ValidationResult(
+            valid=False,
+            code="REQUIRED_SEMANTIC_MISSING",
+            summary="required semantic is blank",
+        )
+    if not candidate.normalized_value.is_finite():
+        return ValidationResult(
+            valid=False,
+            code="NON_FINITE_VALUE",
+            summary="normalized value is not finite",
+        )
+    if candidate.observation_state is ObservationState.NOT_DISCLOSED:
+        return ValidationResult(
+            valid=False,
+            code="MEASURED_NOT_DISCLOSED_CONFLICT",
+            summary="a measured candidate cannot carry NOT_DISCLOSED state",
+        )
+    return ValidationResult(
+        valid=True,
+        code="VALIDATED",
+        summary="retained bytes, locator, semantics, and exact normalization validated",
+    )
 
 
 @dataclass(frozen=True, slots=True)

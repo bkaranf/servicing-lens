@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime
@@ -11,9 +12,11 @@ from pathlib import Path
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -22,7 +25,7 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, validates
 
 _MONEY = Numeric(38, 10, asdecimal=True)
 
@@ -171,20 +174,35 @@ class SourceEvidence(Base):
     """Immutable content-addressed public evidence metadata."""
 
     __tablename__ = "source_evidence"
+    __table_args__ = (
+        UniqueConstraint(
+            "content_sha256",
+            "byte_length",
+            name="uq_source_evidence_content_identity",
+        ),
+        CheckConstraint("length(content_sha256) = 64", name="ck_source_evidence_sha256_length"),
+        CheckConstraint("byte_length > 0", name="ck_source_evidence_positive_length"),
+    )
     id: Mapped[str] = mapped_column(String(96), primary_key=True)
     source_class: Mapped[str] = mapped_column(String(64))
     original_url: Mapped[str] = mapped_column(Text)
     retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     accession_or_identifier: Mapped[str | None] = mapped_column(String(128))
-    content_sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    byte_length: Mapped[int] = mapped_column(Integer)
     media_type: Mapped[str] = mapped_column(String(128))
+    representation: Mapped[str] = mapped_column(String(64))
+    capture_method: Mapped[str] = mapped_column(String(128))
     parser_version: Mapped[str] = mapped_column(String(32))
     acquisition_run_id: Mapped[str] = mapped_column(String(96))
     reporting_entity_candidate: Mapped[str] = mapped_column(String(96))
     reporting_period_candidate: Mapped[str] = mapped_column(String(32))
     retention_location: Mapped[str] = mapped_column(Text)
     bounded_excerpt: Mapped[str] = mapped_column(Text)
+    response_status: Mapped[int | None] = mapped_column(Integer)
+    etag: Mapped[str | None] = mapped_column(String(255))
+    last_modified: Mapped[str | None] = mapped_column(String(255))
 
 
 class RawXbrlFact(Base):
@@ -246,6 +264,45 @@ class MetricAlias(Base):
     source_label: Mapped[str] = mapped_column(Text)
 
 
+class EligibleSourceAssessment(Base):
+    """Cell-level record of which eligible public sources were actually checked."""
+
+    __tablename__ = "eligible_source_assessments"
+    __table_args__ = (
+        UniqueConstraint(
+            "company_id",
+            "metric_version_id",
+            "reporting_scope_id",
+            "period_end",
+            "assessment_version",
+            name="uq_eligible_source_assessment_cell",
+        ),
+        CheckConstraint(
+            "assessment_status IN ('DISCLOSURE_FOUND', 'CHECKED_COMPLETE', 'SOURCE_NOT_CHECKED')",
+            name="ck_eligible_source_assessment_status",
+        ),
+        Index(
+            "ix_eligible_source_assessment_status_period",
+            "assessment_status",
+            "period_end",
+        ),
+    )
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    pipeline_run_id: Mapped[str] = mapped_column(ForeignKey("pipeline_runs.id"))
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.id"))
+    metric_version_id: Mapped[str] = mapped_column(ForeignKey("metric_definition_versions.id"))
+    reporting_entity_id: Mapped[str] = mapped_column(ForeignKey("reporting_entities.id"))
+    reporting_scope_id: Mapped[str] = mapped_column(ForeignKey("reporting_scopes.id"))
+    period_end: Mapped[date] = mapped_column(Date)
+    assessment_status: Mapped[str] = mapped_column(String(32))
+    eligible_source_inventory: Mapped[list[dict[str, object]]] = mapped_column(JSON)
+    checked_evidence_ids: Mapped[list[str]] = mapped_column(JSON)
+    checked_locators: Mapped[list[str]] = mapped_column(JSON)
+    assessment_version: Mapped[str] = mapped_column(String(32))
+    rationale: Mapped[str] = mapped_column(Text)
+    assessed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class MetricObservation(Base):
     """Published or explicitly missing versioned observation."""
 
@@ -260,6 +317,13 @@ class MetricObservation(Base):
             "knowledge_from",
             name="uq_observation_semantic_knowledge_key",
         ),
+        CheckConstraint(
+            "(observation_state = 'NOT_DISCLOSED' AND value IS NULL) OR "
+            "(observation_state <> 'NOT_DISCLOSED' AND value IS NOT NULL)",
+            name="ck_observation_value_state",
+        ),
+        Index("ix_metric_observations_semantic_digest", "semantic_key_digest"),
+        Index("ix_metric_observations_period", "period_end", "metric_version_id"),
     )
     id: Mapped[str] = mapped_column(String(128), primary_key=True)
     metric_version_id: Mapped[str] = mapped_column(ForeignKey("metric_definition_versions.id"))
@@ -275,11 +339,16 @@ class MetricObservation(Base):
     unit: Mapped[str] = mapped_column(String(32))
     scale: Mapped[str] = mapped_column(String(32))
     reported_decimals: Mapped[int | None] = mapped_column(Integer)
+    reported_precision: Mapped[str] = mapped_column(String(128))
     observation_state: Mapped[str] = mapped_column(String(32))
     methodology: Mapped[str] = mapped_column(String(128))
     evidence_locator: Mapped[str] = mapped_column(Text)
     extraction_method: Mapped[str] = mapped_column(String(64))
     parser_metadata: Mapped[dict[str, object]] = mapped_column(JSON)
+    validation_summary: Mapped[str] = mapped_column(Text)
+    publication_state: Mapped[str] = mapped_column(String(32))
+    revision_number: Mapped[int] = mapped_column(Integer, default=1)
+    semantic_key_digest: Mapped[str] = mapped_column(String(64))
     valid_from: Mapped[date] = mapped_column(Date)
     valid_to: Mapped[date | None] = mapped_column(Date)
     knowledge_from: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -290,6 +359,22 @@ class MetricObservation(Base):
     quality_state: Mapped[str] = mapped_column(String(32))
     reported_label: Mapped[str] = mapped_column(Text)
     reported_value: Mapped[str] = mapped_column(Text)
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    @validates("value")
+    def reject_float_value(self, _: str, value: object) -> Decimal | None:
+        """Reject binary floats at the authoritative ORM boundary."""
+        if value is None:
+            return None
+        if isinstance(value, Decimal):
+            return value
+        if isinstance(value, str | int) and not isinstance(value, bool):
+            return Decimal(value)
+        if isinstance(value, float):
+            msg = "authoritative observation values cannot be binary floats"
+            raise TypeError(msg)
+        msg = "authoritative observation values must be Decimal, integer, or decimal text"
+        raise TypeError(msg)
 
 
 class ObservationEvidence(Base):
@@ -301,6 +386,13 @@ class ObservationEvidence(Base):
     )
     evidence_id: Mapped[str] = mapped_column(ForeignKey("source_evidence.id"), primary_key=True)
     evidence_role: Mapped[str] = mapped_column(String(32), default="primary")
+    locator: Mapped[str] = mapped_column(Text)
+    raw_label: Mapped[str] = mapped_column(Text)
+    raw_value: Mapped[str] = mapped_column(Text)
+    disclosed_unit: Mapped[str] = mapped_column(String(32))
+    disclosed_scale: Mapped[str] = mapped_column(String(32))
+    extraction_method: Mapped[str] = mapped_column(String(64))
+    validation_status: Mapped[str] = mapped_column(String(32))
 
 
 class ObservationRevision(Base):
@@ -349,6 +441,13 @@ class PipelineRun(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_count: Mapped[int] = mapped_column(Integer, default=0)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    requested_company_id: Mapped[str | None] = mapped_column(String(64))
+    requested_periods: Mapped[list[str]] = mapped_column(JSON)
+    code_version: Mapped[str] = mapped_column(String(64))
+    config_version: Mapped[str] = mapped_column(String(64))
+    parser_version: Mapped[str] = mapped_column(String(64))
+    terminal_outcomes: Mapped[dict[str, int]] = mapped_column(JSON)
 
 
 class IngestionError(Base):
@@ -386,6 +485,21 @@ class QuarantineCandidate(Base):
     conflicts_and_uncertainties: Mapped[list[str]] = mapped_column(JSON)
     model_and_prompt_version: Mapped[str | None] = mapped_column(String(128))
     status: Mapped[str] = mapped_column(String(32), default="PENDING")
+
+    @validates("proposed_normalized_value")
+    def reject_float_value(self, _: str, value: object) -> Decimal | None:
+        """Reject binary floats at the unpublished authoritative boundary."""
+        if value is None:
+            return None
+        if isinstance(value, Decimal):
+            return value
+        if isinstance(value, str | int) and not isinstance(value, bool):
+            return Decimal(value)
+        if isinstance(value, float):
+            msg = "quarantine numeric candidates cannot be binary floats"
+            raise TypeError(msg)
+        msg = "quarantine numeric candidates must be Decimal, integer, or decimal text"
+        raise TypeError(msg)
 
 
 class HumanReviewDecision(Base):
@@ -432,12 +546,36 @@ def default_database_url(data_dir: Path | None = None) -> str:
 
 
 def initialize_schema(engine: Engine) -> None:
-    """Create the schema for local deterministic operation.
+    """Upgrade the schema through the reviewable Alembic history.
 
     Args:
         engine: Target database engine.
     """
-    Base.metadata.create_all(engine)
+    from alembic import command  # noqa: PLC0415
+    from alembic.config import Config  # noqa: PLC0415
+
+    migration_config = Config()
+    migration_config.set_main_option(
+        "script_location",
+        str(_migration_script_location()),
+    )
+    migration_config.set_main_option("sqlalchemy.url", str(engine.url))
+    with engine.begin() as connection:
+        migration_config.attributes["connection"] = connection
+        command.upgrade(migration_config, "head")
+
+
+def _migration_script_location() -> Path:
+    """Resolve migrations from a checkout or the wheel's shared-data payload."""
+    candidates = (
+        Path(__file__).resolve().parents[2] / "alembic",
+        Path(sys.prefix) / "share" / "public-mortgage-servicing-intelligence" / "alembic",
+    )
+    for candidate in candidates:
+        if (candidate / "env.py").is_file() and (candidate / "versions").is_dir():
+            return candidate
+    msg = "Alembic migration scripts were not found in the checkout or installed wheel"
+    raise FileNotFoundError(msg)
 
 
 @contextmanager

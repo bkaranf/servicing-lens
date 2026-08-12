@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ status_code }} &middot; Public Mortgage Servicing Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/dashboard.css') }}?v=stage-a-1">
+</head>
+<body class="error-page">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <main id="main" tabindex="-1">
+    <section class="system-message unavailable" role="alert">
+      <p class="eyebrow">READ-ONLY REQUEST ERROR</p>
+      <h1>{{ status_code }}</h1>
+      <h2>{{ detail }}</h2>
+      <p>No data was changed. Check the identifier or return to the executive brief.</p>
+      <a class="primary-button" href="/">Return to executive brief</a>
+    </section>
+  </main>
+</body>
+</html>

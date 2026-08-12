@@ -19,7 +19,8 @@ value to complete a comparison.
 ## Status
 
 Stage A is implemented as a deterministic recorded-data vertical slice. It includes
-versioned configuration, immutable evidence metadata, SQLAlchemy/Alembic persistence,
+versioned configuration, hash-verified retained SEC DOM serializations,
+SQLAlchemy/Alembic persistence,
 a read-only API and dashboard, an interruptible LangGraph review workflow, and a
 socket-blocked acceptance suite. Live acquisition remains opt-in.
 
@@ -53,7 +54,9 @@ authoritative for this product.
   reconciliation, revisions, and comparability.
 - Money, balances, UPB, rates, and derived values use \`Decimal\` and PostgreSQL
   \`NUMERIC\`, never binary floating point.
-- Original evidence is immutable and content-addressed.
+- Retained evidence is immutable, content-addressed, and labeled by representation
+  and capture method. The Stage A browser DOM serializations are not described as
+  original HTTP response bytes.
 - Every displayed value has observation/evidence IDs and a precise source locator.
 - Entity, reporting scope, fiscal period, accounting policy, methodology, unit,
   scale, precision, and time are part of a value.

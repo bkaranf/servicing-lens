@@ -14,7 +14,11 @@ from deepagents import (
     register_harness_profile,
 )
 from deepagents.middleware.filesystem import FilesystemPermission
-from langchain.agents.middleware import PIIDetectionError
+from langchain.agents.middleware import (
+    ModelCallLimitMiddleware,
+    PIIDetectionError,
+    ToolCallLimitMiddleware,
+)
 from langchain.agents.middleware.types import (
     AgentMiddleware,
     AgentState,
@@ -31,6 +35,7 @@ from mortgage_servicing_dashboard.agent import (
     AgentConfigurationError,
     AgentProtocolError,
     ModelInvocationDisabledError,
+    ensure_grounded_numeric_output,
 )
 from mortgage_servicing_dashboard.config import AppSettings
 from mortgage_servicing_dashboard.privacy import (
@@ -43,18 +48,23 @@ from mortgage_servicing_dashboard.privacy import (
 )
 from mortgage_servicing_dashboard.repository import IntelligenceRepository
 from mortgage_servicing_dashboard.state import DashboardContext, ResearchWorkerState
-from mortgage_servicing_dashboard.tools import (
-    FoundationInformationPort,
-    build_foundation_tools,
-    build_intelligence_tools,
-)
+from mortgage_servicing_dashboard.tools import FoundationInformationPort, build_intelligence_tools
 
 _SYSTEM_PROMPT = """You are a restricted research and analysis worker for a future mortgage
 servicing dashboard. Work only with public or synthetic, de-identified material that has
 already crossed the application privacy boundary. Produce drafts for human review only.
 Do not access files, networks, customer systems, accounts, or credentials. Do not delegate
 work. Never perform or invent mortgage calculations, servicing decisions, recommendations,
-approvals, or operational actions. State plainly when evidence or capability is unavailable."""
+approvals, or operational actions. Every number must appear in a supplied read-tool result,
+and comparability must come from the deterministic comparison tool. Cite observation and
+evidence IDs. State plainly when evidence or capability is unavailable."""
+
+_MAX_OUTPUT_CHARS = 16_000
+_MAX_MODEL_CALLS = 8
+_MAX_TOOL_CALLS = 12
+# Deep Agents and the privacy boundary each add graph steps around every model
+# turn. Model/tool-call middleware supplies the meaningful execution limits.
+_MAX_RECURSION = 256
 
 _DEEP_AGENT_BUILTIN_TOOLS = frozenset(
     {
@@ -246,6 +256,7 @@ class ResearchAnalysisWorker:
             interaction_mode="foundation",
         )
         config = RunnableConfig(
+            recursion_limit=_MAX_RECURSION,
             tags=["msd-foundation", "deep-agents-research-worker"],
             metadata={
                 "application": "mortgage-servicing-dashboard-foundation",
@@ -260,9 +271,16 @@ class ResearchAnalysisWorker:
         except PIIDetectionError as error:
             raise SensitiveContentError(error.pii_type) from None
 
-        for message in reversed(result.get("messages", [])):
+        messages = list(result.get("messages", []))
+        for message in reversed(messages):
             if isinstance(message, AIMessage):
-                return ResearchDraft(request_id=request_id, text=str(message.text))
+                text = str(message.text)
+                ensure_grounded_numeric_output(
+                    messages,
+                    text,
+                    max_chars=_MAX_OUTPUT_CHARS,
+                )
+                return ResearchDraft(request_id=request_id, text=text)
         msg = "Research worker completed without a final AI message"
         raise AgentProtocolError(msg)
 
@@ -323,6 +341,9 @@ def create_research_worker(  # noqa: PLR0913
     if resolved_profile_key is None:
         msg = "An exact provider:model profile key is required for Deep Agents"
         raise AgentConfigurationError(msg)
+    if repository is None:
+        msg = "An authoritative read repository is required for the research worker"
+        raise AgentConfigurationError(msg)
     _assert_profile_key_matches(resolved_model, resolved_profile_key)
 
     register_harness_profile(
@@ -333,11 +354,8 @@ def create_research_worker(  # noqa: PLR0913
         ),
     )
 
-    tools = list(
-        build_intelligence_tools(repository)
-        if repository is not None
-        else build_foundation_tools(information)
-    )
+    del information
+    tools = list(build_intelligence_tools(repository))
     allowed_tool_names = frozenset(tool.name for tool in tools)
     privacy_middleware = cast(
         "tuple[AgentMiddleware[AgentState[Any], DashboardContext, Any], ...]",
@@ -345,6 +363,14 @@ def create_research_worker(  # noqa: PLR0913
     )
     middleware: list[AgentMiddleware[AgentState[Any], DashboardContext, Any]] = [
         *privacy_middleware,
+        cast(
+            "AgentMiddleware[AgentState[Any], DashboardContext, Any]",
+            ModelCallLimitMiddleware(run_limit=_MAX_MODEL_CALLS, exit_behavior="error"),
+        ),
+        cast(
+            "AgentMiddleware[AgentState[Any], DashboardContext, Any]",
+            ToolCallLimitMiddleware(run_limit=_MAX_TOOL_CALLS, exit_behavior="error"),
+        ),
         _ResearchToolBoundary(allowed_names=allowed_tool_names),
     ]
     graph = create_deep_agent(
