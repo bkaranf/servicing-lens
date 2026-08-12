@@ -24,7 +24,7 @@ explanations are secondary objectives.
 ## Current repository state
 
 The Stage A recorded-data vertical slice is implemented. It provides versioned
-TFC/PFSI configuration, immutable evidence metadata, exact observations and
+TFC/PFSI configuration, hash-verified retained SEC DOM serializations, exact observations and
 explicit missingness, SQLAlchemy/Alembic persistence, typed read tools, a
 read-only API, server-rendered dashboard pages, a provenance dialog, and an
 interruptible review graph. Live acquisition is opt-in and the bank regulatory
@@ -78,14 +78,14 @@ preliminary reported, pro forma, announced impact, derived, and not disclosed.
 
 The versioned JSON API exposes only bounded read operations:
 
-- \`GET /v1/companies\`
-- \`GET /v1/companies/{company_id}\`
-- \`GET /v1/metrics\`
-- \`GET /v1/observations\`
-- \`GET /v1/comparisons\`
-- \`GET /v1/evidence/{evidence_id}\`
-- \`GET /v1/earnings-events\`
-- \`GET /v1/pipeline/freshness\`
+- \`GET /api/v1/companies\`
+- \`GET /api/v1/companies/{company_id}\`
+- \`GET /api/v1/metrics\`
+- \`GET /api/v1/observations\`
+- \`GET /api/v1/comparisons\`
+- \`GET /api/v1/evidence/{evidence_id}\`
+- \`GET /api/v1/earnings-events\`
+- \`GET /api/v1/pipeline/freshness\`
 
 The dashboard is server-rendered with Jinja2 and HTMX. Chart assets are hosted
 locally and every chart has an equivalent accessible table. Public routes are
@@ -96,10 +96,9 @@ The controlled CLI surface is:
 - \`msi doctor\`
 - \`msi discover\`
 - \`msi ingest --company ...\`
-- \`msi ingest --all\`
+- \`msi ingest\` (all configured Stage A issuers)
 - \`msi validate\`
 - \`msi review list\`
-- \`msi review show\`
 - \`msi review approve\`
 - \`msi review reject\`
 - \`msi serve\`

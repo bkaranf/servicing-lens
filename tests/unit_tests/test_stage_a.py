@@ -43,6 +43,7 @@ from mortgage_servicing_dashboard.domain import (
 )
 from mortgage_servicing_dashboard.ingestion import (
     INGESTION_NODES,
+    StageAIngestionServices,
     create_ingestion_graph,
     resume_review,
 )
@@ -70,7 +71,13 @@ from mortgage_servicing_dashboard.tools import build_intelligence_tools
 def seeded_engine(tmp_path: Path) -> Any:
     engine = create_database_engine(f"sqlite:///{(tmp_path / 'stage-a.db').as_posix()}")
     counts = seed_stage_a(engine)
-    assert counts == {"companies": 2, "metrics": 32, "evidence": 8, "observations": 256}
+    assert counts == {
+        "companies": 2,
+        "metrics": 32,
+        "evidence": 2,
+        "source_assessments": 256,
+        "observations": 36,
+    }
     yield engine
     engine.dispose()
 
@@ -227,6 +234,7 @@ def test_seed_is_idempotent_and_repository_queries(seeded_engine: Engine) -> Non
         "companies": 0,
         "metrics": 0,
         "evidence": 0,
+        "source_assessments": 0,
         "observations": 0,
     }
     repo = IntelligenceRepository(seeded_engine)
@@ -235,22 +243,25 @@ def test_seed_is_idempotent_and_repository_queries(seeded_engine: Engine) -> Non
     assert len(repo.metrics()) == 32
     assert repo.latest_period_end() == date(2026, 6, 30)
     all_rows = repo.observations()
-    assert len(all_rows) == 256
+    assert len(all_rows) == 36
     disclosed = repo.observations(include_missing=False)
     assert len(disclosed) == 36
     tfc_total = repo.observations(company_id="tfc", metric_id="total_servicing_upb")
     assert [Decimal(item.value or "0") for item in tfc_total] == [
-        Decimal(279670),
-        Decimal(285966),
-        Decimal(291256),
-        Decimal(298658),
+        Decimal(279_670_000_000),
+        Decimal(285_966_000_000),
+        Decimal(291_256_000_000),
+        Decimal(298_658_000_000),
     ]
     q2 = repo.observations(period_end=date(2026, 6, 30))
-    assert len(q2) == 64
+    assert len(q2) == 12
     assert repo.observations(as_of=date(2020, 1, 1)) == []
     assert repo.observations(as_of=datetime(2020, 1, 1)) == []  # noqa: DTZ001
     first = disclosed[0]
-    assert repo.observation(first.id) == first
+    detail = repo.observation(first.id)
+    assert detail is not None
+    assert detail.id == first.id
+    assert len(detail.revision_history) == 1
     assert repo.observation("unknown") is None
     assert first.as_dict()["source_url"]
 
@@ -262,8 +273,7 @@ def test_seed_is_idempotent_and_repository_queries(seeded_engine: Engine) -> Non
     assert total.status == "not_comparable"
     assert total.as_dict()["left"]["ticker"] == "TFC"  # type: ignore[index]
     missing = repo.compare(metric_id="servicing_revenue", period_end=date(2026, 6, 30))
-    assert missing is not None
-    assert missing.status == "insufficient_information"
+    assert missing is None
     assert repo.compare(metric_id="unknown", period_end=date(2026, 6, 30)) is None
 
 
@@ -273,11 +283,11 @@ def test_repository_bitemporal_as_of(seeded_engine: Engine) -> None:
     with Session(seeded_engine) as session:
         row = session.get(MetricObservation, observation_id)
         assert row is not None
-        row.knowledge_to = datetime(2026, 8, 12, tzinfo=UTC)
+        row.knowledge_to = datetime(2026, 8, 12, 3, tzinfo=UTC)
         session.commit()
     assert repo.observation(observation_id) is None
     rows = repo.observations(
-        as_of=datetime(2026, 8, 11, 18, tzinfo=UTC),
+        as_of=datetime(2026, 8, 12, 2, 55, tzinfo=UTC),
         company_id="tfc",
         metric_id="servicing_revenue",
     )
@@ -332,13 +342,13 @@ def test_api_routes_and_dashboard_are_read_only(seeded_engine: Engine) -> None:
         )
     assert missing_comparison.value.status_code == 404
     assert len(endpoint("/api/v1/coverage")(repo, as_of=None)) == 8
-    assert endpoint("/api/v1/evidence/{evidence_id}")("evidence:tfc_2026_q2", repo)[
+    assert endpoint("/api/v1/evidence/{evidence_id}")("evidence:tfc_2026_q2_qps", repo)[
         "content_sha256"
     ]
     with pytest.raises(HTTPException):
         endpoint("/api/v1/evidence/{evidence_id}")("missing", repo)
-    assert len(endpoint("/api/v1/earnings-events")(repo)) == 8
-    assert endpoint("/api/v1/pipeline/freshness")(repo)["observation_count"] == 256
+    assert len(endpoint("/api/v1/earnings-events")(repo)) == 2
+    assert endpoint("/api/v1/pipeline/freshness")(repo)["published_count"] == 36
 
     request = Request(
         {
@@ -369,7 +379,6 @@ def test_api_routes_and_dashboard_are_read_only(seeded_engine: Engine) -> None:
         assert b"Servicing Intelligence" in response.body
         assert b'<a class="skip-link" href="#main">' in response.body
         assert b'<dialog id="provenance-dialog"' in response.body
-        assert b"model calls disabled" in bytes(response.body).lower()
     with pytest.raises(HTTPException):
         endpoint("/companies/{company_id}")("missing", request, repo)
     with pytest.raises(HTTPException):
@@ -383,32 +392,39 @@ def test_api_routes_and_dashboard_are_read_only(seeded_engine: Engine) -> None:
     assert public_methods <= {"GET", "HEAD"}
 
 
-def test_ingestion_graph_happy_path_and_same_thread_review_resume() -> None:
-    graph = create_ingestion_graph(checkpointer=InMemorySaver())
-    config = RunnableConfig(configurable={"thread_id": "happy"})
+def test_ingestion_graph_happy_path_and_same_thread_review_resume(tmp_path: Path) -> None:
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'graph.db').as_posix()}")
+    services = StageAIngestionServices(engine=engine, retention_root=tmp_path / "evidence")
+    graph = create_ingestion_graph(services=services, checkpointer=InMemorySaver())
+    config = RunnableConfig(configurable={"thread_id": "review"})
     state = {
-        "thread_id": "happy",
-        "source_keys": ["source"],
+        "thread_id": "review",
+        "source_keys": [],
         "visited": [],
-        "ambiguous_candidates": [],
         "review_decision": "pending",
         "published_count": 0,
         "audit_events": [],
     }
-    result = graph.invoke(state, config=config)
-    assert result["published_count"] == 1
-    assert result["visited"] == [node for node in INGESTION_NODES if node != "request_human_review"]
-
-    review_graph = create_ingestion_graph(checkpointer=InMemorySaver())
-    review_config = RunnableConfig(configurable={"thread_id": "review"})
-    state["thread_id"] = "review"
-    state["ambiguous_candidates"] = [{"id": "candidate-1"}]
-    interrupted = review_graph.invoke(state, config=review_config)
+    interrupted = graph.invoke(state, config=config)
     assert interrupted["__interrupt__"]
-    rejected = resume_review(review_graph, thread_id="review", decision="reject")
+    assert len(interrupted["candidate_ids"]) == 36
+    assert interrupted["quarantine_candidate_ids"] == [
+        "candidate-pfsi-2026q2-expenses-excluding-valuation"
+    ]
+    rejected = resume_review(graph, thread_id="review", decision="reject")
     assert rejected["review_decision"] == "reject"
-    assert rejected["published_count"] == 0
+    assert rejected["published_count"] == 36
+    assert rejected["not_disclosed_count"] == 0
+    assert rejected["source_not_checked_count"] == 220
+    assert rejected["terminal_outcomes"] == {
+        "PUBLISHED": 36,
+        "NOT_DISCLOSED": 0,
+        "SOURCE_NOT_CHECKED": 220,
+        "QUARANTINED": 1,
+        "FAILED": 0,
+    }
     assert rejected["visited"] == list(INGESTION_NODES)
+    engine.dispose()
 
 
 def test_sec_client_success_cache_retries_and_boundaries(tmp_path: Path) -> None:
@@ -441,7 +457,7 @@ def test_sec_client_success_cache_retries_and_boundaries(tmp_path: Path) -> None
     assert calls == 1
     assert first.sha256 == second.sha256
     assert first.media_type == "text/html"
-    assert second.media_type == "application/octet-stream"
+    assert second.media_type == "text/html"
 
     def failure(request: httpx.Request) -> httpx.Response:
         return httpx.Response(503, request=request)
@@ -501,7 +517,7 @@ def test_read_only_intelligence_tools(seeded_engine: Engine) -> None:
         "get_pipeline_freshness",
     }
     assert len(tools["list_companies"].invoke({})) == 2
-    assert tools["get_company_profile"].invoke({"company_id": "tfc"})["observation_count"] == 128
+    assert tools["get_company_profile"].invoke({"company_id": "tfc"})["observation_count"] == 20
     assert len(tools["list_metric_definitions"].invoke({})) == 32
     series = tools["get_metric_series"].invoke(
         {"company_id": "tfc", "metric_id": "total_servicing_upb"}
@@ -526,7 +542,7 @@ def test_read_only_intelligence_tools(seeded_engine: Engine) -> None:
     assert tools["get_observation_provenance"].invoke({"observation_id": "missing"}) == {
         "status": "not_found"
     }
-    assert tools["get_evidence"].invoke({"evidence_id": "evidence:tfc_2026_q2"})["original_url"]
+    assert tools["get_evidence"].invoke({"evidence_id": "evidence:tfc_2026_q2_qps"})["original_url"]
     assert tools["get_evidence"].invoke({"evidence_id": "missing"}) == {"status": "not_found"}
     assert (
         tools["compare_metric"].invoke(
@@ -534,12 +550,11 @@ def test_read_only_intelligence_tools(seeded_engine: Engine) -> None:
         )["status"]
         == "not_comparable"
     )
-    assert tools["compare_metric"].invoke({"metric_id": "unknown", "period_end": "2026-06-30"}) == {
-        "status": "insufficient_information"
-    }
+    with pytest.raises(ValueError, match="Unknown metric"):
+        tools["compare_metric"].invoke({"metric_id": "unknown", "period_end": "2026-06-30"})
     assert len(tools["get_disclosure_coverage"].invoke({})) == 8
-    assert len(tools["list_earnings_events"].invoke({})) == 8
-    assert tools["get_pipeline_freshness"].invoke({})["observation_count"] == 256
+    assert len(tools["list_earnings_events"].invoke({})) == 2
+    assert tools["get_pipeline_freshness"].invoke({})["published_count"] == 36
 
 
 def test_cli_database_commands(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -548,56 +563,28 @@ def test_cli_database_commands(tmp_path: Path, capsys: pytest.CaptureFixture[str
     assert "public-mortgage-servicing-intelligence" in capsys.readouterr().out
     assert main(["init-db", "--database-url", database_url]) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["inserted"]["observations"] == 256
+    assert payload["inserted"]["observations"] == 36
     assert main(["seed", "--database-url", database_url]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["inserted"]["observations"] == 0
     assert main(["discover", "--company", "TFC"]) == 0
-    assert len(json.loads(capsys.readouterr().out)["sources"]) == 4
+    assert len(json.loads(capsys.readouterr().out)["sources"]) == 1
     assert main(["ingest", "--database-url", database_url, "--company", "PFSI"]) == 0
     assert json.loads(capsys.readouterr().out)["database"] == "ready"
     assert main(["validate", "--database-url", database_url]) == 0
-    assert json.loads(capsys.readouterr().out)["observations"] == 256
+    assert json.loads(capsys.readouterr().out)["observations"] == 36
     assert main(["review", "list", "--database-url", database_url]) == 0
-    assert json.loads(capsys.readouterr().out)["candidates"] == []
+    candidates = json.loads(capsys.readouterr().out)["candidates"]
+    assert len(candidates) == 1
+    candidate_id = candidates[0]["id"]
 
     engine = create_database_engine(database_url)
     with Session(engine) as session:
-        session.add(
-            PipelineRun(
-                id="review-run",
-                run_key="review-run",
-                status="AWAITING_REVIEW",
-                thread_id="review-thread",
-                started_at=datetime(2026, 8, 11, tzinfo=UTC),
-                completed_at=None,
-                error_count=0,
-            )
-        )
-        session.add(
-            QuarantineCandidate(
-                id="candidate-cli",
-                pipeline_run_id="review-run",
-                proposed_metric_id="servicing_operating_expense",
-                raw_source_label="Expenses excluding valuation-related items",
-                raw_value="$123",
-                proposed_normalized_value=Decimal(123),
-                unit="USD",
-                scale="millions",
-                period_end=date(2026, 6, 30),
-                reporting_entity_id="pfsi_registrant",
-                reporting_scope_id="pfsi_servicing_segment",
-                methodology="ambiguous_composite",
-                evidence_id="evidence:pfsi_2026_q2",
-                evidence_locator="recorded fixture",
-                bounded_excerpt="Composite expense requires review.",
-                confidence=Decimal("0.55"),
-                conflicts_and_uncertainties=["includes multiple expense types"],
-                model_and_prompt_version=None,
-                status="PENDING",
-            )
-        )
-        session.commit()
+        candidate = session.get(QuarantineCandidate, candidate_id)
+        assert candidate is not None
+        run = session.get(PipelineRun, candidate.pipeline_run_id)
+        assert run is not None
+        review_thread = run.thread_id
     engine.dispose()
     assert main(["review", "approve", "--database-url", database_url]) == 2
     assert "candidate-id" in json.loads(capsys.readouterr().out)["error"]
@@ -609,9 +596,9 @@ def test_cli_database_commands(tmp_path: Path, capsys: pytest.CaptureFixture[str
                 "--database-url",
                 database_url,
                 "--candidate-id",
-                "candidate-cli",
+                candidate_id,
                 "--thread-id",
-                "review-thread",
+                review_thread,
             ]
         )
         == 0
@@ -626,6 +613,8 @@ def test_cli_database_commands(tmp_path: Path, capsys: pytest.CaptureFixture[str
                 database_url,
                 "--candidate-id",
                 "missing",
+                "--thread-id",
+                review_thread,
             ]
         )
         == 3

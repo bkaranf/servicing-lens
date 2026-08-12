@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Literal, Protocol
@@ -9,6 +10,31 @@ from typing import Literal, Protocol
 from langchain_core.tools import BaseTool, StructuredTool
 
 from mortgage_servicing_dashboard.repository import IntelligenceRepository
+
+_MAX_OBSERVATION_RESULTS = 50
+_IDENTIFIER_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")
+
+
+def _identifier(value: str, *, label: str) -> str:
+    if _IDENTIFIER_PATTERN.fullmatch(value) is None:
+        msg = f"Invalid {label}"
+        raise ValueError(msg)
+    return value
+
+
+def _known_metric(repository: IntelligenceRepository, metric_id: str) -> str:
+    _identifier(metric_id, label="metric identifier")
+    if metric_id not in {str(item["id"]) for item in repository.metrics()}:
+        msg = "Unknown metric identifier"
+        raise ValueError(msg)
+    return metric_id
+
+
+def _bounded_limit(limit: int) -> int:
+    if not 1 <= limit <= _MAX_OBSERVATION_RESULTS:
+        msg = f"limit must be between 1 and {_MAX_OBSERVATION_RESULTS}"
+        raise ValueError(msg)
+    return limit
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,40 +211,55 @@ def build_intelligence_tools(  # noqa: C901
         metric_id: str,
     ) -> list[dict[str, object]]:
         """Return a metric series for one selected issuer, including explicit missing rows."""
+        selected_metric = _known_metric(repository, metric_id)
         return [
             item.as_dict()
-            for item in repository.observations(company_id=company_id, metric_id=metric_id)
+            for item in repository.observations(
+                company_id=company_id,
+                metric_id=selected_metric,
+                limit=4,
+            )
         ]
 
     def list_observations(
         company_id: Literal["tfc", "pfsi"] | None = None,
         metric_id: str | None = None,
         period_end: str | None = None,
+        include_missing: bool = True,  # noqa: FBT001, FBT002
+        limit: int = _MAX_OBSERVATION_RESULTS,
     ) -> list[dict[str, object]]:
         """Read bounded observations using optional issuer, metric, and period filters."""
+        selected_metric = _known_metric(repository, metric_id) if metric_id is not None else None
         parsed_period = date.fromisoformat(period_end) if period_end is not None else None
+        selected_limit = _bounded_limit(limit)
         return [
             item.as_dict()
             for item in repository.observations(
                 company_id=company_id,
-                metric_id=metric_id,
+                metric_id=selected_metric,
                 period_end=parsed_period,
+                include_missing=include_missing,
+                limit=selected_limit,
             )
         ]
 
     def compare_metric(metric_id: str, period_end: str) -> dict[str, object]:
         """Assess TFC and PFSI pairwise comparability for one metric and period."""
-        result = repository.compare(metric_id=metric_id, period_end=date.fromisoformat(period_end))
+        selected_metric = _known_metric(repository, metric_id)
+        result = repository.compare(
+            metric_id=selected_metric,
+            period_end=date.fromisoformat(period_end),
+        )
         return {"status": "insufficient_information"} if result is None else result.as_dict()
 
     def get_observation_provenance(observation_id: str) -> dict[str, object]:
         """Return the bounded source and semantic context for one observation identifier."""
-        result = repository.observation(observation_id)
+        result = repository.observation(_identifier(observation_id, label="observation identifier"))
         return {"status": "not_found"} if result is None else result.as_dict()
 
     def get_evidence(evidence_id: str) -> dict[str, object]:
         """Return immutable public evidence metadata by content-addressed identifier."""
-        result = repository.evidence(evidence_id)
+        result = repository.evidence(_identifier(evidence_id, label="evidence identifier"))
         return {"status": "not_found"} if result is None else result
 
     def get_disclosure_coverage() -> list[dict[str, object]]:
@@ -257,7 +298,10 @@ def build_intelligence_tools(  # noqa: C901
         StructuredTool.from_function(
             list_observations,
             name="list_observations",
-            description="Read observations with bounded issuer, metric, or period filters.",
+            description=(
+                "Read at most 50 observations with typed issuer, metric, period, missingness, "
+                "and result-limit filters."
+            ),
         ),
         StructuredTool.from_function(
             compare_metric,

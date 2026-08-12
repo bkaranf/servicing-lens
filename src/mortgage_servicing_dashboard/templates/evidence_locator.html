@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cited retained-source fragment &middot; Public Mortgage Servicing Intelligence</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/dashboard.css') }}?v=stage-a-2">
+</head>
+<body class="locator-page">
+  <a class="skip-link" href="#cited-source-locator">Skip to cited source locator</a>
+  <header class="locator-header">
+    <a class="brand" href="/" aria-label="Public Mortgage Servicing Intelligence home">
+      <span class="brand-mark" aria-hidden="true">MS</span>
+      <span><strong>Public Mortgage Servicing</strong><small>Source intelligence</small></span>
+    </a>
+    <p class="mode-chip"><span class="status-dot" aria-hidden="true"></span>READ-ONLY RETAINED EVIDENCE</p>
+  </header>
+  <main class="locator-main">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Executive brief</a><span aria-hidden="true">/</span><span>Exact source locator</span>
+    </nav>
+    <section class="locator-intro" aria-labelledby="locator-page-title">
+      <p class="eyebrow">CONTENT-ADDRESSED SOURCE VIEW</p>
+      <h1 id="locator-page-title">Cited retained-source fragment</h1>
+      <p>This view resolves one published observation to its reviewed document section, table row and period column. It transcribes the retained source at request time and performs no calculation or normalization.</p>
+    </section>
+
+    <section id="cited-source-locator" class="panel locator-focus" tabindex="-1" aria-labelledby="cited-source-title">
+      <p class="kicker">PRECISE LOCATOR</p>
+      <h2 id="cited-source-title">{{ observation.company_name }} &middot; {{ observation.metric_name }}</h2>
+      <p class="locator-string"><strong>Document locator:</strong> {{ observation.evidence_locator }}</p>
+      <dl class="evidence-grid locator-metadata">
+        <dt>Reported row</dt><dd>{{ observation.reported_label }}</dd>
+        <dt>Period column</dt><dd>{{ observation.period_end }} ({{ observation.period_label }})</dd>
+        <dt>Reported value</dt><dd><strong>{{ observation.display_value }}</strong></dd>
+        <dt>Observation state</dt><dd>{{ observation.state }}</dd>
+        <dt>Evidence ID</dt><dd><code>{{ evidence.id }}</code></dd>
+        <dt>Accession / regulatory ID</dt><dd>{{ evidence.accession_or_identifier }}</dd>
+      </dl>
+
+      {% if retained_row %}
+      <div class="table-wrap locator-row" tabindex="0" role="region" aria-label="Retained source row transcription">
+        <table>
+          <caption>Retained source row containing “{{ observation.reported_label }}”; cells remain in document order.</caption>
+          <thead><tr><th scope="col">Source cell</th><th scope="col">Transcribed text</th></tr></thead>
+          <tbody>
+          {% for cell in retained_row %}
+            <tr{% if observation.reported_label in cell or (observation.reported_value and observation.reported_value in cell) %} class="cited-cell"{% endif %}>
+              <th scope="row" data-label="Source cell">Cell {{ loop.index }}</th>
+              <td data-label="Transcribed text">{{ cell }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="system-message partial" role="status">No disclosed row text was found in the retained document. The explicit observation state and reviewed locator above remain authoritative for this missing disclosure.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="identity-title">
+      <h2 id="identity-title">Immutable evidence identity</h2>
+      <dl class="evidence-grid">
+        <dt>Content SHA-256</dt><dd><code>{{ evidence.content_sha256 }}</code></dd>
+        <dt>Retained bytes</dt><dd>{{ evidence.byte_length }}</dd>
+        <dt>Representation</dt><dd>{{ evidence.representation }}</dd>
+        <dt>Capture method</dt><dd>{{ evidence.capture_method }}</dd>
+        <dt>Parser version</dt><dd>{{ evidence.parser_version }}</dd>
+        <dt>Retrieved</dt><dd>{{ evidence.retrieved_at }}</dd>
+      </dl>
+      <p class="evidence-excerpt">{{ evidence.bounded_excerpt }}</p>
+      <div class="locator-actions">
+        <a class="primary-button" href="/api/v1/observations/{{ observation.id }}">Open complete JSON observation</a>
+        {% if safe_source_url %}<a class="source-link" href="{{ safe_source_url }}" target="_blank" rel="noopener noreferrer">Open full authoritative SEC document <span aria-hidden="true">↗</span></a>{% endif %}
+      </div>
+    </section>
+  </main>
+  <footer class="locator-footer"><p>Public-company evidence only &middot; No borrower or loan-level data</p></footer>
+</body>
+</html>

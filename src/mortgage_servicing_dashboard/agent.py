@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol, cast
 from uuid import uuid4
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import AgentMiddleware, PIIDetectionError
+from langchain.agents.middleware import (
+    AgentMiddleware,
+    ModelCallLimitMiddleware,
+    PIIDetectionError,
+    ToolCallLimitMiddleware,
+)
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
 from mortgage_servicing_dashboard.config import AppSettings
@@ -23,18 +29,25 @@ from mortgage_servicing_dashboard.privacy import (
 )
 from mortgage_servicing_dashboard.repository import IntelligenceRepository
 from mortgage_servicing_dashboard.state import DashboardAgentState, DashboardContext
-from mortgage_servicing_dashboard.tools import (
-    FoundationInformationPort,
-    build_foundation_tools,
-    build_intelligence_tools,
-)
+from mortgage_servicing_dashboard.tools import FoundationInformationPort, build_intelligence_tools
 
 _SYSTEM_PROMPT = """You are the public mortgage servicing intelligence assistant.
 Operate only on public or synthetic, de-identified text. Never request customer, borrower,
 loan, payment, authentication, or other sensitive data. Use only the supplied typed,
 read-only tools. Never invent a value, source, scope, comparison, mortgage calculation,
-servicing decision, recommendation, or account action. Explain missing and incomparable
-results plainly and retain source caveats."""
+servicing decision, recommendation, or account action. Every number in your answer must
+appear in a tool result from this invocation. Comparability comes only from the compare
+tool. Explain missing and incomparable results plainly, cite observation/evidence IDs, and
+retain source caveats."""
+
+_MAX_OUTPUT_CHARS = 12_000
+_MAX_MODEL_CALLS = 6
+_MAX_TOOL_CALLS = 8
+# LangGraph counts every middleware hook as a graph step. Ten privacy guards plus
+# the two call-limit guards consume far more than one step per model turn; the
+# model/tool counters below are the actual execution bounds.
+_MAX_RECURSION = 192
+_NUMBER_PATTERN = re.compile(r"(?<![A-Za-z])[-+]?(?:[$€£])?\d[\d,]*(?:\.\d+)?%?")
 
 
 class AgentConfigurationError(RuntimeError):
@@ -68,6 +81,29 @@ class _AgentGraph(Protocol):
         context: DashboardContext | None = None,
     ) -> dict[str, Any]:
         """Invoke a compiled graph with typed state and context."""
+
+
+def _normalized_numbers(text: str) -> set[str]:
+    return {token.replace(",", "").lstrip("$€£+") for token in _NUMBER_PATTERN.findall(text)}
+
+
+def ensure_grounded_numeric_output(
+    messages: list[object],
+    text: str,
+    *,
+    max_chars: int = _MAX_OUTPUT_CHARS,
+) -> None:
+    """Reject oversized drafts or numbers absent from invocation tool results."""
+    if len(text) > max_chars:
+        msg = "Agent output exceeded the bounded result size"
+        raise AgentProtocolError(msg)
+    returned_numbers: set[str] = set()
+    for message in messages:
+        if isinstance(message, ToolMessage):
+            returned_numbers.update(_normalized_numbers(str(message.content)))
+    if not _normalized_numbers(text) <= returned_numbers:
+        msg = "Agent output contained a number absent from read-tool results"
+        raise AgentProtocolError(msg)
 
 
 class DashboardAgent:
@@ -146,6 +182,7 @@ class DashboardAgent:
             interaction_mode="foundation",
         )
         config = RunnableConfig(
+            recursion_limit=_MAX_RECURSION,
             tags=["msd-foundation"],
             metadata={
                 "application": "mortgage-servicing-dashboard-foundation",
@@ -160,9 +197,12 @@ class DashboardAgent:
         except PIIDetectionError as error:
             raise SensitiveContentError(error.pii_type) from None
 
-        for message in reversed(result.get("messages", [])):
+        messages = list(result.get("messages", []))
+        for message in reversed(messages):
             if isinstance(message, AIMessage):
-                return AgentInvocationResult(request_id=request_id, text=str(message.text))
+                text = str(message.text)
+                ensure_grounded_numeric_output(messages, text)
+                return AgentInvocationResult(request_id=request_id, text=text)
         msg = "Agent completed without a final AI message"
         raise AgentProtocolError(msg)
 
@@ -194,16 +234,20 @@ def create_dashboard_agent(
     if resolved_model is None:
         msg = "A model must be configured or injected before creating the agent"
         raise AgentConfigurationError(msg)
+    if repository is None:
+        msg = "An authoritative read repository is required for the product agent"
+        raise AgentConfigurationError(msg)
 
     middleware = cast(
         "tuple[AgentMiddleware[DashboardAgentState, DashboardContext, Any], ...]",
-        build_privacy_middleware(),
+        (
+            *build_privacy_middleware(),
+            ModelCallLimitMiddleware(run_limit=_MAX_MODEL_CALLS, exit_behavior="error"),
+            ToolCallLimitMiddleware(run_limit=_MAX_TOOL_CALLS, exit_behavior="error"),
+        ),
     )
-    tools = (
-        build_intelligence_tools(repository)
-        if repository is not None
-        else build_foundation_tools(information)
-    )
+    del information
+    tools = build_intelligence_tools(repository)
     graph = create_agent(
         model=resolved_model,
         tools=list(tools),
