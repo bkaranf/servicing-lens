@@ -26,7 +26,8 @@ investment, legal, security, or regulatory approval.
 | D-015 | ACCEPTED | Stage A passed its closure audit on 2026-08-12; proceed to D-013 extraction before later pipeline phases |
 | D-016 | ACCEPTED | Phase 2 live acquisition, structured adapters, regulatory scopes, and calendar passed its exit gate on 2026-08-12 |
 | D-017 | ACCEPTED | Phase 3 TFC/PFSI profitability and expense metric deepening passed its exit gate on 2026-08-12 |
-| D-018 | ACCEPTED | Make the hosted EdgarTools REST API the sole active external SEC-data provider, subject to an exact parity gate before legacy removal |
+| D-018 | SUPERSEDED | Make the hosted EdgarTools REST API the sole active external SEC-data provider, subject to an exact parity gate before legacy removal |
+| D-019 | ACCEPTED | Use open-source edgartools as the sole SEC acquisition layer and replace legacy parity with financial qualification |
 
 ## D-001 — Public-product scope reset
 
@@ -382,3 +383,33 @@ TFC/PFSI observation with exact value, semantic, period, scope, revision, and
 presentation parity and complete resolvable provenance. A tier, endpoint,
 document, parser, or semantic gap blocks destructive cleanup and release; it
 does not authorize a hidden fallback or a weaker missing-data state.
+
+## D-019 — Open-source edgartools financial qualification boundary
+
+D-019 supersedes D-018. The hosted `api.edgar.tools` experiment is abandoned
+because governed document routes returned not-found responses and required
+financial endpoints were tier-blocked. The open-source `edgartools` distribution,
+imported through its public `edgar` package, is the sole permitted SEC acquisition
+layer for the replacement path. Active application code may not call SEC through
+custom HTTP or retain a second SEC acquisition fallback after qualification.
+
+Deterministic local code retains authority over selected fields, exact Decimal
+normalization, entity and reporting scope, period and dimensions, validation,
+reconciliation, revisions, persistence, and publication. Filing-specific raw XBRL
+fact strings and deterministic parsing of raw SEC document or attachment bytes
+retrieved through edgartools are eligible publication sources. Company Facts,
+standardized financials, stitched statements, and the SEC Interactive Viewer are
+discovery or validation paths unless exact filing-specific lineage is recovered.
+
+The former 439-row parity requirement and the requirement for a versioned broad
+mortgage-servicing metric catalog are replaced by a financial qualification gate
+and a bounded independently reviewed golden regression set. The existing 439
+TFC/PFSI observations remain immutable and read-only as an audit baseline. A
+diagnostic comparison is limited to fields whose definitions, scopes, periods,
+and methodologies genuinely overlap.
+
+The migration remains non-destructive through financial qualification. Hosted
+transport, the hand-written SEC client, inactive providers, tracked evidence
+bloat, and unused dependencies may be removed only after the selected TFC/PFSI
+financial output passes qualification and explicit destructive approval is
+recorded. No legacy observation history is dropped by this decision.
