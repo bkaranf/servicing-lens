@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from mortgage_servicing_dashboard.config import AppSettings, EnvironmentName, LogLevel
 
@@ -18,6 +18,7 @@ def test_safe_defaults_and_summary() -> None:
         enable_langgraph_persistence=False,
         max_prompt_chars=2_000,
         sec_user_agent=None,
+        edgar_api_key=None,
     )
 
     assert settings.safe_summary() == {
@@ -29,6 +30,8 @@ def test_safe_defaults_and_summary() -> None:
         "langgraph_persistence_enabled": False,
         "max_prompt_chars": 2_000,
         "sec_user_agent_configured": False,
+        "edgar_api_key_configured": False,
+        "edgar_api_base_url": "https://api.edgar.tools/v1/",
         "remote_tracing_allowed": False,
     }
 
@@ -73,3 +76,30 @@ def test_sec_user_agent_is_optional_but_validated_and_not_disclosed() -> None:
         AppSettings(sec_user_agent="anonymous")
     with pytest.raises(ValidationError, match="SEC User-Agent"):
         AppSettings(sec_user_agent="app@example.test\r\nInjected: value")
+
+
+def test_edgar_api_key_is_secret_environment_only_and_doctor_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret = "synthetic-edgar-tools-test-key"
+    monkeypatch.setenv("EDGAR_API_KEY", secret)
+
+    settings = AppSettings()
+
+    assert isinstance(settings.edgar_api_key, SecretStr)
+    assert settings.require_edgar_api_key().get_secret_value() == secret
+    assert settings.safe_summary()["edgar_api_key_configured"] is True
+    assert settings.safe_summary()["edgar_api_base_url"] == "https://api.edgar.tools/v1/"
+    assert secret not in repr(settings)
+    assert secret not in repr(settings.model_dump())
+    assert secret not in settings.model_dump_json()
+    assert secret not in repr(settings.safe_summary())
+
+
+def test_edgar_tools_base_url_is_fixed_and_missing_key_fails_closed() -> None:
+    settings = AppSettings(edgar_api_key=None)
+    with pytest.raises(ValueError, match="EDGAR_API_KEY"):
+        settings.require_edgar_api_key()
+
+    with pytest.raises(ValidationError, match="EdgarTools base URL"):
+        AppSettings(edgar_api_base_url="https://example.test/v1/")

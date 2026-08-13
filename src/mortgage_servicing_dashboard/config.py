@@ -5,10 +5,11 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _MINIMUM_SEC_IDENTITY_LENGTH = 8
+_EDGAR_TOOLS_BASE_URL = "https://api.edgar.tools/v1/"
 
 
 def validate_sec_user_agent(value: str) -> str:
@@ -55,9 +56,8 @@ class LogLevel(StrEnum):
 class AppSettings(BaseSettings):
     """Load the application's safe, non-secret settings.
 
-    Provider credentials are intentionally absent. Provider integrations read credentials
-    from a secret manager or their own environment contract and must never serialize them
-    through this model.
+    Provider credentials use secret-bearing fields and must never be serialized through
+    CLI, API, logging, or exception surfaces.
     """
 
     model_config = SettingsConfigDict(
@@ -77,8 +77,14 @@ class AppSettings(BaseSettings):
     enable_langgraph_persistence: bool = False
     max_prompt_chars: int = Field(default=2_000, ge=1, le=8_000)
     sec_user_agent: str | None = Field(default=None, repr=False)
+    edgar_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias="EDGAR_API_KEY",
+        repr=False,
+    )
+    edgar_api_base_url: str = _EDGAR_TOOLS_BASE_URL
 
-    @field_validator("model", "sec_user_agent", mode="before")
+    @field_validator("model", "sec_user_agent", "edgar_api_key", mode="before")
     @classmethod
     def normalize_optional_string(cls, value: Any) -> Any:
         """Treat an empty optional string environment variable as unconfigured.
@@ -91,6 +97,25 @@ class AppSettings(BaseSettings):
         """
         if isinstance(value, str) and not value.strip():
             return None
+        return value
+
+    @field_validator("edgar_api_base_url")
+    @classmethod
+    def require_canonical_edgar_tools_base_url(cls, value: str) -> str:
+        """Reject alternate provider hosts or paths.
+
+        Args:
+            value: Configured EdgarTools REST base URL.
+
+        Returns:
+            The one accepted hosted API base URL.
+
+        Raises:
+            ValueError: If an alternate host, scheme, or path is configured.
+        """
+        if value != _EDGAR_TOOLS_BASE_URL:
+            msg = f"EdgarTools base URL must be {_EDGAR_TOOLS_BASE_URL}"
+            raise ValueError(msg)
         return value
 
     @field_validator("sec_user_agent")
@@ -161,8 +186,24 @@ class AppSettings(BaseSettings):
             "langgraph_persistence_enabled": self.enable_langgraph_persistence,
             "max_prompt_chars": self.max_prompt_chars,
             "sec_user_agent_configured": self.sec_user_agent is not None,
+            "edgar_api_key_configured": self.edgar_api_key is not None,
+            "edgar_api_base_url": self.edgar_api_base_url,
             "remote_tracing_allowed": False,
         }
+
+    def require_edgar_api_key(self) -> SecretStr:
+        """Return the configured EdgarTools secret or fail closed.
+
+        Returns:
+            The secret-bearing API key wrapper.
+
+        Raises:
+            ValueError: If `EDGAR_API_KEY` was not configured.
+        """
+        if self.edgar_api_key is None:
+            msg = "EDGAR_API_KEY is required for live EdgarTools access"
+            raise ValueError(msg)
+        return self.edgar_api_key
 
     def require_sec_user_agent(self) -> str:
         """Return the configured identity or fail closed for an explicit live run.
