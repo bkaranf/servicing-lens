@@ -2242,3 +2242,1030 @@ def test_acquire_attachment_maps_library_failures_at_each_fetch_stage(stage: str
     assert "secret" not in str(captured.value)
     if selected is not None:
         assert selected.download_calls == 1
+
+
+@pytest.mark.parametrize("operation", ["get_filing_xbrl", "get_filing_structure"])
+def test_xbrl_capabilities_return_none_only_for_genuine_library_absence(operation: str) -> None:
+    filing = _LibraryFilingBundle(xbrl=None)
+    backend, module = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    if operation == "get_filing_xbrl":
+        result = backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK)
+    else:
+        result = backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert result is None
+    assert module.global_lookup_calls == []
+
+
+@pytest.mark.parametrize("operation", ["get_filing_xbrl", "get_filing_structure"])
+def test_xbrl_capabilities_map_processing_failures_without_converting_to_absence(
+    operation: str,
+) -> None:
+    filing = _LibraryFilingBundle(xbrl=TransportError("secret XBRL transport detail"))
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    def invoke() -> object:
+        if operation == "get_filing_xbrl":
+            return backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK)
+        return backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    with pytest.raises(AdapterTransportError) as captured:
+        invoke()
+
+    assert captured.value.operation == operation
+    assert "secret" not in str(captured.value)
+
+
+class _PoisonedRawFact(SimpleNamespace):
+    @property
+    def numeric_value(self) -> float:
+        raise AssertionError
+
+
+def test_filing_xbrl_maps_taxonomyless_non_numeric_fact_and_empty_optional_context() -> None:
+    context = SimpleNamespace(
+        context_id="instant-context",
+        entity=None,
+        period=None,
+        dimensions=None,
+    )
+    fact = _PoisonedRawFact(
+        element_id="EntityRegistrantName",
+        context_ref=context.context_id,
+        value="Truist Financial Corporation",
+        unit_ref=None,
+    )
+    xbrl = SimpleNamespace(
+        contexts={context.context_id: context},
+        units={
+            "pure": {
+                "type": "measure",
+                "measure": "xbrli:pure",
+                "numerator": None,
+                "denominator": None,
+            }
+        },
+        parser=SimpleNamespace(facts={"name-fact": fact}),
+        element_catalog=None,
+    )
+    filing = _LibraryFilingBundle(xbrl=xbrl)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    result = backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK)
+
+    assert result is not None
+    assert result.contexts[0] == XbrlContext(
+        context_id="instant-context",
+        entity_identifier=None,
+        entity_scheme=None,
+        period_type=None,
+        period_start=None,
+        period_end=None,
+        period_instant=None,
+        dimensions=(),
+    )
+    assert result.units[0] == XbrlUnit(
+        unit_ref="pure",
+        unit_type="measure",
+        measure="xbrli:pure",
+        numerator=(),
+        denominator=(),
+    )
+    assert result.facts[0].taxonomy == ""
+    assert result.facts[0].concept == "EntityRegistrantName"
+    assert result.facts[0].original_label is None
+    assert result.facts[0].unit is None
+    assert result.facts[0].decimals is None
+    assert result.facts[0].scale is None
+    assert result.facts[0].precision is None
+    _assert_no_float(result)
+
+
+def test_filing_xbrl_uses_deterministic_fallback_label_and_underscore_catalog_key() -> None:
+    xbrl = _library_raw_xbrl()
+    xbrl.element_catalog = {
+        "us-gaap_EarningsPerShareDiluted": SimpleNamespace(
+            labels={
+                "z-role": "Fallback label",
+                "a-role": "Alphabetically first label",
+            }
+        )
+    }
+    filing = _LibraryFilingBundle(xbrl=xbrl)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    result = backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK)
+
+    assert result is not None
+    assert result.facts[0].original_label == "Alphabetically first label"
+
+
+@pytest.mark.parametrize(
+    ("case", "expected_type"),
+    [
+        ("contexts-registry", AdapterParsingError),
+        ("context-key", AdapterParsingError),
+        ("context-id-mismatch", AdapterSelectionError),
+        ("context-entity", AdapterParsingError),
+        ("context-period", AdapterParsingError),
+        ("context-dimensions", AdapterParsingError),
+        ("dimension-axis", AdapterParsingError),
+        ("dimension-member", AdapterParsingError),
+    ],
+)
+def test_filing_xbrl_rejects_malformed_public_context_registry(
+    case: str,
+    expected_type: type[EdgarToolsAdapterError],
+) -> None:
+    xbrl = _library_raw_xbrl()
+    context = xbrl.contexts["D2026Q2Consumer"]
+    filing = _LibraryFilingBundle(xbrl=xbrl)
+    if case == "contexts-registry":
+        xbrl.contexts = []
+    elif case == "context-key":
+        xbrl.contexts = {cast("Any", 7): context}
+    elif case == "context-id-mismatch":
+        context.context_id = "different-context"
+    elif case == "context-entity":
+        context.entity = []
+    elif case == "context-period":
+        context.period = []
+    elif case == "context-dimensions":
+        context.dimensions = []
+    elif case == "dimension-axis":
+        context.dimensions = {cast("Any", 7): "member"}
+    elif case == "dimension-member":
+        context.dimensions = {"axis": None}
+
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    with pytest.raises(expected_type) as captured:
+        backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing_xbrl"
+    assert captured.value.state in {AdapterState.PARSING_ERROR, AdapterState.SELECTION_MISMATCH}
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "units-registry",
+        "unit-key",
+        "unit-shape",
+        "unit-numerator",
+        "missing-parser",
+        "facts-registry",
+        "source-document",
+        "source-url",
+    ],
+)
+def test_filing_xbrl_rejects_malformed_public_unit_fact_or_source_registry(
+    case: str,
+) -> None:
+    xbrl = _library_raw_xbrl()
+    unit = xbrl.units["USD-per-share"]
+    filing = _LibraryFilingBundle(xbrl=xbrl)
+    if case == "units-registry":
+        xbrl.units = []
+    elif case == "unit-key":
+        xbrl.units = {cast("Any", 7): unit}
+    elif case == "unit-shape":
+        xbrl.units = {"USD-per-share": []}
+    elif case == "unit-numerator":
+        unit["numerator"] = "iso4217:USD"
+    elif case == "missing-parser":
+        xbrl.parser = None
+    elif case == "facts-registry":
+        xbrl.parser.facts = []
+    elif case == "source-document":
+        filing.primary_document = None
+    else:
+        filing.filing_url = None
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    with pytest.raises(AdapterParsingError) as captured:
+        backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing_xbrl"
+    assert captured.value.state is AdapterState.PARSING_ERROR
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "missing-concept",
+        "unknown-context",
+        "unknown-unit",
+        "missing-value",
+        "invalid-decimals",
+        "empty-label",
+    ],
+)
+def test_filing_xbrl_rejects_unresolved_fact_lineage(case: str) -> None:
+    xbrl = _library_raw_xbrl()
+    fact = xbrl.parser.facts["fact-1"]
+    if case == "missing-concept":
+        fact.element_id = None
+    elif case == "unknown-context":
+        fact.context_ref = "unknown-context"
+    elif case == "unknown-unit":
+        fact.unit_ref = "unknown-unit"
+    elif case == "missing-value":
+        fact.value = None
+    elif case == "invalid-decimals":
+        fact.decimals = True
+    else:
+        xbrl.element_catalog[_RawXbrlFact.element_id].labels = {
+            "http://www.xbrl.org/2003/role/label": ""
+        }
+    filing = _LibraryFilingBundle(xbrl=xbrl)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    with pytest.raises(AdapterParsingError) as captured:
+        backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing_xbrl"
+    assert captured.value.state is AdapterState.PARSING_ERROR
+
+
+def test_company_facts_returns_none_only_for_genuine_absence() -> None:
+    company = _CapabilityCompany(facts=None)
+    backend, module = _capability_backend(company, None)
+
+    assert backend.get_company_facts(_CIK) is None
+    assert module.company_calls == [_CIK]
+
+
+def test_company_facts_maps_transport_failure_without_empty_fallback() -> None:
+    company = _CapabilityCompany(facts=TransportError("secret Company Facts detail"))
+    backend, module = _capability_backend(company, None)
+
+    with pytest.raises(AdapterTransportError) as captured:
+        backend.get_company_facts(_CIK)
+
+    assert captured.value.operation == "get_company_facts"
+    assert "secret" not in str(captured.value)
+    assert module.company_calls == [_CIK]
+
+
+@pytest.mark.parametrize(
+    ("facts", "expected_type"),
+    [
+        (_CompanyFactsCollection(()), AdapterSelectionError),
+        (
+            SimpleNamespace(cik=92230, name="Truist Financial Corporation"),
+            AdapterParsingError,
+        ),
+        (
+            _CompanyFactsCollection(
+                (
+                    SimpleNamespace(
+                        concept="dei:EntityRegistrantName",
+                        taxonomy="us-gaap",
+                        value="Truist Financial Corporation",
+                        unit="pure",
+                    ),
+                )
+            ),
+            AdapterParsingError,
+        ),
+    ],
+)
+def test_company_facts_rejects_identity_collection_or_taxonomy_mismatch(
+    facts: object,
+    expected_type: type[EdgarToolsAdapterError],
+) -> None:
+    if isinstance(facts, _CompanyFactsCollection) and not facts._facts:
+        facts.cik = 1745916
+    company = _CapabilityCompany(facts=facts)
+    backend, _ = _capability_backend(company, None)
+
+    with pytest.raises(expected_type) as captured:
+        backend.get_company_facts(_CIK)
+
+    assert captured.value.operation == "get_company_facts"
+
+
+def test_company_facts_stringifies_discovery_only_integer_and_float_values() -> None:
+    facts = _CompanyFactsCollection(
+        (
+            SimpleNamespace(
+                concept="EntityCommonStockSharesOutstanding",
+                taxonomy="dei",
+                value=42,
+                unit="shares",
+                period_start="",
+                period_end="2026-06-30",
+                filing_date=datetime(2026, 8, 6, 12, 0, tzinfo=UTC),
+                form_type=None,
+                accession=None,
+                fiscal_year=None,
+                fiscal_period=None,
+                dimensions=None,
+            ),
+            SimpleNamespace(
+                concept="us-gaap:EntityPublicFloat",
+                taxonomy="us-gaap",
+                value=1.25,
+                unit="USD",
+                period_start=None,
+                period_end=date(2026, 6, 30),
+                filing_date=date(2026, 8, 6),
+                form_type="10-Q",
+                accession=_ACCESSION,
+                fiscal_year=2026,
+                fiscal_period="Q2",
+                dimensions={},
+            ),
+        )
+    )
+    backend, _ = _capability_backend(_CapabilityCompany(facts=facts), None)
+
+    result = backend.get_company_facts(_CIK)
+
+    assert result is not None
+    assert [fact.raw_value for fact in result.facts] == ["42", "1.25"]
+    assert result.facts[0].concept == "EntityCommonStockSharesOutstanding"
+    assert result.facts[0].period_start is None
+    assert result.facts[0].period_end == date(2026, 6, 30)
+    assert result.facts[0].filing_date == date(2026, 8, 6)
+    assert result.facts[0].form == ""
+    assert result.facts[0].accession_number == ""
+    assert result.publication_authority is False
+    _assert_no_float(result)
+
+
+@pytest.mark.parametrize("value", [True, float("nan"), float("inf"), cast("Any", object())])
+def test_company_facts_rejects_values_without_safe_discovery_representation(
+    value: object,
+) -> None:
+    fact = SimpleNamespace(
+        concept="us-gaap:Assets",
+        taxonomy="us-gaap",
+        value=value,
+        unit="USD",
+        period_start=None,
+        period_end=date(2026, 6, 30),
+        filing_date=date(2026, 8, 6),
+        form_type="10-Q",
+        accession=_ACCESSION,
+        fiscal_year=2026,
+        fiscal_period="Q2",
+        dimensions={},
+    )
+    backend, _ = _capability_backend(
+        _CapabilityCompany(facts=_CompanyFactsCollection((fact,))),
+        None,
+    )
+
+    with pytest.raises(AdapterParsingError) as captured:
+        backend.get_company_facts(_CIK)
+
+    assert captured.value.operation == "get_company_facts"
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["dimensions", "dimension-axis", "dimension-member", "form", "fiscal-year", "date"],
+)
+def test_company_facts_rejects_malformed_candidate_metadata(case: str) -> None:
+    fact = SimpleNamespace(
+        concept="us-gaap:Assets",
+        taxonomy="us-gaap",
+        value="100",
+        unit="USD",
+        period_start=None,
+        period_end=date(2026, 6, 30),
+        filing_date=date(2026, 8, 6),
+        form_type="10-Q",
+        accession=_ACCESSION,
+        fiscal_year=2026,
+        fiscal_period="Q2",
+        dimensions={},
+    )
+    if case == "dimensions":
+        fact.dimensions = []
+    elif case == "dimension-axis":
+        fact.dimensions = {cast("Any", 7): "member"}
+    elif case == "dimension-member":
+        fact.dimensions = {"axis": None}
+    elif case == "form":
+        fact.form_type = 10
+    elif case == "fiscal-year":
+        fact.fiscal_year = True
+    else:
+        fact.period_end = "not-a-date"
+    backend, _ = _capability_backend(
+        _CapabilityCompany(facts=_CompanyFactsCollection((fact,))),
+        None,
+    )
+
+    with pytest.raises(AdapterParsingError) as captured:
+        backend.get_company_facts(_CIK)
+
+    assert captured.value.operation == "get_company_facts"
+
+
+@pytest.mark.parametrize("acceptance", [None, "2026-08-06T16:45:32Z"])
+def test_filing_mapping_accepts_documented_optional_library_metadata(
+    acceptance: object,
+) -> None:
+    returned = dataclasses.replace(
+        _library_filing(),
+        cik="92230",
+        filing_date=datetime(2026, 8, 6, 23, 59, tzinfo=UTC),
+        acceptance_datetime=acceptance,
+        report_date="",
+        primary_document=None,
+        is_xbrl=0,
+        is_inline_xbrl="",
+        size="",
+    )
+    backend, _ = _public_backend(_FakeEdgarModule(returned))
+
+    result = backend.get_filing(_ACCESSION, expected_cik=_CIK)
+
+    assert result.cik == _CIK
+    assert result.filing_date == date(2026, 8, 6)
+    assert result.acceptance_timestamp == (None if acceptance is None else _ACCEPTANCE_TIMESTAMP)
+    assert result.report_period is None
+    assert result.primary_document == ""
+    assert result.is_xbrl is False
+    assert result.is_inline_xbrl is False
+    assert result.size is None
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected_type"),
+    [
+        ("cik", cast("Any", object()), AdapterSelectionError),
+        ("primary_document", 42, AdapterParsingError),
+        ("filing_date", None, AdapterParsingError),
+        ("acceptance_datetime", "not-a-timestamp", AdapterParsingError),
+        ("acceptance_datetime", 42, AdapterParsingError),
+        ("is_xbrl", 2, AdapterParsingError),
+        ("size", -1, AdapterParsingError),
+        ("size", True, AdapterParsingError),
+    ],
+)
+def test_filing_mapping_rejects_malformed_typed_metadata(
+    field: str,
+    value: object,
+    expected_type: type[EdgarToolsAdapterError],
+) -> None:
+    returned = dataclasses.replace(_library_filing(), **{field: value})
+    backend, _ = _public_backend(_FakeEdgarModule(returned))
+
+    with pytest.raises(expected_type) as captured:
+        backend.get_filing(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing"
+
+
+class _NoMetadataFilingsCompany(_CapabilityCompany):
+    def get_filings(self, **kwargs: object) -> Any:
+        self.filing_queries.append(kwargs)
+        return None
+
+
+def test_exact_filing_absence_handles_library_none_collection_without_fallback() -> None:
+    company = _NoMetadataFilingsCompany()
+    backend, module = _capability_backend(company, _LibraryFilingBundle())
+
+    with pytest.raises(AdapterNotFoundError) as captured:
+        backend.get_filing(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing"
+    assert company.filing_queries == [
+        {"accession_number": _ACCESSION, "trigger_full_load": False},
+        {"accession_number": _ACCESSION, "trigger_full_load": True},
+    ]
+    assert module.global_lookup_calls == []
+
+
+def test_list_attachments_maps_library_failure_and_preserves_local_mapping_error() -> None:
+    failing_filing = _LibraryFilingBundle(
+        attachments=TransportError("secret attachment listing detail")
+    )
+    failing_backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(failing_filing,)),
+        failing_filing,
+    )
+
+    with pytest.raises(AdapterTransportError) as transport:
+        failing_backend.list_attachments(_ACCESSION, expected_cik=_CIK)
+
+    assert transport.value.operation == "list_attachments"
+    assert "secret" not in str(transport.value)
+
+    malformed = SimpleNamespace(
+        sequence_number="1",
+        description="Filing",
+        document=None,
+        document_type="10-Q",
+        size=10,
+        url="https://www.sec.gov/Archives/example/filing.htm",
+        is_binary=lambda: False,
+    )
+    attachments = _LibraryAttachments((cast("Any", malformed),), primary_documents=())
+    malformed_filing = _LibraryFilingBundle(attachments=attachments)
+    malformed_backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(malformed_filing,)),
+        malformed_filing,
+    )
+
+    with pytest.raises(AdapterParsingError) as parsing:
+        malformed_backend.list_attachments(_ACCESSION, expected_cik=_CIK)
+
+    assert parsing.value.operation == "list_attachments"
+
+
+@pytest.mark.parametrize("classifier", ["missing", "nonboolean"])
+def test_attachment_mapping_requires_public_boolean_binary_classifier(classifier: str) -> None:
+    _, primary, _ = _library_attachments()
+    if classifier == "missing":
+        selected = SimpleNamespace(
+            sequence_number=primary.sequence_number,
+            description=primary.description,
+            document=primary.document,
+            document_type=primary.document_type,
+            size=primary.size,
+            url=primary.url,
+        )
+    else:
+        selected = dataclasses.replace(primary, binary=cast("Any", "false"))
+    invalid_attachments = _LibraryAttachments(
+        (cast("Any", selected),),
+        primary_documents=(),
+    )
+    filing = _LibraryFilingBundle(attachments=invalid_attachments)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    with pytest.raises(AdapterParsingError) as captured:
+        backend.list_attachments(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "list_attachments"
+
+
+@pytest.mark.parametrize(
+    ("document", "binary", "payload", "expected_media_type"),
+    [
+        ("raw-evidence", False, "canonical text", "text/plain; charset=utf-8"),
+        ("raw-evidence.blob", True, b"\x00\x01", "application/octet-stream"),
+    ],
+)
+def test_attachment_acquisition_uses_safe_unknown_media_defaults_and_aware_clock(
+    document: str,
+    binary: object,
+    payload: str | bytes,
+    expected_media_type: str,
+) -> None:
+    attachment = _LibraryAttachment(
+        sequence_number="",
+        description="",
+        document=document,
+        document_type="",
+        size=0,
+        url=f"https://www.sec.gov/Archives/example/{document}",
+        binary=cast("bool", binary),
+        payload=payload,
+    )
+    attachments = _LibraryAttachments(
+        (attachment,),
+        primary_documents=cast("Any", None),
+    )
+    filing = _LibraryFilingBundle(attachments=attachments)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    result = backend.acquire_attachment(_ACCESSION, document, expected_cik=_CIK)
+
+    assert result.attachment.sequence_number == ""
+    assert result.attachment.document_type == ""
+    assert result.attachment.is_primary is False
+    assert result.content.media_type == expected_media_type
+    assert result.content.retrieved_at.tzinfo is not None
+
+
+def test_structure_without_viewer_returns_only_filing_specific_linkbases() -> None:
+    xbrl = _library_structural_xbrl()
+    filing = _LibraryFilingBundle(xbrl=xbrl, viewer=None)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    result = backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert result is not None
+    assert result.presentation_arcs
+    assert result.calculation_arcs
+    assert result.viewer_reports == ()
+    assert result.viewer_issues == ()
+
+
+def test_structure_preserves_optional_and_integer_or_string_structural_values() -> None:
+    xbrl = _library_structural_xbrl()
+    presentation_nodes = next(iter(xbrl.presentation_trees.values())).all_nodes
+    presentation_nodes["us-gaap:ServicingAssets"].child_preferred_labels = None
+    presentation_nodes["tfc:MortgageServicingRights"].preferred_label = "fallback-label"
+    presentation_nodes["tfc:MortgageServicingRights"].order = None
+    calculation_nodes = next(iter(xbrl.calculation_trees.values())).all_nodes
+    calculation_nodes["tfc:MortgageServicingRights"].order = 2
+    calculation_nodes["tfc:MortgageServicingRights"].weight = "-1"
+    table = next(iter(xbrl.tables.values()))[0]
+    table.closed = None
+    axis = xbrl.axes["tfc:BusinessSegmentsAxis"]
+    axis.domain_id = None
+    axis.default_member_id = None
+    filing = _LibraryFilingBundle(xbrl=xbrl, viewer=None)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    result = backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert result is not None
+    assert result.presentation_arcs[0].preferred_label == "fallback-label"
+    assert result.presentation_arcs[0].order is None
+    assert result.calculation_arcs[0].order == "2"
+    assert result.calculation_arcs[0].weight == "-1"
+    assert {arc.arcrole for arc in result.definition_arcs} == {
+        "http://xbrl.org/int/dim/arcrole/all",
+        "http://xbrl.org/int/dim/arcrole/hypercube-dimension",
+    }
+
+
+def test_structure_deduplicates_arcs_and_tolerates_unexpanded_public_domain() -> None:
+    xbrl = _library_structural_xbrl()
+    table = next(iter(xbrl.tables.values()))[0]
+    table.line_items = ["tfc:ServicingLineItems", "tfc:ServicingLineItems"]
+    xbrl.domains = {}
+    filing = _LibraryFilingBundle(xbrl=xbrl, viewer=None)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    result = backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert result is not None
+    all_arcs = [
+        arc
+        for arc in result.definition_arcs
+        if arc.arcrole == "http://xbrl.org/int/dim/arcrole/all"
+    ]
+    assert len(all_arcs) == 1
+    assert all(
+        arc.arcrole != "http://xbrl.org/int/dim/arcrole/domain-member"
+        for arc in result.definition_arcs
+    )
+
+
+@pytest.mark.parametrize(
+    ("case", "expected_type"),
+    [
+        ("presentation-child", AdapterParsingError),
+        ("calculation-child", AdapterParsingError),
+        ("calculation-weight", AdapterParsingError),
+        ("definition-axis", AdapterParsingError),
+        ("footnote-id", AdapterSelectionError),
+        ("definition-tables", AdapterParsingError),
+        ("preferred-labels", AdapterParsingError),
+        ("closed", AdapterParsingError),
+        ("presentation-order", AdapterParsingError),
+    ],
+)
+def test_structure_rejects_dangling_or_malformed_public_relationships(
+    case: str,
+    expected_type: type[EdgarToolsAdapterError],
+) -> None:
+    xbrl = _library_structural_xbrl()
+    presentation_nodes = next(iter(xbrl.presentation_trees.values())).all_nodes
+    calculation_nodes = next(iter(xbrl.calculation_trees.values())).all_nodes
+    table = next(iter(xbrl.tables.values()))[0]
+    if case == "presentation-child":
+        presentation_nodes["us-gaap:ServicingAssets"].children = ["unknown:Child"]
+    elif case == "calculation-child":
+        calculation_nodes["us-gaap:ServicingAssets"].children = ["unknown:Child"]
+    elif case == "calculation-weight":
+        calculation_nodes["tfc:MortgageServicingRights"].weight = None
+    elif case == "definition-axis":
+        table.axes = ["unknown:Axis"]
+    elif case == "footnote-id":
+        xbrl.footnotes["footnote-7"].footnote_id = "different-footnote"
+    elif case == "definition-tables":
+        xbrl.tables = {"role": "not-an-iterable-table-collection"}
+    elif case == "preferred-labels":
+        presentation_nodes["us-gaap:ServicingAssets"].child_preferred_labels = "label"
+    elif case == "closed":
+        table.closed = "false"
+    else:
+        presentation_nodes["tfc:MortgageServicingRights"].order = True
+    filing = _LibraryFilingBundle(xbrl=xbrl, viewer=None)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    with pytest.raises(expected_type) as captured:
+        backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing_structure"
+
+
+class _ConfigurableViewer:
+    def __init__(
+        self,
+        *,
+        reports: object,
+        validation: object,
+        comparison_results: object,
+    ) -> None:
+        self.all_reports = reports
+        self._validation = validation
+        self._comparison_results = comparison_results
+        self.validate_calls = 0
+        self.compare_calls = 0
+
+    def validate(self) -> object:
+        self.validate_calls += 1
+        return self._validation
+
+    def compare(self, _xbrl: object) -> SimpleNamespace:
+        self.compare_calls += 1
+        return SimpleNamespace(results=self._comparison_results)
+
+
+def test_viewer_valid_results_and_empty_report_metadata_produce_no_issues() -> None:
+    viewer = _ConfigurableViewer(
+        reports=[
+            SimpleNamespace(
+                short_name=None,
+                long_name=None,
+                category=None,
+                role=None,
+                html_file_name=None,
+                position=None,
+                group_type=None,
+                concepts=None,
+                period_headers=None,
+            )
+        ],
+        validation=[{"valid": True}],
+        comparison_results=[SimpleNamespace(match=True)],
+    )
+    xbrl = _library_structural_xbrl()
+    filing = _LibraryFilingBundle(xbrl=xbrl, viewer=viewer)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    result = backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert result is not None
+    assert result.viewer_reports == (
+        ViewerReport(
+            short_name="",
+            long_name="",
+            category="",
+            role="",
+            html_file_name="",
+            position=None,
+            group_type="",
+            concepts=(),
+            period_headers=(),
+        ),
+    )
+    assert result.viewer_issues == ()
+    assert viewer.validate_calls == viewer.compare_calls == 1
+
+
+def test_viewer_classifies_missing_xbrl_without_reading_convenience_numeric_value() -> None:
+    viewer = _ConfigurableViewer(
+        reports=[],
+        validation=[],
+        comparison_results=[
+            SimpleNamespace(
+                match=False,
+                xbrl_value=None,
+                concept_id=None,
+                period=None,
+                report=None,
+            )
+        ],
+    )
+    xbrl = _library_structural_xbrl()
+    filing = _LibraryFilingBundle(xbrl=xbrl, viewer=viewer)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    result = backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert result is not None
+    assert result.viewer_issues == (
+        ViewerValidationIssue(
+            classification=(ViewerIssueClassification.EDGARTOOLS_PARSER_OR_VIEWER_DISCREPANCY),
+            severity="warning",
+            code="viewer-xbrl-missing",
+            message="SEC viewer concept was absent from filing-specific XBRL output.",
+            raw_metadata=(),
+        ),
+    )
+
+
+@pytest.mark.parametrize("case", ["validation-status", "comparison-status"])
+def test_viewer_rejects_untyped_validation_or_comparison_status(case: str) -> None:
+    validation: object = []
+    comparison: object = []
+    if case == "validation-status":
+        validation = [{"valid": "true"}]
+    else:
+        comparison = [SimpleNamespace(match=None)]
+    viewer = _ConfigurableViewer(
+        reports=[],
+        validation=validation,
+        comparison_results=comparison,
+    )
+    xbrl = _library_structural_xbrl()
+    filing = _LibraryFilingBundle(xbrl=xbrl, viewer=viewer)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    with pytest.raises(AdapterParsingError) as captured:
+        backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing_structure"
+
+
+@pytest.mark.parametrize("case", ["reports", "validation", "comparison"])
+def test_viewer_rejects_noniterable_public_collections(case: str) -> None:
+    reports: object = []
+    validation: object = []
+    comparison: object = []
+    if case == "reports":
+        reports = {}
+    elif case == "validation":
+        validation = "invalid"
+    else:
+        comparison = {}
+    viewer = _ConfigurableViewer(
+        reports=reports,
+        validation=validation,
+        comparison_results=comparison,
+    )
+    xbrl = _library_structural_xbrl()
+    filing = _LibraryFilingBundle(xbrl=xbrl, viewer=viewer)
+    backend, _ = _capability_backend(
+        _CapabilityCompany(filings=(filing,)),
+        filing,
+    )
+
+    with pytest.raises(AdapterParsingError) as captured:
+        backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing_structure"
+
+
+def test_bootstrap_maps_local_storage_creation_failure_before_import(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _clear_bootstrap_state(monkeypatch)
+    imported = False
+    storage_error = OSError("synthetic storage failure")
+
+    def fail_mkdir(_path: Path, *_args: object, **_kwargs: object) -> None:
+        raise storage_error
+
+    def unexpected_import(_: str) -> ModuleType:
+        nonlocal imported
+        imported = True
+        return ModuleType("edgar")
+
+    monkeypatch.setattr(Path, "mkdir", fail_mkdir)
+    monkeypatch.setattr(importlib, "import_module", unexpected_import)
+
+    with pytest.raises(AdapterConfigurationError) as captured:
+        _bootstrap(tmp_path).load()
+
+    assert captured.value.operation == "bootstrap"
+    assert captured.value.state is AdapterState.CONFIGURATION_ERROR
+    assert imported is False
+    assert "EDGAR_IDENTITY" not in os.environ
+
+
+def test_retention_rejects_invalid_canonical_utf8_before_writing(tmp_path: Path) -> None:
+    from mortgage_servicing_dashboard.edgartools_adapter.retention import (  # noqa: PLC0415
+        GeneralEvidenceStore,
+    )
+
+    content = _acquired_content(b"\xff\xfe")
+    root = tmp_path / "invalid-utf8"
+
+    with pytest.raises(AdapterIntegrityError) as captured:
+        GeneralEvidenceStore(root).retain(content)
+
+    assert captured.value.operation == "retain_attachment"
+    assert captured.value.state is AdapterState.INTEGRITY_ERROR
+    assert tuple(root.rglob("*.bin")) == ()
+
+
+def test_retention_accepts_arbitrary_binary_and_exposes_aware_utc_clock(tmp_path: Path) -> None:
+    from mortgage_servicing_dashboard.edgartools_adapter.retention import (  # noqa: PLC0415
+        GeneralEvidenceStore,
+        utc_now,
+    )
+
+    payload = b"\xff\xfe\x00"
+    content = dataclasses.replace(
+        _acquired_content(payload),
+        media_type="application/octet-stream",
+        representation=ContentRepresentation.LIBRARY_BINARY,
+        capture_method="edgartools_attachment_binary",
+    )
+
+    retained = GeneralEvidenceStore(tmp_path / "binary").retain(content)
+
+    assert retained.byte_length == len(payload)
+    assert retained.representation is ContentRepresentation.LIBRARY_BINARY
+    assert utc_now().utcoffset() == UTC.utcoffset(None)
+
+
+def test_retention_maps_storage_failure_without_exposing_cause(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mortgage_servicing_dashboard.edgartools_adapter.retention import (  # noqa: PLC0415
+        GeneralEvidenceStore,
+    )
+
+    store = GeneralEvidenceStore(tmp_path / "storage-failure")
+    storage_error = OSError("secret local path detail")
+
+    def fail_retain(_document: object) -> object:
+        raise storage_error
+
+    monkeypatch.setattr(store._store, "retain", fail_retain)
+
+    with pytest.raises(AdapterIntegrityError) as captured:
+        store.retain(_acquired_content(b"filing"))
+
+    assert captured.value.operation == "retain_attachment"
+    assert captured.value.state is AdapterState.INTEGRITY_ERROR
+    assert "secret" not in str(captured.value)
+
+
+def test_retention_rejects_store_verification_byte_mismatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mortgage_servicing_dashboard.edgartools_adapter.retention import (  # noqa: PLC0415
+        GeneralEvidenceStore,
+    )
+
+    store = GeneralEvidenceStore(tmp_path / "verification-mismatch")
+
+    def mismatched_verify(_retained: object) -> bytes:
+        return b"different bytes"
+
+    monkeypatch.setattr(store._store, "verify", mismatched_verify)
+
+    with pytest.raises(AdapterIntegrityError) as captured:
+        store.retain(_acquired_content(b"filing"))
+
+    assert captured.value.operation == "retain_attachment"
+    assert captured.value.state is AdapterState.INTEGRITY_ERROR
