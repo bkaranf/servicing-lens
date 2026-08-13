@@ -1,0 +1,75 @@
+schema_version: "1"
+mapping_version: "financial-fields-v1"
+
+# This is a deliberately small Phase 2 selection, not a financial ontology.
+# The file is directly loadable by XbrlMappingRegistry; the additional keys are
+# discovery and review metadata. A mapping identifies eligible source facts but
+# never approves a value. Every selected mapping remains CANDIDATE and every
+# proposed golden expectation remains REVIEW_REQUIRED until an independent exact
+# representation or attributable reviewer approval is recorded.
+mappings:
+  - issuer_id: tfc
+    cik: "0000092230"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained raw filing inline-XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: tfc_registrant
+    reporting_scope_id: tfc_consolidated_company
+    reporting_scope_name: Truist Financial Corporation consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio, reportable segment, bank holding-company regulatory scope, or depository scope.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_DISTINCT_RETAINED_REPRESENTATION_CROSS_CHECK
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: pfsi
+    cik: "0001745916"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained raw filing inline-XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: pfsi_registrant
+    reporting_scope_id: pfsi_consolidated_company
+    reporting_scope_name: PennyMac Financial Services, Inc. consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio or reportable segment.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_DISTINCT_RETAINED_REPRESENTATION_CROSS_CHECK
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED

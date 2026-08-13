@@ -4,3 +4,4 @@
 
 # Retained source evidence is immutable. Never normalize its bytes.
 config/recorded_evidence/** -text -eol
+config/audit/legacy-439-baseline.csv -text -eol

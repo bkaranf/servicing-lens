@@ -10,6 +10,11 @@ from typing import cast
 
 import pytest
 
+from mortgage_servicing_dashboard.financial_discovery import (
+    AvailabilityStatus,
+    FinancialFieldRegistry,
+    discover_retained_document_fields,
+)
 from mortgage_servicing_dashboard.xbrl import (
     DecisionDisposition,
     DimensionMember,
@@ -32,6 +37,7 @@ from mortgage_servicing_dashboard.xbrl import (
 
 _ROOT = Path(__file__).resolve().parents[2]
 _CONFIG = _ROOT / "config" / "xbrl_concepts.yaml"
+_FINANCIAL_CONFIG = _ROOT / "config" / "financial_fields.v1.yaml"
 _FIXTURES = _ROOT / "tests" / "fixtures" / "xbrl"
 
 
@@ -161,6 +167,268 @@ def test_filing_inline_xbrl_resolves_scale_period_and_dimensions() -> None:
         item is not None and item.extraction_method == "deterministic_sec_filing_xbrl"
         for item in candidates
     )
+
+
+def test_inline_xbrl_skips_nil_and_transforms_fixed_zero_exactly() -> None:
+    payload = b"".join(
+        (
+            b'<html xmlns="http://www.w3.org/1999/xhtml" ',
+            b'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" ',
+            b'xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2020-02-12" ',
+            b'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ',
+            b'xmlns:xbrli="http://www.xbrl.org/2003/instance">',
+            b'<xbrli:context id="I"><xbrli:entity><xbrli:identifier scheme="sec">92230',
+            b"</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31",
+            b"</xbrli:instant></xbrli:period></xbrli:context>",
+            b'<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>',
+            b'<ix:nonFraction name="us-gaap:NilAmount" contextRef="I" unitRef="USD" ',
+            b'xsi:nil="true" decimals="-6" />',
+            b'<ix:nonFraction name="us-gaap:ZeroAmount" contextRef="I" unitRef="USD" ',
+            b'decimals="-6" scale="6" format="ixt:fixed-zero">\xe2\x80\x94',
+            b"</ix:nonFraction>",
+            b'<ix:nonFraction name="us-gaap:Assets" contextRef="I" unitRef="USD" ',
+            b'decimals="-6" scale="6" sign="-" format="ixt:num-dot-decimal">',
+            b"547,538</ix:nonFraction></html>",
+        )
+    )
+
+    facts = SecFilingXbrlAdapter().parse(
+        payload,
+        issuer_id="tfc",
+        evidence_id="evidence:inline-transformations",
+        accession="0000092230-26-000030",
+        form="10-K",
+        filed=date(2026, 2, 20),
+    )
+
+    assert [fact.qualified_concept for fact in facts] == [
+        "us-gaap:ZeroAmount",
+        "us-gaap:Assets",
+    ]
+    assert [fact.raw_value for fact in facts] == ["—", "547,538"]
+    assert [fact.value for fact in facts] == [Decimal(0), Decimal(-547538000000)]
+    assert [fact.scale for fact in facts] == [Decimal(1000000), Decimal(1000000)]
+    assert all(isinstance(fact.value, Decimal) for fact in facts)
+
+
+@pytest.mark.parametrize(
+    ("format_name", "error"),
+    [
+        ("invalid", "invalid transformation format"),
+        ("ixt:num-comma-decimal", "unsupported transformation"),
+        ("other:num-dot-decimal", "unsupported transformation"),
+    ],
+)
+def test_inline_xbrl_rejects_malformed_or_unknown_transformations(
+    format_name: str,
+    error: str,
+) -> None:
+    payload = (
+        '<html xmlns="http://www.w3.org/1999/xhtml" '
+        'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" '
+        'xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2020-02-12" '
+        'xmlns:other="https://synthetic.example.test/transform" '
+        'xmlns:xbrli="http://www.xbrl.org/2003/instance">'
+        '<xbrli:context id="I"><xbrli:entity><xbrli:identifier>92230'
+        "</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31"
+        "</xbrli:instant></xbrli:period></xbrli:context>"
+        '<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>'
+        '<ix:nonFraction name="us-gaap:Assets" contextRef="I" unitRef="USD" '
+        f'format="{format_name}">1</ix:nonFraction></html>'
+    ).encode()
+
+    with pytest.raises(XbrlDataError, match=error):
+        SecFilingXbrlAdapter().parse(
+            payload,
+            issuer_id="tfc",
+            evidence_id="evidence:unknown-transformation",
+            accession="0000092230-26-000030",
+            form="10-K",
+            filed=date(2026, 2, 20),
+        )
+
+
+def test_inline_xbrl_rejects_malformed_nil_boolean() -> None:
+    payload = b"".join(
+        (
+            b'<html xmlns="http://www.w3.org/1999/xhtml" ',
+            b'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" ',
+            b'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ',
+            b'xmlns:xbrli="http://www.xbrl.org/2003/instance">',
+            b'<xbrli:context id="I"><xbrli:entity><xbrli:identifier>92230',
+            b"</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31",
+            b"</xbrli:instant></xbrli:period></xbrli:context>",
+            b'<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>',
+            b'<ix:nonFraction name="us-gaap:Assets" contextRef="I" unitRef="USD" ',
+            b'xsi:nil="yes" />',
+            b"</html>",
+        )
+    )
+
+    with pytest.raises(XbrlDataError, match="xsi:nil must be"):
+        SecFilingXbrlAdapter().parse(
+            payload,
+            issuer_id="tfc",
+            evidence_id="evidence:invalid-nil",
+            accession="0000092230-26-000030",
+            form="10-K",
+            filed=date(2026, 2, 20),
+        )
+
+
+def test_inline_xbrl_concept_filter_skips_only_unrelated_unknown_transform() -> None:
+    payload = b"".join(
+        (
+            b'<html xmlns="http://www.w3.org/1999/xhtml" ',
+            b'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" ',
+            b'xmlns:ixt-sec="http://www.sec.gov/inlineXBRL/transformation/2015-08-31" ',
+            b'xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2020-02-12" ',
+            b'xmlns:xbrli="http://www.xbrl.org/2003/instance" ',
+            b'xmlns:xbrldi="http://xbrl.org/2006/xbrldi" ',
+            b'xmlns:test="https://synthetic.example.test/taxonomy">',
+            b'<xbrli:context id="I"><xbrli:entity><xbrli:identifier>92230',
+            b"</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31",
+            b"</xbrli:instant></xbrli:period></xbrli:context>",
+            b'<xbrli:context id="unused"><xbrli:entity><xbrli:identifier>92230',
+            b"</xbrli:identifier><xbrli:segment><xbrldi:typedMember ",
+            b'dimension="test:TypedAxis"><test:Value>unused</test:Value>',
+            b"</xbrldi:typedMember></xbrli:segment></xbrli:entity><xbrli:period>",
+            b"<xbrli:instant>2025-12-31</xbrli:instant></xbrli:period></xbrli:context>",
+            b'<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>',
+            b'<ix:nonFraction name="us-gaap:NumberOfReportableSegments" contextRef="I" ',
+            b'unitRef="USD" format="ixt-sec:numwordsen">two</ix:nonFraction>',
+            b'<ix:nonFraction name="us-gaap:Assets" contextRef="I" unitRef="USD" ',
+            b'decimals="-6" scale="6" format="ixt:num-dot-decimal">547,538',
+            b"</ix:nonFraction></html>",
+        )
+    )
+
+    adapter = SecFilingXbrlAdapter()
+    parse_kwargs = {
+        "issuer_id": "tfc",
+        "evidence_id": "evidence:concept-filter",
+        "accession": "0000092230-26-000030",
+        "form": "10-K",
+        "filed": date(2026, 2, 20),
+    }
+    facts = adapter.parse(
+        payload,
+        **parse_kwargs,
+        qualified_concepts=frozenset({"us-gaap:Assets"}),
+    )
+
+    assert [(fact.qualified_concept, fact.raw_value, fact.value) for fact in facts] == [
+        ("us-gaap:Assets", "547,538", Decimal(547538000000))
+    ]
+    assert (
+        adapter.parse(
+            payload,
+            **parse_kwargs,
+            qualified_concepts=frozenset({"us-gaap:Liabilities"}),
+        )
+        == ()
+    )
+    with pytest.raises(XbrlDataError, match="unsupported transformation"):
+        adapter.parse(
+            payload,
+            **parse_kwargs,
+            qualified_concepts=frozenset({"us-gaap:NumberOfReportableSegments"}),
+        )
+
+
+def test_inline_xbrl_rejects_invalid_concept_filter() -> None:
+    with pytest.raises(XbrlDataError, match="taxonomy-qualified"):
+        SecFilingXbrlAdapter().parse(
+            b"<root />",
+            issuer_id="tfc",
+            evidence_id="evidence:invalid-filter",
+            accession="0000092230-26-000030",
+            form="10-K",
+            filed=date(2026, 2, 20),
+            qualified_concepts=frozenset({"Assets"}),
+        )
+
+
+def test_raw_document_discovery_selects_only_mapped_concept_and_preserves_lineage() -> None:
+    payload = b"".join(
+        (
+            b'<html xmlns="http://www.w3.org/1999/xhtml" ',
+            b'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" ',
+            b'xmlns:ixt-sec="http://www.sec.gov/inlineXBRL/transformation/2015-08-31" ',
+            b'xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2020-02-12" ',
+            b'xmlns:xbrli="http://www.xbrl.org/2003/instance">',
+            b'<xbrli:context id="c-9"><xbrli:entity><xbrli:identifier>92230',
+            b"</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31",
+            b"</xbrli:instant></xbrli:period></xbrli:context>",
+            b'<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>',
+            b'<ix:nonFraction id="unrelated" name="us-gaap:NumberOfReportableSegments" ',
+            b'contextRef="c-9" unitRef="USD" format="ixt-sec:numwordsen">two',
+            b"</ix:nonFraction>",
+            b'<ix:nonFraction id="f-103" name="us-gaap:Assets" contextRef="c-9" ',
+            b'unitRef="USD" decimals="-6" scale="6" format="ixt:num-dot-decimal">',
+            b"547,538</ix:nonFraction></html>",
+        )
+    )
+    registry = FinancialFieldRegistry.from_yaml(_FINANCIAL_CONFIG)
+
+    results = discover_retained_document_fields(
+        payload,
+        issuer_id="tfc",
+        cik="0000092230",
+        evidence_id="evidence:raw-document",
+        accession_number="0000092230-26-000030",
+        source_document="tfc-20251231.htm",
+        source_url="https://www.sec.gov/Archives/example/tfc-20251231.htm",
+        form="10-K",
+        filed=date(2026, 2, 20),
+        registry=registry,
+    )
+
+    assert len(results) == 1
+    assert results[0].status is AvailabilityStatus.AVAILABLE
+    assert len(results[0].candidates) == 1
+    candidate = results[0].candidates[0]
+    assert candidate.source_element_ids == ("f-103",)
+    assert candidate.raw_value == "547,538"
+    assert candidate.normalized_value == Decimal(547538000000)
+    assert candidate.context_ref == "c-9"
+    assert candidate.scale == Decimal(1000000)
+    assert candidate.source_object_count == 1
+    assert isinstance(candidate.normalized_value, Decimal)
+
+
+def test_raw_document_discovery_returns_not_found_for_missing_selected_fact() -> None:
+    payload = b"".join(
+        (
+            b'<html xmlns="http://www.w3.org/1999/xhtml" ',
+            b'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" ',
+            b'xmlns:ixt-sec="http://www.sec.gov/inlineXBRL/transformation/2015-08-31" ',
+            b'xmlns:xbrli="http://www.xbrl.org/2003/instance">',
+            b'<xbrli:context id="c-9"><xbrli:entity><xbrli:identifier>92230',
+            b"</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31",
+            b"</xbrli:instant></xbrli:period></xbrli:context>",
+            b'<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>',
+            b'<ix:nonFraction name="us-gaap:NumberOfReportableSegments" contextRef="c-9" ',
+            b'unitRef="USD" format="ixt-sec:numwordsen">two</ix:nonFraction></html>',
+        )
+    )
+
+    results = discover_retained_document_fields(
+        payload,
+        issuer_id="tfc",
+        cik="0000092230",
+        evidence_id="evidence:raw-document-missing",
+        accession_number="0000092230-26-000030",
+        source_document="tfc-20251231.htm",
+        source_url="https://www.sec.gov/Archives/example/tfc-20251231.htm",
+        form="10-K",
+        filed=date(2026, 2, 20),
+        registry=FinancialFieldRegistry.from_yaml(_FINANCIAL_CONFIG),
+    )
+
+    assert len(results) == 1
+    assert results[0].status is AvailabilityStatus.NOT_FOUND
+    assert results[0].candidates == ()
 
 
 def test_mapping_mismatch_quarantines_instead_of_guessing() -> None:

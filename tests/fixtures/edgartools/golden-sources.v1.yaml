@@ -1,0 +1,242 @@
+manifest_version: "1.0.0"
+mapping_version: financial-fields-v1
+status: INDEPENDENTLY_CROSS_CHECKED
+publication_authority: false
+generated_extractor_output_is_expectation: false
+approved_expectations:
+  - tfc-2025-annual-total-assets
+  - tfc-2026q2-quarterly-total-assets
+  - pfsi-2025-annual-total-assets
+  - pfsi-2026q2-quarterly-total-assets
+governed_window:
+  first_period_end: "2024-09-30"
+  last_period_end: "2026-06-30"
+  latest_annual_period_end: "2025-12-31"
+representation_policy:
+  eligible_source: Exact inline-XBRL display strings parsed deterministically from raw filing document bytes acquired and retained through the public edgartools adapter.
+  retained_text: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+  validation_only: Pre-existing ORIGINAL_HTTP_RESPONSE bodies are distinct representations used only for independent deterministic cross-checks.
+review_policy:
+  attribution: Independent phase2_independent_golden_review findings reproduced deterministically against each distinct tracked ORIGINAL_HTTP_RESPONSE body.
+  generated_locator_rule: A generated extraction did not approve itself; approval requires exact agreement with the attributed independent source fact and distinct retained representation.
+live_pfsi_annual_acquisition:
+  public_adapter_call_count: 1
+  method: acquire_attachment
+  retain: true
+  retry_count: 0
+  fallback_call_count: 0
+  filing_xbrl_call_count: 0
+  status: PASS
+  accession: "0001104659-26-018142"
+  expected_cik: "0001745916"
+  document: pfsi-20251231x10k.htm
+  sha256: bc2ebcde63126b5bd400a4c415dafcaf00adb1ded456f309dc2cb558af291921
+  byte_length: 8621464
+  representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+  capture_method: edgartools_attachment_text_utf8
+  retention_location: content-sha256://bc2ebcde63126b5bd400a4c415dafcaf00adb1ded456f309dc2cb558af291921
+  integrity_verified: true
+
+cases:
+  - case_id: tfc-2025-annual-total-assets
+    case_kind: ANNUAL_CORE_FINANCIAL
+    issuer_id: tfc
+    ticker: TFC
+    cik: "0000092230"
+    field_id: total_assets
+    classification: CORE_FINANCIAL
+    fiscal_year: 2025
+    fiscal_quarter: FY
+    period_end: "2025-12-31"
+    form: 10-K
+    amendment: false
+    accession: "0000092230-26-000030"
+    primary_document: tfc-20251231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000030/tfc-20251231.htm
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    edgartools_source:
+      acquisition_status: QUALIFIED
+      sha256: 2f0b46fa7dc89aa0bc2cf8624b256388d26d478fffc9ef4157a1e9aa2f1ed568
+      byte_length: 8116202
+      representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+      capture_method: edgartools_attachment_text_utf8
+      retention_location: content-sha256://2f0b46fa7dc89aa0bc2cf8624b256388d26d478fffc9ef4157a1e9aa2f1ed568
+      integrity_verified: true
+    approved_fact:
+      qualified_concept: us-gaap:Assets
+      original_label: Total assets
+      raw_display_string: "547,538"
+      normalized_decimal_string: "547538000000"
+      source_element_ids: [f-103]
+      context_ref: c-9
+      period_type: instant
+      period_instant: "2025-12-31"
+      dimensions: []
+      unit: USD
+      decimals: "-6"
+      scale: "1000000"
+      source_object_count: 1
+      semantic_fact_count: 1
+    cross_check_evidence:
+      attribution: PHASE2_INDEPENDENT_GOLDEN_REVIEW_REPRODUCED_DETERMINISTICALLY
+      method: DETERMINISTIC_INLINE_XBRL_PARSE_OF_DISTINCT_REPRESENTATION
+      sha256: 7625955b56a2a89ac43a28e37c4d915b19159fb070b7e4350057f5b4b157350f
+      byte_length: 8116203
+      representation: ORIGINAL_HTTP_RESPONSE
+      source_role: VALIDATION_ONLY
+      exact_match: true
+    review_status: INDEPENDENTLY_CROSS_CHECKED
+
+  - case_id: tfc-2026q2-quarterly-total-assets
+    case_kind: QUARTERLY_CORE_FINANCIAL
+    issuer_id: tfc
+    ticker: TFC
+    cik: "0000092230"
+    field_id: total_assets
+    classification: CORE_FINANCIAL
+    fiscal_year: 2026
+    fiscal_quarter: Q2
+    period_end: "2026-06-30"
+    form: 10-Q
+    amendment: false
+    accession: "0000092230-26-000099"
+    primary_document: tfc-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    edgartools_source:
+      acquisition_status: QUALIFIED
+      sha256: 8b4e75df610503670a55802f4a29e36fae8bb9195b78abddd0272b11f1d0efed
+      byte_length: 6452566
+      representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+      integrity_verified: true
+    approved_fact:
+      qualified_concept: us-gaap:Assets
+      original_label: Total assets
+      raw_display_string: "556,023"
+      normalized_decimal_string: "556023000000"
+      source_element_ids: [f-80]
+      context_ref: c-7
+      period_type: instant
+      period_instant: "2026-06-30"
+      dimensions: []
+      unit: USD
+      decimals: "-6"
+      scale: "1000000"
+      source_object_count: 1
+      semantic_fact_count: 1
+    cross_check_evidence:
+      attribution: PHASE2_INDEPENDENT_GOLDEN_REVIEW_REPRODUCED_DETERMINISTICALLY
+      method: DETERMINISTIC_INLINE_XBRL_PARSE_OF_DISTINCT_REPRESENTATION
+      sha256: f3427a0aa6bd379fe484d81179d40f62d6f7d9fd7d17fdf26ae2f626ba60d5bb
+      byte_length: 6452567
+      representation: ORIGINAL_HTTP_RESPONSE
+      source_role: VALIDATION_ONLY
+      exact_match: true
+    review_status: INDEPENDENTLY_CROSS_CHECKED
+
+  - case_id: pfsi-2025-annual-total-assets
+    case_kind: ANNUAL_CORE_FINANCIAL
+    issuer_id: pfsi
+    ticker: PFSI
+    cik: "0001745916"
+    field_id: total_assets
+    classification: CORE_FINANCIAL
+    fiscal_year: 2025
+    fiscal_quarter: FY
+    period_end: "2025-12-31"
+    form: 10-K
+    amendment: false
+    accession: "0001104659-26-018142"
+    primary_document: pfsi-20251231x10k.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926018142/pfsi-20251231x10k.htm
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    edgartools_source:
+      acquisition_status: QUALIFIED
+      sha256: bc2ebcde63126b5bd400a4c415dafcaf00adb1ded456f309dc2cb558af291921
+      byte_length: 8621464
+      representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+      capture_method: edgartools_attachment_text_utf8
+      retention_location: content-sha256://bc2ebcde63126b5bd400a4c415dafcaf00adb1ded456f309dc2cb558af291921
+      integrity_verified: true
+    approved_fact:
+      qualified_concept: us-gaap:Assets
+      original_label: Total assets
+      raw_display_string: "29,388,689"
+      normalized_decimal_string: "29388689000"
+      source_element_ids:
+        - Tc_T7kNitcRm0GADCypj79R9Q_17_3
+        - Tc_Y3tY-h0i00CIU18EUGXYLQ_27_15
+      context_ref: As_Of_12_31_2025_D00IjvwWXkWdyn_KACv6dg
+      period_type: instant
+      period_instant: "2025-12-31"
+      dimensions: []
+      unit: USD
+      decimals: "-3"
+      scale: "1000"
+      source_object_count: 2
+      semantic_fact_count: 1
+    cross_check_evidence:
+      attribution: PHASE2_INDEPENDENT_GOLDEN_REVIEW_REPRODUCED_DETERMINISTICALLY
+      method: DETERMINISTIC_INLINE_XBRL_PARSE_OF_DISTINCT_REPRESENTATION
+      sha256: 3b26058f99a7166c5c9253a3d9ec4a97bcb4cca0767ffa888ea959dad4282874
+      byte_length: 8621465
+      representation: ORIGINAL_HTTP_RESPONSE
+      source_role: VALIDATION_ONLY
+      exact_match: true
+    review_status: INDEPENDENTLY_CROSS_CHECKED
+
+  - case_id: pfsi-2026q2-quarterly-total-assets
+    case_kind: QUARTERLY_CORE_FINANCIAL
+    issuer_id: pfsi
+    ticker: PFSI
+    cik: "0001745916"
+    field_id: total_assets
+    classification: CORE_FINANCIAL
+    fiscal_year: 2026
+    fiscal_quarter: Q2
+    period_end: "2026-06-30"
+    form: 10-Q
+    amendment: false
+    accession: "0001104659-26-090486"
+    primary_document: pfsi-20260630x10q.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    edgartools_source:
+      acquisition_status: QUALIFIED
+      sha256: 9b0062e5c2d62e2abe50a89a5b6f606140d6eaee6e3ef27ee824529292642155
+      byte_length: 7492215
+      representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+      integrity_verified: true
+    approved_fact:
+      qualified_concept: us-gaap:Assets
+      original_label: Total assets
+      raw_display_string: "29,859,451"
+      normalized_decimal_string: "29859451000"
+      source_element_ids:
+        - Tc_XglUmlD4G0igXiMTsWT6LQ_17_3
+        - Tc_iWMDhcd0yUuM6iqlUu36zw_27_15
+        - Tc_ty2rEtHg00eWyLxjg0__qg_27_15
+      context_ref: As_Of_6_30_2026_M-Qt3Tcb1U2-DTbB1aDe0w
+      period_type: instant
+      period_instant: "2026-06-30"
+      dimensions: []
+      unit: USD
+      decimals: "-3"
+      scale: "1000"
+      source_object_count: 3
+      semantic_fact_count: 1
+    cross_check_evidence:
+      attribution: PHASE2_INDEPENDENT_GOLDEN_REVIEW_REPRODUCED_DETERMINISTICALLY
+      method: DETERMINISTIC_INLINE_XBRL_PARSE_OF_DISTINCT_REPRESENTATION
+      sha256: b6f9b49698a0880b0d923af793c2b665330dd17232f0da220717bea6ae74a0bc
+      byte_length: 7492216
+      representation: ORIGINAL_HTTP_RESPONSE
+      source_role: VALIDATION_ONLY
+      exact_match: true
+    review_status: INDEPENDENTLY_CROSS_CHECKED
+
+omitted_case_classes:
+  optional_servicing:
+    reason: No optional servicing field was selected without individual source qualification.
+  amendment_or_restatement:
+    reason: No amendment affecting total_assets surfaced in the governed filing metadata.

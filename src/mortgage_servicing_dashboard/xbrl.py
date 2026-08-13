@@ -24,10 +24,17 @@ import yaml
 
 _XBRLI_NAMESPACE: Final = "http://www.xbrl.org/2003/instance"
 _XBRLDI_NAMESPACE: Final = "http://xbrl.org/2006/xbrldi"
+_XSI_NAMESPACE: Final = "http://www.w3.org/2001/XMLSchema-instance"
 _INLINE_XBRL_NAMESPACES: Final = frozenset(
     {
         "http://www.xbrl.org/2008/inlineXBRL",
         "http://www.xbrl.org/2013/inlineXBRL",
+    }
+)
+_INLINE_TRANSFORMATION_NAMESPACES: Final = frozenset(
+    {
+        "http://www.xbrl.org/inlineXBRL/transformation/2020-02-12",
+        "http://www.xbrl.org/inlineXBRL/transformation/2022-02-16",
     }
 )
 _RESERVED_FACT_NAMESPACES: Final = frozenset(
@@ -117,6 +124,7 @@ class XbrlFact:
     filed: date | None
     evidence_id: str
     locator: str
+    source_element_id: str | None = None
 
     def __post_init__(self) -> None:
         """Enforce exact numeric and complete context invariants."""
@@ -490,6 +498,7 @@ class SecFilingXbrlAdapter:
         accession: str,
         form: str,
         filed: date,
+        qualified_concepts: frozenset[str] | None = None,
     ) -> tuple[XbrlFact, ...]:
         """Parse filing contexts, units, dimensions, and numeric facts.
 
@@ -500,6 +509,10 @@ class SecFilingXbrlAdapter:
             accession: SEC filing accession owning the document.
             form: Filing form such as ``10-Q`` or ``10-K``.
             filed: Official filing date.
+            qualified_concepts: Optional exact taxonomy-qualified concept filter.
+                When omitted, every numeric fact remains subject to fail-closed
+                parsing. When supplied, unrelated facts are skipped before their
+                numeric transformations are interpreted.
 
         Returns:
             Numeric facts in document order with exact context semantics.
@@ -508,12 +521,47 @@ class SecFilingXbrlAdapter:
             XbrlDataError: If XML, a context, a unit, or a number is ambiguous.
         """
         root, namespaces = _load_xbrl_xml(payload)
-        contexts = _parse_contexts(root)
-        units = _parse_units(root)
+        if qualified_concepts is not None and any(
+            not concept.strip() or ":" not in concept for concept in qualified_concepts
+        ):
+            msg = "filing XBRL concept filters must be taxonomy-qualified"
+            raise XbrlDataError(msg)
+        numeric_elements = tuple(
+            element
+            for element in root.iter()
+            if element.attrib.get("contextRef") is not None and _is_numeric_fact(element)
+        )
+        if qualified_concepts is None:
+            selected_elements = numeric_elements
+        else:
+            selected_elements = tuple(
+                element
+                for element in numeric_elements
+                if ":".join(_fact_concept(element, namespaces)) in qualified_concepts
+            )
+        selected_context_ids = frozenset(
+            element.attrib["contextRef"] for element in selected_elements
+        )
+        selected_unit_ids = frozenset(
+            element.attrib["unitRef"]
+            for element in selected_elements
+            if "unitRef" in element.attrib
+        )
+        contexts = _parse_contexts(
+            root,
+            selected_ids=None if qualified_concepts is None else selected_context_ids,
+        )
+        units = _parse_units(
+            root,
+            selected_ids=None if qualified_concepts is None else selected_unit_ids,
+        )
         parsed: list[XbrlFact] = []
-        for element in root.iter():
+        for element in selected_elements:
             context_ref = element.attrib.get("contextRef")
-            if context_ref is None or not _is_numeric_fact(element):
+            if context_ref is None:
+                continue
+            taxonomy, concept = _fact_concept(element, namespaces)
+            if _is_explicitly_nil(element):
                 continue
             context = contexts.get(context_ref)
             if context is None:
@@ -523,9 +571,12 @@ class SecFilingXbrlAdapter:
             if unit_ref is None or unit_ref not in units:
                 msg = f"filing XBRL numeric fact has an unresolved unit: {unit_ref}"
                 raise XbrlDataError(msg)
-            taxonomy, concept = _fact_concept(element, namespaces)
             raw_value = " ".join("".join(element.itertext()).split())
-            value = _parse_decimal_text(raw_value, location="filing XBRL fact")
+            value = _parse_filing_numeric_value(
+                element,
+                raw_value=raw_value,
+                namespaces=namespaces,
+            )
             if element.attrib.get("sign") == "-":
                 value = -abs(value)
             scale_exponent = _optional_integer(element.attrib.get("scale"), field_name="scale")
@@ -558,8 +609,10 @@ class SecFilingXbrlAdapter:
                     evidence_id=evidence_id,
                     locator=(
                         f"xbrl:{taxonomy}:{concept};context={context_ref};"
-                        f"unit={unit_ref};occurrence={len(parsed)}"
+                        f"unit={unit_ref};element_id={element.attrib.get('id', '')};"
+                        f"occurrence={len(parsed)}"
                     ),
+                    source_element_id=element.attrib.get("id"),
                 )
             )
         return tuple(parsed)
@@ -1043,7 +1096,11 @@ def _expanded_name(tag: str) -> tuple[str, str]:
     return "", tag
 
 
-def _parse_contexts(root: ET.Element) -> dict[str, _Context]:
+def _parse_contexts(
+    root: ET.Element,
+    *,
+    selected_ids: frozenset[str] | None = None,
+) -> dict[str, _Context]:
     contexts: dict[str, _Context] = {}
     context_tag = f"{{{_XBRLI_NAMESPACE}}}context"
     identifier_tag = f"{{{_XBRLI_NAMESPACE}}}identifier"
@@ -1054,6 +1111,8 @@ def _parse_contexts(root: ET.Element) -> dict[str, _Context]:
     typed_member_tag = f"{{{_XBRLDI_NAMESPACE}}}typedMember"
     for element in root.iter(context_tag):
         context_id = element.attrib.get("id", "")
+        if selected_ids is not None and context_id not in selected_ids:
+            continue
         identifier = element.find(f".//{identifier_tag}")
         if not context_id or identifier is None or identifier.text is None:
             msg = "filing XBRL context is missing its ID or entity identifier"
@@ -1110,7 +1169,11 @@ def _parse_contexts(root: ET.Element) -> dict[str, _Context]:
     return contexts
 
 
-def _parse_units(root: ET.Element) -> dict[str, str]:
+def _parse_units(
+    root: ET.Element,
+    *,
+    selected_ids: frozenset[str] | None = None,
+) -> dict[str, str]:
     units: dict[str, str] = {}
     unit_tag = f"{{{_XBRLI_NAMESPACE}}}unit"
     measure_tag = f"{{{_XBRLI_NAMESPACE}}}measure"
@@ -1119,6 +1182,8 @@ def _parse_units(root: ET.Element) -> dict[str, str]:
     denominator_tag = f"{{{_XBRLI_NAMESPACE}}}unitDenominator"
     for element in root.iter(unit_tag):
         unit_id = element.attrib.get("id", "")
+        if selected_ids is not None and unit_id not in selected_ids:
+            continue
         divide = element.find(divide_tag)
         if divide is None:
             measures = [_unit_measure(item.text) for item in element.findall(measure_tag)]
@@ -1162,6 +1227,45 @@ def _is_numeric_fact(element: ET.Element) -> bool:
     if namespace in _INLINE_XBRL_NAMESPACES:
         return local_name == "nonFraction"
     return namespace not in _RESERVED_FACT_NAMESPACES and "unitRef" in element.attrib
+
+
+def _is_explicitly_nil(element: ET.Element) -> bool:
+    nil_value = element.attrib.get(f"{{{_XSI_NAMESPACE}}}nil")
+    if nil_value is None:
+        return False
+    if nil_value in {"true", "1"}:
+        return True
+    if nil_value in {"false", "0"}:
+        return False
+    msg = "filing XBRL xsi:nil must be true, false, 1, or 0"
+    raise XbrlDataError(msg)
+
+
+def _parse_filing_numeric_value(
+    element: ET.Element,
+    *,
+    raw_value: str,
+    namespaces: Mapping[str, str],
+) -> Decimal:
+    format_name = element.attrib.get("format")
+    if format_name is None:
+        return _parse_decimal_text(raw_value, location="filing XBRL fact")
+    prefix, separator, local_name = format_name.partition(":")
+    if not separator or not prefix or not local_name:
+        msg = "inline XBRL numeric fact has an invalid transformation format"
+        raise XbrlDataError(msg)
+    namespace_uris = tuple(
+        uri for uri, declared_prefix in namespaces.items() if declared_prefix == prefix
+    )
+    if len(namespace_uris) != 1 or namespace_uris[0] not in _INLINE_TRANSFORMATION_NAMESPACES:
+        msg = f"inline XBRL numeric fact uses an unsupported transformation: {format_name}"
+        raise XbrlDataError(msg)
+    if local_name == "fixed-zero":
+        return Decimal(0)
+    if local_name == "num-dot-decimal":
+        return _parse_decimal_text(raw_value, location="filing XBRL fact")
+    msg = f"inline XBRL numeric fact uses an unsupported transformation: {format_name}"
+    raise XbrlDataError(msg)
 
 
 def _fact_concept(
