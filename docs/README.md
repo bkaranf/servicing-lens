@@ -29,6 +29,7 @@ reads. The acceptance gates in the implementation plan define each release.
 | [Comparability policy](COMPARABILITY_POLICY.md) | Pairwise assessment dimensions, verdicts, reasons, and calculation restrictions |
 | [Implementation plan](IMPLEMENTATION_PLAN.md) | Depth-first work sequence, tests, quality gates, and Stage A exit criteria |
 | [Decisions](DECISIONS.md) | Binding architecture and product decisions plus deferred owner choices |
+| [EdgarTools migration status](EDGAR_TOOLS_MIGRATION.md) | Current provider-only architecture, failed parity gate, verified limitations, and unblock action |
 
 When documents conflict, the more specific authoritative document governs. A
 material change to product scope, source eligibility, metric semantics,
