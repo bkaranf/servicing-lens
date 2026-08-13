@@ -57,6 +57,7 @@ packages = ["src/mortgage_servicing_dashboard"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "config" = "share/public-mortgage-servicing-intelligence/config"
+"tests/fixtures/edgartools/golden-sources.v1.yaml" = "share/public-mortgage-servicing-intelligence/config/golden-sources.v1.yaml"
 "alembic" = "share/public-mortgage-servicing-intelligence/alembic"
 
 [tool.pytest.ini_options]

@@ -48,6 +48,7 @@ cases:
     fiscal_year: 2025
     fiscal_quarter: FY
     period_end: "2025-12-31"
+    filing_date: "2026-02-24"
     form: 10-K
     amendment: false
     accession: "0000092230-26-000030"
@@ -97,6 +98,7 @@ cases:
     fiscal_year: 2026
     fiscal_quarter: Q2
     period_end: "2026-06-30"
+    filing_date: "2026-07-31"
     form: 10-Q
     amendment: false
     accession: "0000092230-26-000099"
@@ -144,6 +146,7 @@ cases:
     fiscal_year: 2025
     fiscal_quarter: FY
     period_end: "2025-12-31"
+    filing_date: "2026-02-20"
     form: 10-K
     amendment: false
     accession: "0001104659-26-018142"
@@ -195,6 +198,7 @@ cases:
     fiscal_year: 2026
     fiscal_quarter: Q2
     period_end: "2026-06-30"
+    filing_date: "2026-08-04"
     form: 10-Q
     amendment: false
     accession: "0001104659-26-090486"

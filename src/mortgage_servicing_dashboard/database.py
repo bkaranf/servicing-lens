@@ -168,6 +168,9 @@ class FilingDocument(Base):
     document_type: Mapped[str] = mapped_column(String(32))
     filename: Mapped[str] = mapped_column(String(255))
     source_url: Mapped[str] = mapped_column(Text)
+    source_evidence_id: Mapped[str | None] = mapped_column(ForeignKey("source_evidence.id"))
+    description: Mapped[str | None] = mapped_column(Text)
+    is_primary: Mapped[bool | None] = mapped_column(Boolean)
 
 
 class SourceEvidence(Base):

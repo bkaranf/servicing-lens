@@ -9,9 +9,10 @@ import sys
 from collections.abc import Sequence
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import uvicorn
+import yaml
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,24 +23,29 @@ from mortgage_servicing_dashboard.database import (
     QuarantineCandidate,
     create_database_engine,
     default_database_url,
-)
-from mortgage_servicing_dashboard.edgar_tools import EdgarToolsClient
-from mortgage_servicing_dashboard.edgar_tools_evidence import (
-    EdgarToolsEvidenceError,
-    EdgarToolsEvidenceStore,
+    initialize_schema,
 )
 from mortgage_servicing_dashboard.edgar_tools_pipeline import (
     EdgarToolsCompany,
     EdgarToolsSyncPipeline,
     EdgarToolsSyncState,
 )
+from mortgage_servicing_dashboard.edgartools_adapter import (
+    EdgarBootstrapConfig,
+    EdgarToolsAdapter,
+)
+from mortgage_servicing_dashboard.edgartools_adapter.errors import EdgarToolsAdapterError
+from mortgage_servicing_dashboard.edgartools_adapter.retention import GeneralEvidenceStore
+from mortgage_servicing_dashboard.financial_discovery import FinancialFieldRegistry
 from mortgage_servicing_dashboard.ingestion import (
     discover_live_sec_filings,
     run_cli_review_resume,
     run_live_sec_ingestion,
 )
 from mortgage_servicing_dashboard.repository import (
+    AtomicEdgarToolsRepository,
     IntelligenceRepository,
+    config_directory,
     load_stage_a_configuration,
     prepare_stage_a,
     seed_phase3,
@@ -96,13 +102,15 @@ def build_parser() -> argparse.ArgumentParser:
             )
     sync = subparsers.add_parser(
         "sync",
-        help="Discover and retain filing evidence through the hosted EdgarTools API.",
+        help="Validate selected filing evidence through the public edgartools library.",
     )
     sync_target = sync.add_mutually_exclusive_group(required=True)
     sync_target.add_argument("--company", choices=("TFC", "PFSI"))
     sync_target.add_argument("--all", action="store_true", dest="all_companies")
     sync.add_argument("--since", help="Inclusive ISO filing date with a seven-day overlap.")
     sync.add_argument("--dry-run", action="store_true")
+    sync.add_argument("--database-url")
+    sync.add_argument("--config-dir", type=Path)
     sync.add_argument("--runtime-dir", type=Path, default=Path(".msi"))
     review = subparsers.add_parser("review", help="List or decide quarantined candidates.")
     review.add_argument("action", choices=("list", "approve", "reject"))
@@ -123,11 +131,14 @@ def build_parser() -> argparse.ArgumentParser:
 def doctor_payload(settings: AppSettings) -> dict[str, Any]:
     """Build a deterministic, allow-listed readiness payload."""
     information = StaticFoundationInformation()
+    configuration = settings.safe_summary()
+    configuration.pop("edgar_api_key_configured", None)
+    configuration.pop("edgar_api_base_url", None)
     return {
         "application": "public-mortgage-servicing-intelligence",
         "stage": "phase_3_metric_deepening",
         "universe": ["TFC", "PFSI"],
-        "configuration": settings.safe_summary(),
+        "configuration": configuration,
         "capabilities": information.capabilities().as_payload(),
         "guardrails": information.guardrails().as_payload(),
     }
@@ -238,12 +249,22 @@ def _ingest_live(args: argparse.Namespace, settings: AppSettings) -> int:
 
 
 def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
-    """Run the bounded provider-only discovery path without disclosing unpublished values."""
+    """Run bounded public-edgartools validation and optional atomic publication."""
     try:
-        api_key = settings.require_edgar_api_key()
+        identity = settings.require_edgar_identity()
         since = date.fromisoformat(args.since) if args.since else None
     except ValueError as error:
         print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 2
+    database_url = args.database_url or os.environ.get("MSI_DATABASE_URL")
+    if not args.dry_run and not database_url:
+        print(
+            json.dumps(
+                {"error": "non-dry sync requires an explicit isolated --database-url"},
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+        )
         return 2
     companies = (
         EdgarToolsCompany("tfc", "TFC", "0000092230"),
@@ -254,34 +275,86 @@ def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
         if args.all_companies
         else tuple(company for company in companies if company.ticker == args.company)
     )
+    repository_root = Path.cwd().resolve()
+    config_root = config_directory(args.config_dir)
+    manifest_path = config_root / "golden-sources.v1.yaml"
+    if args.config_dir is None and not manifest_path.is_file():
+        manifest_path = (
+            repository_root / "tests" / "fixtures" / "edgartools" / "golden-sources.v1.yaml"
+        )
+    engine = None
     try:
-        with EdgarToolsClient(api_key=api_key) as client:
-            pipeline = EdgarToolsSyncPipeline(
-                client=client,
-                evidence_store=EdgarToolsEvidenceStore(
-                    args.runtime_dir / "edgar_tools" / "evidence"
-                ),
-            )
-            summaries = tuple(
-                pipeline.sync_company(company, since=since, dry_run=args.dry_run)
+        registry = FinancialFieldRegistry.from_yaml(config_root / "financial_fields.v1.yaml")
+        manifest = _load_golden_manifest(manifest_path)
+        bootstrap = EdgarBootstrapConfig(identity=identity, repository_root=repository_root)
+        adapter = EdgarToolsAdapter.from_config(
+            bootstrap,
+            evidence_store=GeneralEvidenceStore(
+                (args.runtime_dir / "evidence" / "edgartools").resolve()
+            ),
+        )
+        persistence = None
+        known_accessions: dict[str, frozenset[str]] = {}
+        if not args.dry_run:
+            engine = create_database_engine(str(database_url))
+            persistence = AtomicEdgarToolsRepository(engine)
+            known_accessions = {
+                company.company_id: persistence.known_accessions(company.company_id)
                 for company in selected
+            }
+        pipeline = EdgarToolsSyncPipeline(
+            adapter=adapter,
+            registry=registry,
+            golden_manifest=manifest,
+            persistence=persistence,
+        )
+        prepared = tuple(
+            pipeline.prepare_company(
+                company,
+                since=since,
+                dry_run=args.dry_run,
+                known_accessions=known_accessions.get(company.company_id, frozenset()),
             )
-    except (EdgarToolsEvidenceError, OSError, ValueError) as error:
+            for company in selected
+        )
+        summaries = (
+            tuple(item.summary for item in prepared)
+            if args.dry_run
+            else pipeline.persist_prepared_batch(prepared)
+        )
+    except (EdgarToolsAdapterError, OSError, TypeError, ValueError, yaml.YAMLError) as error:
         print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
         return 1
+    finally:
+        if engine is not None:
+            engine.dispose()
     print(
         json.dumps(
             {
-                "provider": "EDGAR_TOOLS_REST_API",
-                "base_url": settings.edgar_api_base_url,
+                "provider": "PUBLIC_EDGARTOOLS",
                 "results": [summary.as_payload() for summary in summaries],
             },
             indent=2,
             sort_keys=True,
         )
     )
-    successful_states = {EdgarToolsSyncState.DISCOVERED}
+    successful_states = {
+        EdgarToolsSyncState.VALIDATED,
+        EdgarToolsSyncState.PUBLISHED,
+        EdgarToolsSyncState.LINKED,
+        EdgarToolsSyncState.UNCHANGED,
+        EdgarToolsSyncState.DISCOVERED,
+    }
     return 0 if all(summary.terminal_state in successful_states for summary in summaries) else 1
+
+
+def _load_golden_manifest(path: Path) -> dict[str, object]:
+    with path.open(encoding="utf-8") as stream:
+        loaded = yaml.safe_load(stream)
+    if not isinstance(loaded, dict):
+        message = "golden manifest root must be a mapping"
+        raise TypeError(message)
+    return cast("dict[str, object]", loaded)
 
 
 def _calendar_command(engine: Any, args: argparse.Namespace) -> int:
@@ -415,14 +488,16 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0
         print(json.dumps(payload, sort_keys=True))
         engine.dispose()
         return exit_code
-    counts = seed_stage_a(engine, config_dir=getattr(args, "config_dir", None))
     if command == "calendar":
+        initialize_schema(engine)
         return _calendar_command(engine, args)
     if command in {"init-db", "seed", "ingest"}:
+        counts = seed_stage_a(engine, config_dir=getattr(args, "config_dir", None))
         print(json.dumps({"database": "ready", "inserted": counts}, sort_keys=True))
         engine.dispose()
         return 0
     if command == "validate":
+        initialize_schema(engine)
         repository = IntelligenceRepository(engine)
         payload = {
             "status": "valid",
@@ -435,6 +510,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0
         engine.dispose()
         return 0
     if command == "serve":
+        initialize_schema(engine)
         repository = IntelligenceRepository(engine)
         from mortgage_servicing_dashboard.api import create_app  # noqa: PLC0415
 

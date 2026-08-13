@@ -5,12 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sys
 from dataclasses import asdict, dataclass, replace
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, NoReturn, cast
 
 import yaml
 from sqlalchemy import Engine, Select, func, or_, select
@@ -56,6 +57,12 @@ from mortgage_servicing_dashboard.domain import (
     normalize_reported_value,
     validate_candidate,
 )
+from mortgage_servicing_dashboard.edgar_tools_pipeline import (
+    AtomicPersistenceResult,
+    CommittedCaseOutcome,
+    CommittedCaseState,
+    ValidatedFiling,
+)
 from mortgage_servicing_dashboard.sources import (
     AcquiredDocument,
     LiveSecAcquisition,
@@ -72,6 +79,873 @@ if TYPE_CHECKING:
     from mortgage_servicing_dashboard.phase3 import Phase3Dataset
 
 _MAX_REPOSITORY_RESULTS = 500
+_EDGARTOOLS_METHOD = "SEC_FILING_XBRL_VIA_EDGARTOOLS"
+_FINANCIAL_MAPPING_VERSION = "financial-fields-v1"
+_TOTAL_ASSETS_VERSION_ID = "total_assets:1.0.0"
+_SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
+_EDGARTOOLS_COMPANIES: dict[str, tuple[str, str, str, str, str]] = {
+    "tfc": (
+        "Truist Financial Corporation",
+        "TFC",
+        "bank",
+        "0000092230",
+        "tfc_registrant",
+    ),
+    "pfsi": (
+        "PennyMac Financial Services, Inc.",
+        "PFSI",
+        "nonbank",
+        "0001745916",
+        "pfsi_registrant",
+    ),
+}
+
+
+class EdgarToolsPersistenceError(ValueError):
+    """Coordinator output cannot be persisted without violating its contract."""
+
+
+def _fail_edgartools_persistence(message: str) -> NoReturn:
+    raise EdgarToolsPersistenceError(message)
+
+
+class AtomicEdgarToolsRepository:
+    """Atomic publication callback for coordinator-validated filing facts.
+
+    This path bootstraps only the two governed SEC registrants, their consolidated
+    company scopes, the required regimes, and the selected ``total_assets`` metric.
+    It never invokes the legacy Stage A or Phase 3 seeders.
+    """
+
+    def __init__(self, engine: Engine) -> None:
+        """Bind the isolated publication engine without touching its schema."""
+        self._engine = engine
+        self._last_result: AtomicPersistenceResult | None = None
+
+    @property
+    def last_result(self) -> AtomicPersistenceResult | None:
+        """Return counts only after a complete transaction has committed."""
+        return self._last_result
+
+    def persist_atomically(
+        self,
+        results: tuple[ValidatedFiling, ...],
+    ) -> AtomicPersistenceResult:
+        """Persist a validated batch in exactly one application transaction.
+
+        Args:
+            results: Complete coordinator-validated batch.
+
+        Raises:
+            ValueError: If lineage or governed semantics are incomplete.
+            SQLAlchemyError: If the database rejects any row; the whole batch rolls back.
+        """
+        self._last_result = None
+        ordered = tuple(
+            sorted(
+                results,
+                key=lambda item: (
+                    item.company_id,
+                    item.report_period,
+                    item.filing_date,
+                    item.amendment,
+                    item.accession_number,
+                    item.case_id,
+                ),
+            )
+        )
+        _validate_edgartools_batch(ordered)
+        if not ordered:
+            self._last_result = AtomicPersistenceResult()
+            return self._last_result
+
+        # Migration is structural preparation, not publication. It is deferred until
+        # this callback so dry runs never create an engine or touch a schema.
+        initialize_schema(self._engine)
+        counts = {
+            "evidence": 0,
+            "filings": 0,
+            "documents": 0,
+            "raw_facts": 0,
+            "observations": 0,
+            "revisions": 0,
+            "linked": 0,
+            "quarantined": 0,
+        }
+        knowledge_base = utc_now()
+        outcomes: list[CommittedCaseOutcome] = []
+        with Session(self._engine) as session, session.begin():
+            for item in ordered:
+                _ensure_edgartools_structure(session, item)
+            session.flush()
+            run, run_created = _edgartools_run(session, ordered, started_at=knowledge_base)
+            for ordinal, item in enumerate(ordered):
+                knowledge_at = knowledge_base + timedelta(microseconds=ordinal)
+                outcome = _persist_validated_filing(
+                    session,
+                    item,
+                    run=run,
+                    knowledge_at=knowledge_at,
+                    counts=counts,
+                )
+                outcomes.append(
+                    CommittedCaseOutcome(
+                        case_id=item.case_id,
+                        accession_number=item.accession_number,
+                        state=outcome,
+                    )
+                )
+            if run_created:
+                run.completed_at = knowledge_base + timedelta(microseconds=len(ordered))
+                run.status = "COMPLETED_WITH_QUARANTINE" if counts["quarantined"] else "COMPLETED"
+                run.terminal_outcomes = {
+                    "PUBLISHED": counts["observations"],
+                    "LINKED": counts["linked"],
+                    "QUARANTINED": counts["quarantined"],
+                    "UNCHANGED": sum(
+                        outcome.state is CommittedCaseState.UNCHANGED for outcome in outcomes
+                    ),
+                    "FAILED": 0,
+                }
+        self._last_result = AtomicPersistenceResult(outcomes=tuple(outcomes), **counts)
+        return self._last_result
+
+    def known_accessions(self, company_id: str) -> frozenset[str]:
+        """Load persisted SEC accessions for one governed company from this database."""
+        company = _EDGARTOOLS_COMPANIES.get(company_id)
+        if company is None:
+            _fail_edgartools_persistence("edgartools accessions are limited to TFC and PFSI")
+        initialize_schema(self._engine)
+        entity_id = company[4]
+        with Session(self._engine) as session:
+            return frozenset(
+                session.scalars(
+                    select(Filing.accession).where(Filing.reporting_entity_id == entity_id)
+                )
+            )
+
+
+def _validate_edgartools_batch(  # noqa: C901, PLR0912
+    results: tuple[ValidatedFiling, ...],
+) -> None:
+    case_ids: set[str] = set()
+    for item in results:
+        company = _EDGARTOOLS_COMPANIES.get(item.company_id)
+        if company is None:
+            _fail_edgartools_persistence("edgartools publication is limited to TFC and PFSI")
+        _, _, _, cik, entity_id = company
+        expected_scope = f"{item.company_id}_consolidated_company"
+        required = (
+            item.case_id,
+            item.mapping_version,
+            item.accession_number,
+            item.form,
+            item.primary_document,
+            item.source_url,
+            item.evidence_sha256,
+            item.evidence_location,
+            item.field_id,
+            item.reporting_entity_id,
+            item.reporting_scope_id,
+            item.raw_display_string,
+            item.context_ref,
+            item.unit,
+            item.qualified_concept,
+            item.original_label,
+            item.evidence_representation,
+            item.evidence_capture_method,
+            item.evidence_media_type,
+        )
+        if any(not value.strip() for value in required):
+            _fail_edgartools_persistence("validated filing lineage contains a blank required field")
+        if item.case_id in case_ids:
+            _fail_edgartools_persistence("validated filing batch repeats a case identifier")
+        case_ids.add(item.case_id)
+        if (
+            item.mapping_version != _FINANCIAL_MAPPING_VERSION
+            or item.field_id != "total_assets"
+            or item.cik != cik
+            or item.reporting_entity_id != entity_id
+            or item.reporting_scope_id != expected_scope
+        ):
+            _fail_edgartools_persistence(
+                "validated filing is outside the governed financial mapping"
+            )
+        if not isinstance(item.normalized_value, Decimal) or not item.normalized_value.is_finite():
+            _fail_edgartools_persistence("validated filing value must be a finite Decimal")
+        if (
+            not isinstance(item.source_scale, Decimal)
+            or not item.source_scale.is_finite()
+            or item.source_scale <= 0
+        ):
+            _fail_edgartools_persistence("validated filing source scale must be a positive Decimal")
+        if (
+            _SHA256_PATTERN.fullmatch(item.evidence_sha256) is None
+            or item.evidence_byte_length <= 0
+        ):
+            _fail_edgartools_persistence("validated filing evidence identity is invalid")
+        if item.evidence_location != f"content-sha256://{item.evidence_sha256}":
+            _fail_edgartools_persistence(
+                "validated filing retention location does not match its SHA-256"
+            )
+        if item.evidence_retrieved_at.tzinfo is None:
+            _fail_edgartools_persistence("validated filing retrieval time must be timezone-aware")
+        if item.source_object_count < 1 or len(item.source_locators) != item.source_object_count:
+            _fail_edgartools_persistence("validated filing source-object lineage is incomplete")
+        if not item.source_element_ids:
+            _fail_edgartools_persistence("validated filing requires at least one source element")
+        if item.amendment != (item.revision_of_accession is not None):
+            _fail_edgartools_persistence(
+                "amendment lineage must identify exactly one prior accession"
+            )
+        if item.amendment != item.form.endswith("/A"):
+            _fail_edgartools_persistence("filing amendment flag and form suffix disagree")
+        if item.evidence_representation != "EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8":
+            _fail_edgartools_persistence("validated filing evidence representation is not approved")
+        if item.evidence_capture_method != "edgartools_attachment_text_utf8":
+            _fail_edgartools_persistence("validated filing capture method is not approved")
+        if item.fiscal_quarter not in {"FY", "Q1", "Q2", "Q3", "Q4"}:
+            _fail_edgartools_persistence(
+                "validated filing fiscal quarter must be FY or Q1 through Q4"
+            )
+        if item.fiscal_year < date.min.year:
+            _fail_edgartools_persistence("validated filing fiscal year is invalid")
+
+
+def _ensure_edgartools_structure(  # noqa: C901
+    session: Session,
+    item: ValidatedFiling,
+) -> None:
+    legal_name, ticker, classification, cik, entity_id = _EDGARTOOLS_COMPANIES[item.company_id]
+    company = session.get(Company, item.company_id)
+    if company is None:
+        session.add(
+            Company(
+                id=item.company_id,
+                legal_name=legal_name,
+                ticker=ticker,
+                classification=classification,
+                universe_version=_FINANCIAL_MAPPING_VERSION,
+                active=True,
+            )
+        )
+    elif company.ticker != ticker or company.legal_name != legal_name:
+        _fail_edgartools_persistence(
+            "existing company identity conflicts with the governed registrant"
+        )
+    if session.get(ReportingEntity, entity_id) is None:
+        session.add(
+            ReportingEntity(
+                id=entity_id,
+                company_id=item.company_id,
+                legal_name=legal_name,
+                entity_type="SEC_REGISTRANT",
+            )
+        )
+    session.flush()
+    identifier_id = f"{entity_id}:cik"
+    identifier = session.get(EntityIdentifier, identifier_id)
+    if identifier is None:
+        session.add(
+            EntityIdentifier(
+                id=identifier_id,
+                reporting_entity_id=entity_id,
+                scheme="SEC_CIK",
+                value=cik,
+                valid_from=date(1900, 1, 1),
+                valid_to=None,
+            )
+        )
+    elif identifier.value != cik:
+        _fail_edgartools_persistence("existing CIK conflicts with the governed registrant")
+    if session.get(ReportingScope, item.reporting_scope_id) is None:
+        session.add(
+            ReportingScope(
+                id=item.reporting_scope_id,
+                reporting_entity_id=entity_id,
+                name=f"{legal_name} consolidated company",
+                portfolio_population="consolidated_sec_registrant",
+                methodology="Consolidated US GAAP financial statements of the SEC registrant.",
+            )
+        )
+    fiscal_id = f"{entity_id}:calendar"
+    if session.get(FiscalCalendarRegime, fiscal_id) is None:
+        session.add(
+            FiscalCalendarRegime(
+                id=fiscal_id,
+                reporting_entity_id=entity_id,
+                fiscal_year_end_month=12,
+                fiscal_year_end_day=31,
+                effective_from=date(1900, 1, 1),
+                effective_to=None,
+            )
+        )
+    policy_id = f"{entity_id}:us-gaap"
+    if session.get(AccountingPolicyRegime, policy_id) is None:
+        session.add(
+            AccountingPolicyRegime(
+                id=policy_id,
+                reporting_entity_id=entity_id,
+                policy_name="US_GAAP_ISSUER_REPORTED",
+                description="Consolidated issuer-reported US GAAP financial statements.",
+                effective_from=date(1900, 1, 1),
+                effective_to=None,
+            )
+        )
+    if session.get(MetricDefinition, "total_assets") is None:
+        session.add(
+            MetricDefinition(
+                id="total_assets",
+                display_name="Total assets",
+                category="CORE_FINANCIAL",
+            )
+        )
+    session.flush()
+    if session.get(MetricDefinitionVersion, _TOTAL_ASSETS_VERSION_ID) is None:
+        session.add(
+            MetricDefinitionVersion(
+                id=_TOTAL_ASSETS_VERSION_ID,
+                metric_id="total_assets",
+                semantic_version="1.0.0",
+                business_meaning="Consolidated total assets reported by the SEC registrant.",
+                grain="reporting entity, consolidated scope, instant period",
+                unit="USD",
+                permitted_scopes=["tfc_consolidated_company", "pfsi_consolidated_company"],
+                rules={
+                    "classification": "CORE_FINANCIAL",
+                    "mapping_version": _FINANCIAL_MAPPING_VERSION,
+                    "publication_source": _EDGARTOOLS_METHOD,
+                },
+                effective_from=date(1900, 1, 1),
+                effective_to=None,
+            )
+        )
+
+
+def _edgartools_run(
+    session: Session,
+    results: tuple[ValidatedFiling, ...],
+    *,
+    started_at: datetime,
+) -> tuple[PipelineRun, bool]:
+    run_digest = _stable_hash(
+        [
+            {
+                "case_id": item.case_id,
+                "accession": item.accession_number,
+                "evidence_sha256": item.evidence_sha256,
+                "mapping_version": item.mapping_version,
+            }
+            for item in results
+        ]
+    )
+    run_id = f"pipeline:edgartools:{run_digest[:48]}"
+    existing = session.get(PipelineRun, run_id)
+    if existing is not None:
+        return existing, False
+    company_ids = sorted({item.company_id for item in results})
+    run = PipelineRun(
+        id=run_id,
+        run_key=f"edgartools-financial-sync:{run_digest}",
+        status="PUBLISHING",
+        thread_id=f"edgartools:{run_digest[:32]}",
+        started_at=started_at,
+        completed_at=None,
+        error_count=0,
+        retry_count=0,
+        requested_company_id=company_ids[0] if len(company_ids) == 1 else None,
+        requested_periods=sorted({item.report_period.isoformat() for item in results}),
+        code_version="edgartools-financial-sync-v1",
+        config_version=_FINANCIAL_MAPPING_VERSION,
+        parser_version="inline-xbrl-selected-fields-v1",
+        terminal_outcomes={},
+    )
+    session.add(run)
+    session.flush()
+    return run, True
+
+
+def _persist_validated_filing(
+    session: Session,
+    item: ValidatedFiling,
+    *,
+    run: PipelineRun,
+    knowledge_at: datetime,
+    counts: dict[str, int],
+) -> CommittedCaseState:
+    evidence_id = _edgartools_evidence(session, item, run=run, counts=counts)
+    filing = _edgartools_filing(session, item, counts=counts)
+    _edgartools_document(session, item, filing=filing, evidence_id=evidence_id, counts=counts)
+    _edgartools_raw_fact(session, item, filing=filing, evidence_id=evidence_id, counts=counts)
+    return _edgartools_observation(
+        session,
+        item,
+        run=run,
+        evidence_id=evidence_id,
+        knowledge_at=knowledge_at,
+        counts=counts,
+    )
+
+
+def _edgartools_evidence(
+    session: Session,
+    item: ValidatedFiling,
+    *,
+    run: PipelineRun,
+    counts: dict[str, int],
+) -> str:
+    source_class = "SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS"
+    existing = session.scalar(
+        select(SourceEvidence).where(
+            SourceEvidence.content_sha256 == item.evidence_sha256,
+            SourceEvidence.byte_length == item.evidence_byte_length,
+        )
+    )
+    if existing is not None:
+        exact_identity = (
+            existing.source_class == source_class
+            and existing.original_url == item.source_url
+            and existing.representation == item.evidence_representation
+            and existing.capture_method == item.evidence_capture_method
+            and existing.retention_location == item.evidence_location
+            and existing.media_type == item.evidence_media_type
+        )
+        if not exact_identity:
+            _fail_edgartools_persistence(
+                "existing evidence hash has incompatible source and media identity"
+            )
+        return existing.id
+    evidence_id = f"evidence:edgartools:{item.evidence_sha256}"
+    session.add(
+        SourceEvidence(
+            id=evidence_id,
+            source_class=source_class,
+            original_url=item.source_url,
+            retrieved_at=item.evidence_retrieved_at,
+            published_at=datetime.combine(item.filing_date, time.min, tzinfo=UTC),
+            accession_or_identifier=item.accession_number,
+            content_sha256=item.evidence_sha256,
+            byte_length=item.evidence_byte_length,
+            media_type=item.evidence_media_type,
+            representation=item.evidence_representation,
+            capture_method=item.evidence_capture_method,
+            parser_version="inline-xbrl-selected-fields-v1",
+            acquisition_run_id=run.id,
+            reporting_entity_candidate=item.reporting_entity_id,
+            reporting_period_candidate=item.report_period.isoformat(),
+            retention_location=item.evidence_location,
+            bounded_excerpt="Retained edgartools filing document; raw body omitted.",
+            response_status=None,
+            etag=None,
+            last_modified=None,
+        )
+    )
+    counts["evidence"] += 1
+    return evidence_id
+
+
+def _filing_id(accession: str) -> str:
+    return f"filing:edgartools:{hashlib.sha256(accession.encode()).hexdigest()[:48]}"
+
+
+def _edgartools_filing(
+    session: Session,
+    item: ValidatedFiling,
+    *,
+    counts: dict[str, int],
+) -> Filing:
+    existing = session.scalar(select(Filing).where(Filing.accession == item.accession_number))
+    if existing is not None:
+        expected_amendment_id = None
+        if item.revision_of_accession is not None:
+            expected_prior = session.scalar(
+                select(Filing).where(Filing.accession == item.revision_of_accession)
+            )
+            if expected_prior is None:
+                _fail_edgartools_persistence("amendment references an unknown prior accession")
+            expected_amendment_id = expected_prior.id
+        if (
+            existing.reporting_entity_id != item.reporting_entity_id
+            or existing.form_type != item.form
+            or existing.filed_at.date() != item.filing_date
+            or existing.period_end != item.report_period
+            or existing.amendment_of_id != expected_amendment_id
+        ):
+            _fail_edgartools_persistence(
+                "existing filing identity conflicts with validated metadata"
+            )
+        return existing
+    amendment_of_id = None
+    if item.revision_of_accession is not None:
+        prior = session.scalar(select(Filing).where(Filing.accession == item.revision_of_accession))
+        if prior is None:
+            _fail_edgartools_persistence("amendment references an unknown prior accession")
+        amendment_of_id = prior.id
+    filing = Filing(
+        id=_filing_id(item.accession_number),
+        reporting_entity_id=item.reporting_entity_id,
+        form_type=item.form,
+        accession=item.accession_number,
+        filed_at=datetime.combine(item.filing_date, time.min, tzinfo=UTC),
+        period_end=item.report_period,
+        amendment_of_id=amendment_of_id,
+    )
+    session.add(filing)
+    session.flush()
+    counts["filings"] += 1
+    return filing
+
+
+def _edgartools_document(
+    session: Session,
+    item: ValidatedFiling,
+    *,
+    filing: Filing,
+    evidence_id: str,
+    counts: dict[str, int],
+) -> None:
+    digest = hashlib.sha256(f"{item.accession_number}|{item.primary_document}".encode()).hexdigest()
+    document_id = f"document:edgartools:{digest[:47]}"
+    existing = session.get(FilingDocument, document_id)
+    if existing is not None:
+        if (
+            existing.filing_id != filing.id
+            or existing.filename != item.primary_document
+            or existing.source_url != item.source_url
+            or existing.document_type != item.form
+            or existing.source_evidence_id != evidence_id
+            or existing.is_primary is not True
+        ):
+            _fail_edgartools_persistence(
+                "filing document identity conflicts with validated metadata"
+            )
+        return
+    session.add(
+        FilingDocument(
+            id=document_id,
+            filing_id=filing.id,
+            sequence=1,
+            document_type=item.form,
+            filename=item.primary_document,
+            source_url=item.source_url,
+            source_evidence_id=evidence_id,
+            description="Primary filing document acquired through edgartools",
+            is_primary=True,
+        )
+    )
+    counts["documents"] += 1
+
+
+def _edgartools_raw_fact(
+    session: Session,
+    item: ValidatedFiling,
+    *,
+    filing: Filing,
+    evidence_id: str,
+    counts: dict[str, int],
+) -> None:
+    taxonomy, separator, concept = item.qualified_concept.partition(":")
+    if not separator or not taxonomy or not concept:
+        _fail_edgartools_persistence("qualified XBRL concept must contain taxonomy and concept")
+    digest = _stable_hash(
+        {
+            "accession": item.accession_number,
+            "evidence": item.evidence_sha256,
+            "concept": item.qualified_concept,
+            "context": item.context_ref,
+            "raw": item.raw_display_string,
+            "elements": item.source_element_ids,
+        }
+    )
+    fact_id = f"raw-xbrl:edgartools:{digest[:47]}"
+    if session.get(RawXbrlFact, fact_id) is not None:
+        return
+    session.add(
+        RawXbrlFact(
+            id=fact_id,
+            evidence_id=evidence_id,
+            filing_id=filing.id,
+            concept=concept,
+            taxonomy=taxonomy,
+            entity_identifier=item.cik,
+            context_ref=item.context_ref,
+            raw_value=item.raw_display_string,
+            unit_ref=item.unit,
+            decimals=None if item.decimals is None else str(item.decimals),
+            scale=item.source_scale,
+            period_type="instant",
+            period_start=None,
+            period_end=item.report_period,
+            instant=item.report_period,
+            dimensions={},
+            methodology=_EDGARTOOLS_METHOD,
+        )
+    )
+    counts["raw_facts"] += 1
+
+
+def _edgartools_semantic_digest(item: ValidatedFiling) -> str:
+    return _stable_hash(
+        {
+            "metric_version_id": _TOTAL_ASSETS_VERSION_ID,
+            "reporting_entity_id": item.reporting_entity_id,
+            "reporting_scope_id": item.reporting_scope_id,
+            "period_start": None,
+            "period_end": item.report_period.isoformat(),
+            "period_type": "instant",
+            "fiscal_calendar_regime_id": f"{item.reporting_entity_id}:calendar",
+            "accounting_policy_regime_id": f"{item.reporting_entity_id}:us-gaap",
+            "observation_state": ObservationState.REPORTED_ACTUAL.value,
+            "methodology": _EDGARTOOLS_METHOD,
+            "currency": "USD",
+            "unit": item.unit,
+            "scale": "1",
+            "dimensions": {},
+        }
+    )
+
+
+def _observation_accession(observation: MetricObservation) -> str | None:
+    accession = observation.parser_metadata.get("accession_number")
+    return accession if isinstance(accession, str) else None
+
+
+def _edgartools_observation(  # noqa: PLR0913
+    session: Session,
+    item: ValidatedFiling,
+    *,
+    run: PipelineRun,
+    evidence_id: str,
+    knowledge_at: datetime,
+    counts: dict[str, int],
+) -> CommittedCaseState:
+    semantic_digest = _edgartools_semantic_digest(item)
+    observation_digest = _stable_hash(
+        {
+            "case_id": item.case_id,
+            "accession": item.accession_number,
+            "evidence": item.evidence_sha256,
+            "semantic": semantic_digest,
+        }
+    )
+    observation_id = f"observation:edgartools:{observation_digest[:48]}"
+    if session.get(MetricObservation, observation_id) is not None:
+        return CommittedCaseState.UNCHANGED
+    active = session.scalars(
+        select(MetricObservation)
+        .where(
+            MetricObservation.semantic_key_digest == semantic_digest,
+            MetricObservation.knowledge_to.is_(None),
+            MetricObservation.publication_state == PublicationState.PUBLISHED.value,
+        )
+        .order_by(MetricObservation.revision_number.desc(), MetricObservation.id)
+    ).all()
+    if len(active) > 1:
+        _fail_edgartools_persistence("more than one active observation exists for a semantic key")
+    prior = active[0] if active else None
+    if prior is not None and not item.amendment:
+        if prior.value == item.normalized_value:
+            linked = _link_edgartools_evidence(
+                session,
+                observation=prior,
+                item=item,
+                evidence_id=evidence_id,
+                counts=counts,
+            )
+            return CommittedCaseState.LINKED if linked else CommittedCaseState.UNCHANGED
+        quarantined = _quarantine_edgartools_conflict(
+            session,
+            item,
+            run=run,
+            evidence_id=evidence_id,
+            prior=prior,
+            counts=counts,
+        )
+        return CommittedCaseState.QUARANTINED if quarantined else CommittedCaseState.UNCHANGED
+    if prior is not None and item.revision_of_accession is not None:
+        prior_accession = _observation_accession(prior)
+        if prior_accession != item.revision_of_accession:
+            _fail_edgartools_persistence("amendment does not identify the active prior observation")
+        prior.knowledge_to = knowledge_at
+        prior.publication_state = PublicationState.SUPERSEDED.value
+    elif item.amendment:
+        _fail_edgartools_persistence("amendment has no active prior observation to supersede")
+
+    observation = MetricObservation(
+        id=observation_id,
+        metric_version_id=_TOTAL_ASSETS_VERSION_ID,
+        reporting_entity_id=item.reporting_entity_id,
+        reporting_scope_id=item.reporting_scope_id,
+        fiscal_calendar_regime_id=f"{item.reporting_entity_id}:calendar",
+        accounting_policy_regime_id=f"{item.reporting_entity_id}:us-gaap",
+        period_start=None,
+        period_end=item.report_period,
+        fiscal_year=item.fiscal_year,
+        fiscal_quarter=0 if item.fiscal_quarter == "FY" else int(item.fiscal_quarter[1:]),
+        period_type="instant",
+        value=item.normalized_value,
+        currency="USD",
+        unit=item.unit,
+        scale="1",
+        reported_decimals=_reported_decimals(item.decimals),
+        reported_precision="source decimals preserved",
+        observation_state=ObservationState.REPORTED_ACTUAL.value,
+        methodology=_EDGARTOOLS_METHOD,
+        dimensions={},
+        evidence_locator=item.source_locators[0],
+        extraction_method="deterministic_inline_xbrl",
+        parser_metadata={
+            "case_id": item.case_id,
+            "mapping_version": item.mapping_version,
+            "classification": item.classification.value,
+            "accession_number": item.accession_number,
+            "form": item.form,
+            "fiscal_year": item.fiscal_year,
+            "fiscal_quarter": item.fiscal_quarter,
+            "amendment": item.amendment,
+            "revision_of_accession": item.revision_of_accession,
+            "primary_document": item.primary_document,
+            "qualified_concept": item.qualified_concept,
+            "context_ref": item.context_ref,
+            "source_scale": str(item.source_scale),
+            "source_element_ids": list(item.source_element_ids),
+            "source_object_count": item.source_object_count,
+            "source_locators": list(item.source_locators),
+            "evidence_sha256": item.evidence_sha256,
+            "evidence_representation": item.evidence_representation,
+            "evidence_capture_method": item.evidence_capture_method,
+        },
+        validation_summary="Exact approved golden filing fact and SHA-256 lineage validated.",
+        publication_state=PublicationState.PUBLISHED.value,
+        revision_number=1 if prior is None else prior.revision_number + 1,
+        semantic_key_digest=semantic_digest,
+        valid_from=item.report_period,
+        valid_to=None,
+        knowledge_from=knowledge_at,
+        knowledge_to=None,
+        supersedes_observation_id=None if prior is None else prior.id,
+        quality_state=QualityState.VALIDATED.value,
+        reported_label=item.original_label,
+        reported_value=item.raw_display_string,
+        published_at=knowledge_at,
+    )
+    session.add(observation)
+    session.flush()
+    _link_edgartools_evidence(
+        session,
+        observation=observation,
+        item=item,
+        evidence_id=evidence_id,
+        counts=counts,
+        count_link=False,
+    )
+    revision_id = f"revision:edgartools:{observation_digest[:51]}"
+    session.add(
+        ObservationRevision(
+            id=revision_id,
+            observation_id=observation.id,
+            prior_observation_id=None if prior is None else prior.id,
+            reason=(
+                "initial edgartools financial publication"
+                if prior is None
+                else "SEC amendment created an immutable successor revision"
+            ),
+            created_at=knowledge_at,
+        )
+    )
+    counts["observations"] += 1
+    counts["revisions"] += 1
+    return CommittedCaseState.PUBLISHED
+
+
+def _reported_decimals(value: int | str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def _link_edgartools_evidence(  # noqa: PLR0913
+    session: Session,
+    *,
+    observation: MetricObservation,
+    item: ValidatedFiling,
+    evidence_id: str,
+    counts: dict[str, int],
+    count_link: bool = True,
+) -> bool:
+    if session.get(ObservationEvidence, (observation.id, evidence_id)) is not None:
+        return False
+    session.add(
+        ObservationEvidence(
+            observation_id=observation.id,
+            evidence_id=evidence_id,
+            evidence_role="primary" if observation.revision_number == 1 else "revision",
+            locator=item.source_locators[0],
+            raw_label=item.original_label,
+            raw_value=item.raw_display_string,
+            disclosed_unit=item.unit,
+            disclosed_scale=str(item.source_scale),
+            extraction_method="deterministic_inline_xbrl",
+            validation_status="VALIDATED",
+        )
+    )
+    if count_link:
+        counts["linked"] += 1
+    return True
+
+
+def _quarantine_edgartools_conflict(  # noqa: PLR0913
+    session: Session,
+    item: ValidatedFiling,
+    *,
+    run: PipelineRun,
+    evidence_id: str,
+    prior: MetricObservation,
+    counts: dict[str, int],
+) -> bool:
+    digest = _stable_hash(
+        {
+            "semantic": prior.semantic_key_digest,
+            "active": prior.id,
+            "accession": item.accession_number,
+            "evidence": item.evidence_sha256,
+        }
+    )
+    candidate_id = f"quarantine:edgartools:{digest[:48]}"
+    if session.get(QuarantineCandidate, candidate_id) is not None:
+        return False
+    session.add(
+        QuarantineCandidate(
+            id=candidate_id,
+            pipeline_run_id=run.id,
+            proposed_metric_id=item.field_id,
+            raw_source_label=item.original_label,
+            raw_value=item.raw_display_string,
+            proposed_normalized_value=item.normalized_value,
+            unit=item.unit,
+            scale=str(item.source_scale),
+            period_end=item.report_period,
+            reporting_entity_id=item.reporting_entity_id,
+            reporting_scope_id=item.reporting_scope_id,
+            methodology=_EDGARTOOLS_METHOD,
+            evidence_id=evidence_id,
+            evidence_locator=item.source_locators[0],
+            bounded_excerpt="Conflicting exact fact retained; raw filing body omitted.",
+            confidence=Decimal("1.0000"),
+            conflicts_and_uncertainties=[
+                "OVERLAPPING_FACT_CONFLICT",
+                f"active_observation:{prior.id}",
+                f"candidate_accession:{item.accession_number}",
+            ],
+            model_and_prompt_version=None,
+            status="OVERLAPPING_FACT_CONFLICT",
+        )
+    )
+    counts["quarantined"] += 1
+    return True
 
 
 @dataclass(frozen=True, slots=True)

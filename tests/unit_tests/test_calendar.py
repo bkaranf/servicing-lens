@@ -178,7 +178,7 @@ def test_official_config_populates_two_issuer_offline_calendar(
     assert result.freshness_state is CalendarFreshnessState.NOT_YET_EXPECTED
 
 
-def test_calendar_cli_labels_actual_and_inferred_fields(
+def test_calendar_cli_is_graceful_without_implicit_legacy_seed(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -196,10 +196,7 @@ def test_calendar_cli_labels_actual_and_inferred_fields(
         == 0
     )
     payload = json.loads(capsys.readouterr().out)
-    rows = payload["calendar"]
-    assert {item["ticker"] for item in rows} == {"TFC", "PFSI"}
-    assert all(item["last_reported_period"]["is_inferred"] is False for item in rows)
-    assert all(item["next_expected_report_window"]["is_inferred"] is True for item in rows)
+    assert payload["calendar"] == []
 
 
 def test_calendar_inference_fails_closed_without_eligible_history() -> None:
