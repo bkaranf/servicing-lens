@@ -28,6 +28,8 @@ def test_doctor_json_contains_only_safe_readiness_data(
     monkeypatch.setenv("PROVIDER_API_KEY", secret)
     monkeypatch.delenv("MSD_MODEL", raising=False)
     monkeypatch.setenv("MSD_ENABLE_MODEL_CALLS", "false")
+    identity = "Servicing Lens synthetic-contact@example.test"
+    monkeypatch.setenv("EDGAR_IDENTITY", identity)
     monkeypatch.setenv("EDGAR_API_KEY", "synthetic-edgar-tools-test-key")
 
     exit_code = main(["doctor", "--json"])
@@ -38,9 +40,11 @@ def test_doctor_json_contains_only_safe_readiness_data(
     assert captured.err == ""
     assert payload["capabilities"]["status"] == "ready"
     assert payload["configuration"]["remote_tracing_allowed"] is False
+    assert payload["configuration"]["edgar_identity_configured"] is True
     assert payload["configuration"]["edgar_api_key_configured"] is True
     assert payload["configuration"]["edgar_api_base_url"] == "https://api.edgar.tools/v1/"
     assert "SYNTHETIC_TEST_KEY" not in captured.out
+    assert identity not in captured.out
     assert secret not in captured.out
 
 

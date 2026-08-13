@@ -77,6 +77,11 @@ class AppSettings(BaseSettings):
     enable_langgraph_persistence: bool = False
     max_prompt_chars: int = Field(default=2_000, ge=1, le=8_000)
     sec_user_agent: str | None = Field(default=None, repr=False)
+    edgar_identity: SecretStr | None = Field(
+        default=None,
+        validation_alias="EDGAR_IDENTITY",
+        repr=False,
+    )
     edgar_api_key: SecretStr | None = Field(
         default=None,
         validation_alias="EDGAR_API_KEY",
@@ -84,7 +89,7 @@ class AppSettings(BaseSettings):
     )
     edgar_api_base_url: str = _EDGAR_TOOLS_BASE_URL
 
-    @field_validator("model", "sec_user_agent", "edgar_api_key", mode="before")
+    @field_validator("model", "sec_user_agent", "edgar_identity", "edgar_api_key", mode="before")
     @classmethod
     def normalize_optional_string(cls, value: Any) -> Any:
         """Treat an empty optional string environment variable as unconfigured.
@@ -186,6 +191,7 @@ class AppSettings(BaseSettings):
             "langgraph_persistence_enabled": self.enable_langgraph_persistence,
             "max_prompt_chars": self.max_prompt_chars,
             "sec_user_agent_configured": self.sec_user_agent is not None,
+            "edgar_identity_configured": self.edgar_identity is not None,
             "edgar_api_key_configured": self.edgar_api_key is not None,
             "edgar_api_base_url": self.edgar_api_base_url,
             "remote_tracing_allowed": False,
@@ -204,6 +210,20 @@ class AppSettings(BaseSettings):
             msg = "EDGAR_API_KEY is required for live EdgarTools access"
             raise ValueError(msg)
         return self.edgar_api_key
+
+    def require_edgar_identity(self) -> SecretStr:
+        """Return the configured open-source edgartools identity or fail closed.
+
+        Returns:
+            The secret-bearing identity wrapper.
+
+        Raises:
+            ValueError: If `EDGAR_IDENTITY` was not configured.
+        """
+        if self.edgar_identity is None:
+            msg = "EDGAR_IDENTITY is required for live SEC access through edgartools"
+            raise ValueError(msg)
+        return self.edgar_identity
 
     def require_sec_user_agent(self) -> str:
         """Return the configured identity or fail closed for an explicit live run.

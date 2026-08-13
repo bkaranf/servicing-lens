@@ -1883,7 +1883,7 @@ def test_resolve_company_fails_closed_on_absence_or_identity_mismatch(
     tickers: object,
 ) -> None:
     company = _CapabilityCompany(not_found=cast("bool", not_found))
-    company.cik = returned_cik
+    company.cik = cast("Any", returned_cik)
     company.tickers = cast("Any", tickers)
     backend, module = _capability_backend(company, None)
     expected_type = AdapterNotFoundError if not_found else AdapterSelectionError
@@ -1918,7 +1918,7 @@ def test_resolve_company_deduplicates_case_normalized_tickers_and_allows_absence
 
     assert result.tickers == ("TFC", "TFC-PQ")
 
-    company.tickers = None
+    company.tickers = cast("Any", None)
     assert backend.resolve_company("92230").tickers == ()
 
 
@@ -2253,11 +2253,9 @@ def test_xbrl_capabilities_return_none_only_for_genuine_library_absence(operatio
     )
 
     if operation == "get_filing_xbrl":
-        result = backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK)
+        assert backend.get_filing_xbrl(_ACCESSION, expected_cik=_CIK) is None
     else:
-        result = backend.get_filing_structure(_ACCESSION, expected_cik=_CIK)
-
-    assert result is None
+        assert backend.get_filing_structure(_ACCESSION, expected_cik=_CIK) is None
     assert module.global_lookup_calls == []
 
 
@@ -2441,6 +2439,7 @@ def test_filing_xbrl_rejects_malformed_public_unit_fact_or_source_registry(
     xbrl = _library_raw_xbrl()
     unit = xbrl.units["USD-per-share"]
     filing = _LibraryFilingBundle(xbrl=xbrl)
+    mutable_filing = cast("Any", filing)
     if case == "units-registry":
         xbrl.units = []
     elif case == "unit-key":
@@ -2454,9 +2453,9 @@ def test_filing_xbrl_rejects_malformed_public_unit_fact_or_source_registry(
     elif case == "facts-registry":
         xbrl.parser.facts = []
     elif case == "source-document":
-        filing.primary_document = None
+        mutable_filing.primary_document = None
     else:
-        filing.filing_url = None
+        mutable_filing.filing_url = None
     backend, _ = _capability_backend(
         _CapabilityCompany(filings=(filing,)),
         filing,
@@ -2805,6 +2804,7 @@ def test_list_attachments_maps_library_failure_and_preserves_local_mapping_error
 @pytest.mark.parametrize("classifier", ["missing", "nonboolean"])
 def test_attachment_mapping_requires_public_boolean_binary_classifier(classifier: str) -> None:
     _, primary, _ = _library_attachments()
+    selected: object
     if classifier == "missing":
         selected = SimpleNamespace(
             sequence_number=primary.sequence_number,

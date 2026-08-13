@@ -18,6 +18,7 @@ def test_safe_defaults_and_summary() -> None:
         enable_langgraph_persistence=False,
         max_prompt_chars=2_000,
         sec_user_agent=None,
+        edgar_identity=None,
         edgar_api_key=None,
     )
 
@@ -30,6 +31,7 @@ def test_safe_defaults_and_summary() -> None:
         "langgraph_persistence_enabled": False,
         "max_prompt_chars": 2_000,
         "sec_user_agent_configured": False,
+        "edgar_identity_configured": False,
         "edgar_api_key_configured": False,
         "edgar_api_base_url": "https://api.edgar.tools/v1/",
         "remote_tracing_allowed": False,
@@ -94,6 +96,29 @@ def test_edgar_api_key_is_secret_environment_only_and_doctor_safe(
     assert secret not in repr(settings.model_dump())
     assert secret not in settings.model_dump_json()
     assert secret not in repr(settings.safe_summary())
+
+
+def test_edgar_identity_is_secret_environment_only_and_doctor_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    identity = "Servicing Lens synthetic-contact@example.test"
+    monkeypatch.setenv("EDGAR_IDENTITY", identity)
+
+    settings = AppSettings()
+
+    assert isinstance(settings.edgar_identity, SecretStr)
+    assert settings.require_edgar_identity().get_secret_value() == identity
+    assert settings.safe_summary()["edgar_identity_configured"] is True
+    assert identity not in repr(settings)
+    assert identity not in repr(settings.model_dump())
+    assert identity not in settings.model_dump_json()
+    assert identity not in repr(settings.safe_summary())
+
+
+def test_missing_edgar_identity_fails_closed() -> None:
+    settings = AppSettings(edgar_identity=None)
+    with pytest.raises(ValueError, match="EDGAR_IDENTITY"):
+        settings.require_edgar_identity()
 
 
 def test_edgar_tools_base_url_is_fixed_and_missing_key_fails_closed() -> None:
