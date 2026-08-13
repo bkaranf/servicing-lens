@@ -26,6 +26,7 @@ investment, legal, security, or regulatory approval.
 | D-015 | ACCEPTED | Stage A passed its closure audit on 2026-08-12; proceed to D-013 extraction before later pipeline phases |
 | D-016 | ACCEPTED | Phase 2 live acquisition, structured adapters, regulatory scopes, and calendar passed its exit gate on 2026-08-12 |
 | D-017 | ACCEPTED | Phase 3 TFC/PFSI profitability and expense metric deepening passed its exit gate on 2026-08-12 |
+| D-018 | ACCEPTED | Make the hosted EdgarTools REST API the sole active external SEC-data provider, subject to an exact parity gate before legacy removal |
 
 ## D-001 — Public-product scope reset
 
@@ -357,3 +358,27 @@ current dashboard is not expanded for the new domains here because UI alignment
 is explicitly Phase 5. D-014 production/model decisions remain deferred. D-012
 is now satisfied through Phase 3, so Phase 4 may begin with the first governed
 issuer only; later issuers and Phase 5 remain blocked by their preceding gates.
+
+## D-018 — Hosted EdgarTools REST source boundary
+
+The hosted REST API at `https://api.edgar.tools/v1` becomes the sole active
+external provider for SEC filing discovery, filing metadata, document listing,
+document retrieval, and structured financial data. One small typed `httpx`
+client owns bearer authentication and permits only that HTTPS host and `/v1/`
+path. SEC URLs returned by the provider remain provenance/display metadata and
+are never fetched. Provider payloads and document bytes are labeled as
+EdgarTools proxy evidence, not original SEC HTTP responses.
+
+This decision supersedes D-007's direct SEC/IR/regulatory acquisition boundary
+and the direct-SEC acquisition portion of D-016. It does not transfer numeric or
+publication authority to the provider: deterministic local code continues to
+own metric semantics, entity/scope/period resolution, exact `Decimal`
+normalization, validation, reconciliation, revisions, persistence, publication,
+API, and presentation. No LLM extraction fallback is permitted.
+
+Legacy acquisition remains in place only during the non-destructive migration.
+It may be removed only after a shadow run reproduces every currently published
+TFC/PFSI observation with exact value, semantic, period, scope, revision, and
+presentation parity and complete resolvable provenance. A tier, endpoint,
+document, parser, or semantic gap blocks destructive cleanup and release; it
+does not authorize a hidden fallback or a weaker missing-data state.
