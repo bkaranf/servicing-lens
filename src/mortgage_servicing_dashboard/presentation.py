@@ -143,8 +143,18 @@ def _to_base_units(row: ObservationRecord) -> Decimal | None:
     return Decimal(row.value) if row.value is not None else None
 
 
+def fiscal_period_label(*, fiscal_year: int, fiscal_quarter: int) -> str:
+    """Render the repository's zero sentinel as an annual fiscal period."""
+    if fiscal_quarter == 0:
+        return f"FY {fiscal_year}"
+    return f"Q{fiscal_quarter} {fiscal_year}"
+
+
 def _period_label(row: ObservationRecord) -> str:
-    return f"Q{row.fiscal_quarter} {row.fiscal_year}"
+    return fiscal_period_label(
+        fiscal_year=row.fiscal_year,
+        fiscal_quarter=row.fiscal_quarter,
+    )
 
 
 def _locator_url(row: ObservationRecord) -> str | None:

@@ -53,6 +53,9 @@ cases:
     amendment: false
     accession: "0000092230-26-000030"
     primary_document: tfc-20251231.htm
+    primary_sequence: "1"
+    primary_document_type: 10-K
+    primary_description: 10-K
     source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000030/tfc-20251231.htm
     source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
     edgartools_source:
@@ -76,6 +79,9 @@ cases:
       unit: USD
       decimals: "-6"
       scale: "1000000"
+      source_sign: null
+      source_precision: null
+      presentation_sign: POSITIVE
       source_object_count: 1
       semantic_fact_count: 1
     cross_check_evidence:
@@ -103,6 +109,9 @@ cases:
     amendment: false
     accession: "0000092230-26-000099"
     primary_document: tfc-20260630.htm
+    primary_sequence: "1"
+    primary_document_type: 10-Q
+    primary_description: 10-Q
     source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm
     source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
     edgartools_source:
@@ -124,6 +133,9 @@ cases:
       unit: USD
       decimals: "-6"
       scale: "1000000"
+      source_sign: null
+      source_precision: null
+      presentation_sign: POSITIVE
       source_object_count: 1
       semantic_fact_count: 1
     cross_check_evidence:
@@ -151,6 +163,9 @@ cases:
     amendment: false
     accession: "0001104659-26-018142"
     primary_document: pfsi-20251231x10k.htm
+    primary_sequence: "1"
+    primary_document_type: 10-K
+    primary_description: 10-K
     source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926018142/pfsi-20251231x10k.htm
     source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
     edgartools_source:
@@ -176,6 +191,9 @@ cases:
       unit: USD
       decimals: "-3"
       scale: "1000"
+      source_sign: null
+      source_precision: null
+      presentation_sign: POSITIVE
       source_object_count: 2
       semantic_fact_count: 1
     cross_check_evidence:
@@ -203,6 +221,9 @@ cases:
     amendment: false
     accession: "0001104659-26-090486"
     primary_document: pfsi-20260630x10q.htm
+    primary_sequence: "1"
+    primary_document_type: 10-Q
+    primary_description: 10-Q
     source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm
     source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
     edgartools_source:
@@ -227,6 +248,9 @@ cases:
       unit: USD
       decimals: "-3"
       scale: "1000"
+      source_sign: null
+      source_precision: null
+      presentation_sign: POSITIVE
       source_object_count: 3
       semantic_fact_count: 1
     cross_check_evidence:

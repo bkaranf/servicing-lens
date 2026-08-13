@@ -101,6 +101,15 @@ _EDGARTOOLS_COMPANIES: dict[str, tuple[str, str, str, str, str]] = {
 }
 
 
+def _as_utc(value: datetime | None) -> datetime | None:
+    """Normalize SQLite's timezone-naive round trip for identity comparison."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 class EdgarToolsPersistenceError(ValueError):
     """Coordinator output cannot be persisted without violating its contract."""
 
@@ -225,7 +234,7 @@ class AtomicEdgarToolsRepository:
             )
 
 
-def _validate_edgartools_batch(  # noqa: C901, PLR0912
+def _validate_edgartools_batch(  # noqa: C901, PLR0912, PLR0915
     results: tuple[ValidatedFiling, ...],
 ) -> None:
     case_ids: set[str] = set()
@@ -241,12 +250,18 @@ def _validate_edgartools_batch(  # noqa: C901, PLR0912
             item.accession_number,
             item.form,
             item.primary_document,
+            item.primary_sequence,
+            item.primary_document_type,
+            item.primary_description,
             item.source_url,
             item.evidence_sha256,
             item.evidence_location,
             item.field_id,
             item.reporting_entity_id,
             item.reporting_scope_id,
+            item.reporting_scope_name,
+            item.portfolio_population,
+            item.scope_methodology,
             item.raw_display_string,
             item.context_ref,
             item.unit,
@@ -255,6 +270,7 @@ def _validate_edgartools_batch(  # noqa: C901, PLR0912
             item.evidence_representation,
             item.evidence_capture_method,
             item.evidence_media_type,
+            item.edgartools_version,
         )
         if any(not value.strip() for value in required):
             _fail_edgartools_persistence("validated filing lineage contains a blank required field")
@@ -290,8 +306,20 @@ def _validate_edgartools_batch(  # noqa: C901, PLR0912
             )
         if item.evidence_retrieved_at.tzinfo is None:
             _fail_edgartools_persistence("validated filing retrieval time must be timezone-aware")
+        if item.acceptance_timestamp.tzinfo is None:
+            _fail_edgartools_persistence("filing acceptance time must be timezone-aware")
+        if item.edgartools_version != "5.48.0":
+            _fail_edgartools_persistence("validated filing edgartools version is not pinned")
+        if item.source_sign not in {None, "-"}:
+            _fail_edgartools_persistence("validated filing source sign is invalid")
+        if item.source_precision is not None and not item.source_precision.strip():
+            _fail_edgartools_persistence("validated filing source precision is blank")
+        if item.presentation_sign not in {"NEGATIVE", "ZERO", "POSITIVE"}:
+            _fail_edgartools_persistence("validated filing presentation sign is invalid")
         if item.source_object_count < 1 or len(item.source_locators) != item.source_object_count:
             _fail_edgartools_persistence("validated filing source-object lineage is incomplete")
+        if not item.primary_sequence.isdigit() or int(item.primary_sequence) < 1:
+            _fail_edgartools_persistence("primary document sequence is invalid")
         if not item.source_element_ids:
             _fail_edgartools_persistence("validated filing requires at least one source element")
         if item.amendment != (item.revision_of_accession is not None):
@@ -358,16 +386,24 @@ def _ensure_edgartools_structure(  # noqa: C901
         )
     elif identifier.value != cik:
         _fail_edgartools_persistence("existing CIK conflicts with the governed registrant")
-    if session.get(ReportingScope, item.reporting_scope_id) is None:
+    reporting_scope = session.get(ReportingScope, item.reporting_scope_id)
+    if reporting_scope is None:
         session.add(
             ReportingScope(
                 id=item.reporting_scope_id,
                 reporting_entity_id=entity_id,
-                name=f"{legal_name} consolidated company",
-                portfolio_population="consolidated_sec_registrant",
-                methodology="Consolidated US GAAP financial statements of the SEC registrant.",
+                name=item.reporting_scope_name,
+                portfolio_population=item.portfolio_population,
+                methodology=item.scope_methodology,
             )
         )
+    elif (
+        reporting_scope.reporting_entity_id != entity_id
+        or reporting_scope.name != item.reporting_scope_name
+        or reporting_scope.portfolio_population != item.portfolio_population
+        or reporting_scope.methodology != item.scope_methodology
+    ):
+        _fail_edgartools_persistence("existing scope conflicts with governed semantics")
     fiscal_id = f"{entity_id}:calendar"
     if session.get(FiscalCalendarRegime, fiscal_id) is None:
         session.add(
@@ -509,6 +545,7 @@ def _edgartools_evidence(
             and existing.capture_method == item.evidence_capture_method
             and existing.retention_location == item.evidence_location
             and existing.media_type == item.evidence_media_type
+            and existing.source_tool_version == item.edgartools_version
         )
         if not exact_identity:
             _fail_edgartools_persistence(
@@ -530,6 +567,7 @@ def _edgartools_evidence(
             representation=item.evidence_representation,
             capture_method=item.evidence_capture_method,
             parser_version="inline-xbrl-selected-fields-v1",
+            source_tool_version=item.edgartools_version,
             acquisition_run_id=run.id,
             reporting_entity_candidate=item.reporting_entity_id,
             reporting_period_candidate=item.report_period.isoformat(),
@@ -568,6 +606,7 @@ def _edgartools_filing(
             existing.reporting_entity_id != item.reporting_entity_id
             or existing.form_type != item.form
             or existing.filed_at.date() != item.filing_date
+            or _as_utc(existing.acceptance_timestamp) != _as_utc(item.acceptance_timestamp)
             or existing.period_end != item.report_period
             or existing.amendment_of_id != expected_amendment_id
         ):
@@ -587,6 +626,7 @@ def _edgartools_filing(
         form_type=item.form,
         accession=item.accession_number,
         filed_at=datetime.combine(item.filing_date, time.min, tzinfo=UTC),
+        acceptance_timestamp=item.acceptance_timestamp,
         period_end=item.report_period,
         amendment_of_id=amendment_of_id,
     )
@@ -613,6 +653,9 @@ def _edgartools_document(
             or existing.filename != item.primary_document
             or existing.source_url != item.source_url
             or existing.document_type != item.form
+            or existing.sequence != int(item.primary_sequence)
+            or existing.document_type != item.primary_document_type
+            or existing.description != item.primary_description
             or existing.source_evidence_id != evidence_id
             or existing.is_primary is not True
         ):
@@ -624,12 +667,12 @@ def _edgartools_document(
         FilingDocument(
             id=document_id,
             filing_id=filing.id,
-            sequence=1,
-            document_type=item.form,
+            sequence=int(item.primary_sequence),
+            document_type=item.primary_document_type,
             filename=item.primary_document,
             source_url=item.source_url,
             source_evidence_id=evidence_id,
-            description="Primary filing document acquired through edgartools",
+            description=item.primary_description,
             is_primary=True,
         )
     )
@@ -658,7 +701,14 @@ def _edgartools_raw_fact(
         }
     )
     fact_id = f"raw-xbrl:edgartools:{digest[:47]}"
-    if session.get(RawXbrlFact, fact_id) is not None:
+    existing = session.get(RawXbrlFact, fact_id)
+    if existing is not None:
+        if (
+            existing.source_sign != item.source_sign
+            or existing.source_precision != item.source_precision
+            or existing.presentation_sign != item.presentation_sign
+        ):
+            _fail_edgartools_persistence("existing raw fact sign or precision conflicts")
         return
     session.add(
         RawXbrlFact(
@@ -673,6 +723,9 @@ def _edgartools_raw_fact(
             unit_ref=item.unit,
             decimals=None if item.decimals is None else str(item.decimals),
             scale=item.source_scale,
+            source_sign=item.source_sign,
+            source_precision=item.source_precision,
+            presentation_sign=item.presentation_sign,
             period_type="instant",
             period_start=None,
             period_end=item.report_period,
@@ -788,7 +841,7 @@ def _edgartools_observation(  # noqa: PLR0913
         unit=item.unit,
         scale="1",
         reported_decimals=_reported_decimals(item.decimals),
-        reported_precision="source decimals preserved",
+        reported_precision=item.source_precision or "ABSENT_IN_SOURCE",
         observation_state=ObservationState.REPORTED_ACTUAL.value,
         methodology=_EDGARTOOLS_METHOD,
         dimensions={},
@@ -798,6 +851,9 @@ def _edgartools_observation(  # noqa: PLR0913
             "case_id": item.case_id,
             "mapping_version": item.mapping_version,
             "classification": item.classification.value,
+            "reporting_scope_name": item.reporting_scope_name,
+            "portfolio_population": item.portfolio_population,
+            "scope_methodology": item.scope_methodology,
             "accession_number": item.accession_number,
             "form": item.form,
             "fiscal_year": item.fiscal_year,
@@ -805,9 +861,15 @@ def _edgartools_observation(  # noqa: PLR0913
             "amendment": item.amendment,
             "revision_of_accession": item.revision_of_accession,
             "primary_document": item.primary_document,
+            "primary_sequence": item.primary_sequence,
+            "primary_document_type": item.primary_document_type,
+            "primary_description": item.primary_description,
             "qualified_concept": item.qualified_concept,
             "context_ref": item.context_ref,
             "source_scale": str(item.source_scale),
+            "source_sign": item.source_sign,
+            "source_precision": item.source_precision,
+            "presentation_sign": item.presentation_sign,
             "source_element_ids": list(item.source_element_ids),
             "source_object_count": item.source_object_count,
             "source_locators": list(item.source_locators),

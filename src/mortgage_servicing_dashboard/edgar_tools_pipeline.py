@@ -14,6 +14,7 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
+from importlib.metadata import version as distribution_version
 from typing import Protocol, TypeAlias, cast
 
 from mortgage_servicing_dashboard.edgartools_adapter.dto import (
@@ -38,6 +39,7 @@ _MAX_APPROVED_CASES = 4
 _ELIGIBLE_FORMS = ("10-K", "10-K/A", "10-Q", "10-Q/A")
 _APPROVED_REVIEW_STATES = frozenset({"INDEPENDENTLY_CROSS_CHECKED", "REVIEWER_APPROVED"})
 _QUARTER_MARKERS = frozenset({"Q1", "Q2", "Q3", "Q4"})
+EDGARTOOLS_VERSION = distribution_version("edgartools")
 
 
 class EdgarToolsSyncState(StrEnum):
@@ -122,17 +124,22 @@ class ValidatedFiling:
     accession_number: str
     form: str
     filing_date: date
+    acceptance_timestamp: datetime
     report_period: date
     fiscal_year: int
     fiscal_quarter: str
     amendment: bool
     revision_of_accession: str | None
     primary_document: str
+    primary_sequence: str
+    primary_document_type: str
+    primary_description: str
     source_url: str
     evidence_sha256: str
     evidence_byte_length: int
     evidence_location: str
     evidence_retrieved_at: datetime
+    edgartools_version: str
     evidence_representation: str
     evidence_capture_method: str
     evidence_media_type: str
@@ -140,6 +147,9 @@ class ValidatedFiling:
     classification: FinancialClassification
     reporting_entity_id: str
     reporting_scope_id: str
+    reporting_scope_name: str
+    portfolio_population: str
+    scope_methodology: str
     qualified_concept: str
     original_label: str
     raw_display_string: str
@@ -148,6 +158,9 @@ class ValidatedFiling:
     unit: str
     decimals: int | str | None
     source_scale: Decimal
+    source_sign: str | None
+    source_precision: str | None
+    presentation_sign: str
     source_element_ids: tuple[str, ...]
     source_object_count: int
     source_locators: tuple[str, ...]
@@ -390,6 +403,9 @@ class _GoldenCase:
     amendment: bool
     revision_of_accession: str | None
     primary_document: str
+    primary_sequence: str
+    primary_document_type: str
+    primary_description: str
     source_url: str
     evidence_sha256: str
     evidence_byte_length: int
@@ -405,6 +421,9 @@ class _GoldenCase:
     unit: str
     decimals: str | None
     source_scale: Decimal
+    source_sign: str | None
+    source_precision: str | None
+    presentation_sign: str
     source_element_ids: tuple[str, ...]
     source_object_count: int
     semantic_fact_count: int
@@ -827,17 +846,22 @@ class EdgarToolsSyncPipeline:
             accession_number=case.accession,
             form=case.form,
             filing_date=case.filing_date,
+            acceptance_timestamp=cast("datetime", filing.acceptance_timestamp),
             report_period=case.report_period,
             fiscal_year=case.fiscal_year,
             fiscal_quarter=case.fiscal_quarter,
             amendment=case.amendment,
             revision_of_accession=case.revision_of_accession,
             primary_document=case.primary_document,
+            primary_sequence=primary.sequence,
+            primary_document_type=primary.attachment_type,
+            primary_description=primary.description,
             source_url=case.source_url,
             evidence_sha256=retained.content_sha256,
             evidence_byte_length=retained.byte_length,
             evidence_location=retained.retention_location,
             evidence_retrieved_at=acquisition.content.retrieved_at,
+            edgartools_version=EDGARTOOLS_VERSION,
             evidence_representation=retained.representation.value,
             evidence_capture_method=retained.capture_method,
             evidence_media_type=retained.media_type,
@@ -845,6 +869,9 @@ class EdgarToolsSyncPipeline:
             classification=case.classification,
             reporting_entity_id=mapping.xbrl.reporting_entity_id,
             reporting_scope_id=mapping.xbrl.reporting_scope_id,
+            reporting_scope_name=mapping.reporting_scope_name,
+            portfolio_population=mapping.portfolio_population,
+            scope_methodology=mapping.scope_methodology,
             qualified_concept=candidate.qualified_concept,
             original_label=case.original_label,
             raw_display_string=candidate.raw_value,
@@ -853,6 +880,9 @@ class EdgarToolsSyncPipeline:
             unit=candidate.unit,
             decimals=candidate.decimals,
             source_scale=case.source_scale,
+            source_sign=candidate.source_sign,
+            source_precision=candidate.source_precision,
+            presentation_sign=candidate.presentation_sign.value,
             source_element_ids=candidate.source_element_ids,
             source_object_count=candidate.source_object_count,
             source_locators=candidate.source_locators,
@@ -1036,6 +1066,11 @@ def _filing_mismatches(case: _GoldenCase, filing: Filing) -> tuple[str, ...]:
         (filing.accession_number == case.accession, "accession"),
         (filing.form == case.form, "form"),
         (filing.filing_date == case.filing_date, "filing_date"),
+        (
+            filing.acceptance_timestamp is not None
+            and filing.acceptance_timestamp.tzinfo is not None,
+            "acceptance_timestamp",
+        ),
         (filing.report_period == case.report_period, "report_period"),
         (filing.primary_document == case.primary_document, "primary_document"),
         (filing.amendment is case.amendment, "amendment"),
@@ -1058,6 +1093,9 @@ def _select_primary(
         primary.accession_number == case.accession,
         primary.document == case.primary_document,
         primary.source_url == case.source_url,
+        primary.sequence == case.primary_sequence,
+        primary.attachment_type == case.primary_document_type,
+        primary.description == case.primary_description,
     )
     if not all(checks):
         return EdgarToolsSyncState.MISMATCH, "primary attachment identity did not match"
@@ -1128,6 +1166,9 @@ def _candidate_mismatches(
         (candidate.unit == case.unit, "unit"),
         (str(candidate.decimals) == case.decimals, "decimals"),
         (effective_scale == case.source_scale, "scale"),
+        (candidate.source_sign == case.source_sign, "source_sign"),
+        (candidate.source_precision == case.source_precision, "source_precision"),
+        (candidate.presentation_sign.value == case.presentation_sign, "presentation_sign"),
         (tuple(sorted(candidate.source_element_ids)) == case.source_element_ids, "source_ids"),
         (candidate.source_object_count == case.source_object_count, "source_count"),
         (case.semantic_fact_count == 1, "semantic_count"),
@@ -1202,6 +1243,9 @@ def _golden_case(payload: Mapping[str, object]) -> _GoldenCase:
         )
     )
     revision = payload.get("revision_of_accession", payload.get("amends_accession"))
+    if "source_sign" not in fact or "source_precision" not in fact:
+        message = "golden approved fact must explicitly retain source sign and precision"
+        raise ValueError(message)
     return _GoldenCase(
         case_id=_required_string(payload, "case_id", location=location),
         issuer_id=_required_string(payload, "issuer_id", location=location),
@@ -1222,6 +1266,9 @@ def _golden_case(payload: Mapping[str, object]) -> _GoldenCase:
             None if revision is None else _string_item(revision, location="revision accession")
         ),
         primary_document=_required_string(payload, "primary_document", location=location),
+        primary_sequence=_required_string(payload, "primary_sequence", location=location),
+        primary_document_type=_required_string(payload, "primary_document_type", location=location),
+        primary_description=_required_string(payload, "primary_description", location=location),
         source_url=_required_string(payload, "source_url", location=location),
         evidence_sha256=_required_string(source, "sha256", location="golden case source"),
         evidence_byte_length=_positive_int(
@@ -1267,6 +1314,13 @@ def _golden_case(payload: Mapping[str, object]) -> _GoldenCase:
         unit=_required_string(fact, "unit", location="golden case approved_fact"),
         decimals=_optional_scalar_string(fact.get("decimals")),
         source_scale=_required_decimal(fact, "scale", location="golden case approved_fact"),
+        source_sign=_optional_string(fact.get("source_sign")),
+        source_precision=_optional_string(fact.get("source_precision")),
+        presentation_sign=_required_string(
+            fact,
+            "presentation_sign",
+            location="golden case approved_fact",
+        ),
         source_element_ids=tuple(
             sorted(
                 _string_item(value, location="golden case source_element_ids")

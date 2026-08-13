@@ -114,6 +114,9 @@ def _case(  # noqa: PLR0913 - explicit fixture fields mirror one manifest case.
         "amendment": form.endswith("/A"),
         "accession": accession,
         "primary_document": document,
+        "primary_sequence": "1",
+        "primary_document_type": form,
+        "primary_description": form,
         "source_url": source_url,
         "edgartools_source": {
             "sha256": digest,
@@ -134,6 +137,9 @@ def _case(  # noqa: PLR0913 - explicit fixture fields mirror one manifest case.
             "unit": "USD",
             "decimals": str(decimals),
             "scale": str(Decimal(10) ** scale),
+            "source_sign": None,
+            "source_precision": None,
+            "presentation_sign": "POSITIVE",
             "source_object_count": 1,
             "semantic_fact_count": 1,
         },
@@ -265,7 +271,7 @@ class _Adapter:
                 accession_number=accession,
                 document=document,
                 sequence="1",
-                description="Primary document",
+                description=str(case["form"]),
                 attachment_type=str(case["form"]),
                 size=len(payloads[accession]),
                 source_url=source_url,
@@ -656,6 +662,23 @@ def test_filing_metadata_mismatch_is_classified_without_document_calls(
     assert len([call for call in adapter.calls if call[0] == "attachments"]) == 1
 
 
+def test_missing_acceptance_timestamp_fails_before_document_calls(
+    manifest_and_payloads: tuple[dict[str, object], dict[str, bytes]],
+) -> None:
+    manifest, payloads = manifest_and_payloads
+    pipeline, adapter = _pipeline(manifest, payloads)
+    adapter.filings_by_cik[_TFC.cik][0] = replace(
+        adapter.filings_by_cik[_TFC.cik][0],
+        acceptance_timestamp=None,
+    )
+
+    summary = pipeline.sync_company(_TFC, dry_run=True)
+
+    assert summary.filing_results[0].state is EdgarToolsSyncState.MISMATCH
+    assert "acceptance_timestamp" in summary.filing_results[0].safe_detail
+    assert len([call for call in adapter.calls if call[0] == "attachments"]) == 1
+
+
 def test_parse_value_mismatch_quarantines_batch_and_persists_nothing(
     manifest_and_payloads: tuple[dict[str, object], dict[str, bytes]],
 ) -> None:
@@ -929,6 +952,34 @@ def test_primary_identity_mismatch_fails_before_acquisition(
     adapter.attachments_by_accession[accession] = (
         replace(primary, source_url="https://www.sec.gov/wrong"),
     )
+
+    summary = pipeline.sync_company(_TFC, dry_run=True)
+
+    assert summary.filing_results[0].state is EdgarToolsSyncState.MISMATCH
+    assert len([call for call in adapter.calls if call[0] == "acquire_attachment"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("attribute", "value"),
+    [("sequence", "2"), ("attachment_type", "EX-99"), ("description", "wrong")],
+)
+def test_primary_source_metadata_mismatch_fails_before_acquisition(
+    manifest_and_payloads: tuple[dict[str, object], dict[str, bytes]],
+    attribute: str,
+    value: str,
+) -> None:
+    manifest, payloads = manifest_and_payloads
+    pipeline, adapter = _pipeline(manifest, payloads)
+    accession = str(_cases(manifest, "tfc")[0]["accession"])
+    primary = adapter.attachments_by_accession[accession][0]
+    mismatch = (
+        replace(primary, sequence=value)
+        if attribute == "sequence"
+        else replace(primary, attachment_type=value)
+        if attribute == "attachment_type"
+        else replace(primary, description=value)
+    )
+    adapter.attachments_by_accession[accession] = (mismatch,)
 
     summary = pipeline.sync_company(_TFC, dry_run=True)
 

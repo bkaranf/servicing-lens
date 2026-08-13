@@ -81,6 +81,14 @@ class DecisionDisposition(StrEnum):
     QUARANTINED = "QUARANTINED"
 
 
+class PresentationSign(StrEnum):
+    """Explicit normalized sign retained separately from the source attribute."""
+
+    NEGATIVE = "NEGATIVE"
+    ZERO = "ZERO"
+    POSITIVE = "POSITIVE"
+
+
 class XbrlDataError(ValueError):
     """Safe deterministic XBRL payload or mapping failure."""
 
@@ -125,6 +133,9 @@ class XbrlFact:
     evidence_id: str
     locator: str
     source_element_id: str | None = None
+    source_sign: str | None = None
+    source_precision: str | None = None
+    presentation_sign: PresentationSign = PresentationSign.POSITIVE
 
     def __post_init__(self) -> None:
         """Enforce exact numeric and complete context invariants."""
@@ -149,6 +160,12 @@ class XbrlFact:
             msg = "XBRL fact semantics must not be blank"
             raise XbrlDataError(msg)
         _validate_decimals(self.decimals)
+        if self.source_sign not in {None, "-"}:
+            msg = "XBRL source sign must be absent or the inline-XBRL minus marker"
+            raise XbrlDataError(msg)
+        if self.source_precision is not None and not self.source_precision.strip():
+            msg = "XBRL source precision cannot be blank"
+            raise XbrlDataError(msg)
         if self.period_type is XbrlPeriodType.INSTANT and self.period_start is not None:
             msg = "instant XBRL facts cannot have a period start"
             raise XbrlDataError(msg)
@@ -582,6 +599,13 @@ class SecFilingXbrlAdapter:
             scale_exponent = _optional_integer(element.attrib.get("scale"), field_name="scale")
             scale = Decimal(10) ** (scale_exponent or 0)
             value *= scale
+            presentation_sign = (
+                PresentationSign.NEGATIVE
+                if value < 0
+                else PresentationSign.ZERO
+                if value == 0
+                else PresentationSign.POSITIVE
+            )
             decimals = _parse_decimals(element.attrib.get("decimals"))
             entity_identifier = context.entity_identifier
             cik = _normalize_cik(entity_identifier, location=f"context.{context_ref}.identifier")
@@ -613,6 +637,9 @@ class SecFilingXbrlAdapter:
                         f"occurrence={len(parsed)}"
                     ),
                     source_element_id=element.attrib.get("id"),
+                    source_sign=element.attrib.get("sign"),
+                    source_precision=element.attrib.get("precision"),
+                    presentation_sign=presentation_sign,
                 )
             )
         return tuple(parsed)

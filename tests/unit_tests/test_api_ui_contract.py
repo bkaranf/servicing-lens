@@ -29,6 +29,7 @@ from mortgage_servicing_dashboard.database import (
     create_database_engine,
     initialize_schema,
 )
+from mortgage_servicing_dashboard.presentation import fiscal_period_label
 from mortgage_servicing_dashboard.repository import IntelligenceRepository, seed_stage_a
 from mortgage_servicing_dashboard.tools import build_intelligence_tools
 
@@ -45,6 +46,11 @@ _READ_TOOL_NAMES = {
     "list_earnings_events",
     "get_pipeline_freshness",
 }
+
+
+def test_fiscal_period_label_distinguishes_annual_from_quarterly() -> None:
+    assert fiscal_period_label(fiscal_year=2025, fiscal_quarter=0) == "FY 2025"
+    assert fiscal_period_label(fiscal_year=2026, fiscal_quarter=2) == "Q2 2026"
 
 
 @pytest.fixture

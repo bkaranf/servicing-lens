@@ -34,6 +34,7 @@ from mortgage_servicing_dashboard.presentation import (
     CompanyIdentity,
     EarningsIdentity,
     ScaleAssessment,
+    fiscal_period_label,
     normalize_companies,
     normalize_earnings,
     serialize_cards,
@@ -370,7 +371,10 @@ def _normalized_value(row: ObservationRecord) -> str:
 
 
 def _period_label(row: ObservationRecord) -> str:
-    return f"Q{row.fiscal_quarter} {row.fiscal_year}"
+    return fiscal_period_label(
+        fiscal_year=row.fiscal_year,
+        fiscal_quarter=row.fiscal_quarter,
+    )
 
 
 def _semantics_align(left: ObservationRecord, right: ObservationRecord) -> bool:

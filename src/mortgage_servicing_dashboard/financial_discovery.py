@@ -27,6 +27,7 @@ from mortgage_servicing_dashboard.edgartools_adapter.dto import (
 )
 from mortgage_servicing_dashboard.xbrl import (
     DimensionMember,
+    PresentationSign,
     SecFilingXbrlAdapter,
     XbrlConceptMapping,
     XbrlMappingRegistry,
@@ -320,6 +321,9 @@ class RawFilingFactLocator:
     scale: Decimal
     source_locators: tuple[str, ...]
     source_object_count: int
+    source_sign: str | None = None
+    source_precision: str | None = None
+    presentation_sign: PresentationSign = PresentationSign.POSITIVE
     review_status: ReviewStatus = ReviewStatus.REVIEW_REQUIRED
 
     def __post_init__(self) -> None:
@@ -505,6 +509,9 @@ def _coalesce_parsed_facts(
             fact.unit,
             fact.decimals,
             fact.scale,
+            fact.source_sign,
+            fact.source_precision,
+            fact.presentation_sign,
         )
         grouped.setdefault(key, []).append(fact)
     candidates: list[RawFilingFactLocator] = []
@@ -540,6 +547,9 @@ def _coalesce_parsed_facts(
                 scale=first.scale,
                 source_locators=tuple(source_fact.locator for source_fact in source_facts),
                 source_object_count=len(source_facts),
+                source_sign=first.source_sign,
+                source_precision=first.source_precision,
+                presentation_sign=first.presentation_sign,
             )
         )
     return tuple(candidates)

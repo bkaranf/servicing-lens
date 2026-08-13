@@ -52,6 +52,11 @@ def _validated(  # noqa: PLR0913 - fixture exposes the governed filing identity.
 ) -> ValidatedFiling:
     cik = "0000092230" if company_id == "tfc" else "0001745916"
     entity = f"{company_id}_registrant"
+    legal_name = (
+        "Truist Financial Corporation"
+        if company_id == "tfc"
+        else "PennyMac Financial Services, Inc."
+    )
     filename = f"{company_id}-{accession[-6:]}.htm"
     content_hash = hashlib.sha256(case_id.encode()).hexdigest()
     return ValidatedFiling(
@@ -62,12 +67,16 @@ def _validated(  # noqa: PLR0913 - fixture exposes the governed filing identity.
         accession_number=accession,
         form=form,
         filing_date=filed,
+        acceptance_timestamp=datetime(2026, 2, 24, 21, 30, tzinfo=UTC),
         report_period=period,
         fiscal_year=fiscal_year,
         fiscal_quarter=fiscal_quarter,
         amendment=amendment,
         revision_of_accession=revision_of,
         primary_document=filename,
+        primary_sequence="1",
+        primary_document_type=form,
+        primary_description=form,
         source_url=(
             f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/"
             f"{accession.replace('-', '')}/{filename}"
@@ -76,6 +85,7 @@ def _validated(  # noqa: PLR0913 - fixture exposes the governed filing identity.
         evidence_byte_length=len(case_id.encode()),
         evidence_location=f"content-sha256://{content_hash}",
         evidence_retrieved_at=datetime(2026, 8, 13, 12, tzinfo=UTC),
+        edgartools_version="5.48.0",
         evidence_representation="EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8",
         evidence_capture_method="edgartools_attachment_text_utf8",
         evidence_media_type="text/html; charset=utf-8",
@@ -83,6 +93,13 @@ def _validated(  # noqa: PLR0913 - fixture exposes the governed filing identity.
         classification=FinancialClassification.CORE_FINANCIAL,
         reporting_entity_id=entity,
         reporting_scope_id=f"{company_id}_consolidated_company",
+        reporting_scope_name=f"{legal_name} consolidated SEC registrant",
+        portfolio_population="consolidated_sec_registrant",
+        scope_methodology=(
+            "Consolidated GAAP financial statements of the SEC registrant; not a servicing "
+            "portfolio, reportable segment, bank holding-company regulatory scope, or "
+            "depository scope."
+        ),
         qualified_concept="us-gaap:Assets",
         original_label="Total assets",
         raw_display_string=raw,
@@ -91,6 +108,9 @@ def _validated(  # noqa: PLR0913 - fixture exposes the governed filing identity.
         unit="USD",
         decimals="-6" if company_id == "tfc" else "-3",
         source_scale=Decimal(1000000) if company_id == "tfc" else Decimal(1000),
+        source_sign=None,
+        source_precision=None,
+        presentation_sign="POSITIVE",
         source_element_ids=("f-assets",),
         source_object_count=1,
         source_locators=("inline-xbrl#f-assets",),
@@ -125,6 +145,7 @@ def test_atomic_publication_bootstraps_only_selected_financial_structure_and_lin
         assert set(session.scalars(select(Company.id))) == {"tfc"}
         assert set(session.scalars(select(MetricDefinition.id))) == {"total_assets"}
         evidence = session.scalar(select(SourceEvidence))
+        filing = session.scalar(select(Filing))
         document = session.scalar(select(FilingDocument))
         fact = session.scalar(select(RawXbrlFact))
         observation = session.scalar(select(MetricObservation))
@@ -132,16 +153,29 @@ def test_atomic_publication_bootstraps_only_selected_financial_structure_and_lin
         revision = session.scalar(select(ObservationRevision))
         assert evidence is not None
         assert evidence.content_sha256 == item.evidence_sha256
+        assert evidence.source_tool_version == "5.48.0"
+        assert filing is not None
+        assert filing.acceptance_timestamp is not None
+        assert filing.acceptance_timestamp.replace(tzinfo=UTC) == datetime(
+            2026, 2, 24, 21, 30, tzinfo=UTC
+        )
         assert document is not None
         assert document.source_evidence_id == evidence.id
         assert document.is_primary is True
+        assert document.sequence == 1
+        assert document.document_type == "10-K"
+        assert document.description == "10-K"
         assert fact is not None
         assert fact.evidence_id == evidence.id
         assert fact.raw_value == item.raw_display_string
+        assert fact.source_sign is None
+        assert fact.source_precision is None
+        assert fact.presentation_sign == "POSITIVE"
         assert observation is not None
         assert observation.value == item.normalized_value
         assert observation.fiscal_quarter == 0
         assert observation.parser_metadata["fiscal_quarter"] == "FY"
+        assert observation.reported_precision == "ABSENT_IN_SOURCE"
         assert link is not None
         assert link.evidence_id == evidence.id
         assert revision is not None
@@ -210,6 +244,7 @@ def test_equal_overlap_returns_linked_outcome_and_known_accessions(tmp_path: Pat
         ("capture_method", "incompatible_capture"),
         ("retention_location", "content-sha256://incompatible"),
         ("media_type", "application/xml"),
+        ("source_tool_version", "5.47.0"),
     ],
 )
 def test_evidence_hash_reuse_requires_exact_source_and_media_identity(
@@ -387,6 +422,15 @@ def test_atomic_failure_rolls_back_first_item_when_second_item_raises(
         ({"amendment": True, "revision_of_accession": "prior"}, "form suffix"),
         ({"evidence_representation": "ORIGINAL_HTTP_RESPONSE"}, "representation"),
         ({"evidence_capture_method": "sec_http_get"}, "capture method"),
+        ({"edgartools_version": "5.47.0"}, "version is not pinned"),
+        (
+            {
+                "acceptance_timestamp": _validated("naive-acceptance").acceptance_timestamp.replace(
+                    tzinfo=None
+                )
+            },
+            "acceptance time must be timezone-aware",
+        ),
     ],
 )
 def test_invalid_lineage_fails_before_schema_write(
