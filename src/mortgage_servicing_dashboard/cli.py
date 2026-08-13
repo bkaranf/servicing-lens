@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +22,16 @@ from mortgage_servicing_dashboard.database import (
     QuarantineCandidate,
     create_database_engine,
     default_database_url,
+)
+from mortgage_servicing_dashboard.edgar_tools import EdgarToolsClient
+from mortgage_servicing_dashboard.edgar_tools_evidence import (
+    EdgarToolsEvidenceError,
+    EdgarToolsEvidenceStore,
+)
+from mortgage_servicing_dashboard.edgar_tools_pipeline import (
+    EdgarToolsCompany,
+    EdgarToolsSyncPipeline,
+    EdgarToolsSyncState,
 )
 from mortgage_servicing_dashboard.ingestion import (
     discover_live_sec_filings,
@@ -84,6 +94,16 @@ def build_parser() -> argparse.ArgumentParser:
                 action="store_true",
                 help="Publish the governed retained Phase 3 dataset without network access.",
             )
+    sync = subparsers.add_parser(
+        "sync",
+        help="Discover and retain filing evidence through the hosted EdgarTools API.",
+    )
+    sync_target = sync.add_mutually_exclusive_group(required=True)
+    sync_target.add_argument("--company", choices=("TFC", "PFSI"))
+    sync_target.add_argument("--all", action="store_true", dest="all_companies")
+    sync.add_argument("--since", help="Inclusive ISO filing date with a seven-day overlap.")
+    sync.add_argument("--dry-run", action="store_true")
+    sync.add_argument("--runtime-dir", type=Path, default=Path(".msi"))
     review = subparsers.add_parser("review", help="List or decide quarantined candidates.")
     review.add_argument("action", choices=("list", "approve", "reject"))
     review.add_argument("--database-url")
@@ -217,6 +237,53 @@ def _ingest_live(args: argparse.Namespace, settings: AppSettings) -> int:
     return 0
 
 
+def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
+    """Run the bounded provider-only discovery path without disclosing unpublished values."""
+    try:
+        api_key = settings.require_edgar_api_key()
+        since = date.fromisoformat(args.since) if args.since else None
+    except ValueError as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 2
+    companies = (
+        EdgarToolsCompany("tfc", "TFC", "0000092230"),
+        EdgarToolsCompany("pfsi", "PFSI", "0001745916"),
+    )
+    selected = (
+        companies
+        if args.all_companies
+        else tuple(company for company in companies if company.ticker == args.company)
+    )
+    try:
+        with EdgarToolsClient(api_key=api_key) as client:
+            pipeline = EdgarToolsSyncPipeline(
+                client=client,
+                evidence_store=EdgarToolsEvidenceStore(
+                    args.runtime_dir / "edgar_tools" / "evidence"
+                ),
+            )
+            summaries = tuple(
+                pipeline.sync_company(company, since=since, dry_run=args.dry_run)
+                for company in selected
+            )
+    except (EdgarToolsEvidenceError, OSError, ValueError) as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 1
+    print(
+        json.dumps(
+            {
+                "provider": "EDGAR_TOOLS_REST_API",
+                "base_url": settings.edgar_api_base_url,
+                "results": [summary.as_payload() for summary in summaries],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+    successful_states = {EdgarToolsSyncState.DISCOVERED}
+    return 0 if all(summary.terminal_state in successful_states for summary in summaries) else 1
+
+
 def _calendar_command(engine: Any, args: argparse.Namespace) -> int:
     try:
         as_of = datetime.fromisoformat(args.as_of) if args.as_of else None
@@ -282,7 +349,7 @@ def _review_candidate(engine: Any, args: argparse.Namespace) -> tuple[int, dict[
     }
 
 
-def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0912
+def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0912, PLR0915
     """Dispatch deterministic CLI operations."""
     args = build_parser().parse_args(argv)
     command = args.command or "doctor"
@@ -324,6 +391,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: C901, PLR0911, PLR0
             )
             return 2
         return _ingest_live(args, settings)
+
+    if command == "sync":
+        return _edgar_tools_sync(args, settings)
 
     database_url = _database_url(getattr(args, "database_url", None))
     if getattr(args, "config_dir", None) is not None:

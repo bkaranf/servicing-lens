@@ -7,8 +7,11 @@ import os
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+from typing import TypeVar
 
 from mortgage_servicing_dashboard.edgar_tools import ProviderResponse
+
+T = TypeVar("T")
 
 
 class EdgarToolsEvidenceError(RuntimeError):
@@ -74,7 +77,7 @@ class EdgarToolsEvidenceStore:
 
     def retain(
         self,
-        response: ProviderResponse[object],
+        response: ProviderResponse[T],
         *,
         evidence_type: EdgarToolsEvidenceType,
         lineage: EdgarToolsDocumentLineage | None = None,
