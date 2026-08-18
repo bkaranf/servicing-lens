@@ -1,4 +1,4 @@
-"""Typed deterministic ingestion services coordinated by a bounded LangGraph."""
+"""Typed deterministic ingestion services and explicit state transitions."""
 
 # ruff: noqa: EM101
 
@@ -6,31 +6,25 @@ from __future__ import annotations
 
 import hashlib
 import json
-import operator
 import tempfile
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from itertools import pairwise
 from pathlib import Path
-from typing import Annotated, Any, Literal, Protocol, assert_never, cast
+from typing import Any, Literal, Protocol, assert_never, cast
 
 import httpx
-from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.graph import END, START, StateGraph
-from langgraph.graph.state import CompiledStateGraph
-from langgraph.types import Command, interrupt
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 from typing_extensions import TypedDict
 
 from mortgage_servicing_dashboard.database import (
+    IngestionError,
     PipelineRun,
     QuarantineCandidate,
     create_database_engine,
+    initialize_schema,
+    utc_now,
 )
 from mortgage_servicing_dashboard.domain import (
     ParsedObservationCandidate,
@@ -123,8 +117,9 @@ class IngestionState(TypedDict, total=False):
     candidate_ids: list[str]
     validated_candidate_ids: list[str]
     quarantine_candidate_ids: list[str]
-    visited: Annotated[list[str], operator.add]
+    visited: list[str]
     review_decision: Literal["approve", "reject", "pending"]
+    review_candidate_id: str
     reviewer: str
     review_rationale: str
     published_count: int
@@ -134,7 +129,7 @@ class IngestionState(TypedDict, total=False):
     terminal_status: TerminalStatus
     terminal_outcomes: dict[str, int]
     error_codes: list[str]
-    audit_events: Annotated[list[str], operator.add]
+    audit_events: list[str]
 
 
 class IngestionUpdate(TypedDict, total=False):
@@ -166,7 +161,7 @@ class DocumentAcquirer(Protocol):
 
 
 class IngestionServices(Protocol):
-    """Stage service contract invoked by every LangGraph node."""
+    """Stage service contract invoked by each explicit runtime transition."""
 
     def execute(self, stage: StageName, state: IngestionState) -> IngestionUpdate:
         """Execute one deterministic stage and return bounded metadata only."""
@@ -750,19 +745,60 @@ class StageAIngestionServices:
             "audit_events": ["deduplication_completed:duplicates=0"],
         }
 
-    def _quarantine(self, state: IngestionState) -> IngestionUpdate:
-        thread_id = _required_thread_id(state)
-        prepare_stage_a(self.engine, config_dir=self.config_root, thread_id=thread_id)
-        with Session(self.engine) as session:
-            run = session.get(PipelineRun, state.get("run_id"))
-            if run is not None:
-                run.retry_count = sum(state.get("retry_counts", {}).values())
-                session.commit()
-        configured_ids = {
+    def _configured_quarantine_ids(self) -> set[str]:
+        return {
             str(recipe["candidate_id"])
             for definition in self.definitions.values()
             for recipe in definition.quarantine_rows
         }
+
+    def _quarantine(self, state: IngestionState) -> IngestionUpdate:
+        thread_id = _required_thread_id(state)
+        prepare_stage_a(self.engine, config_dir=self.config_root, thread_id=thread_id)
+        configured_ids = self._configured_quarantine_ids()
+        duplicate_ids = set(state.get("quarantine_candidate_ids", [])) - configured_ids
+        candidates_by_id = {
+            candidate.candidate_id: candidate for candidate in self._workspace.candidates
+        }
+        with Session(self.engine) as session:
+            run = session.get(PipelineRun, state.get("run_id"))
+            if run is not None:
+                run.retry_count = sum(state.get("retry_counts", {}).values())
+                for candidate_id in sorted(duplicate_ids):
+                    candidate = candidates_by_id.get(candidate_id)
+                    if (
+                        candidate is None
+                        or session.get(QuarantineCandidate, candidate_id) is not None
+                    ):
+                        continue
+                    session.add(
+                        QuarantineCandidate(
+                            id=candidate.candidate_id,
+                            pipeline_run_id=run.id,
+                            proposed_metric_id=candidate.metric_id,
+                            raw_source_label=candidate.raw_label,
+                            raw_value=candidate.raw_value,
+                            proposed_normalized_value=candidate.normalized_value,
+                            unit=candidate.unit,
+                            scale=candidate.reported_scale,
+                            period_end=candidate.period_end,
+                            reporting_entity_id=candidate.reporting_entity_id,
+                            reporting_scope_id=candidate.reporting_scope_id,
+                            methodology=candidate.methodology,
+                            evidence_id=candidate.evidence_id,
+                            evidence_locator=candidate.evidence_locator,
+                            bounded_excerpt=(f"{candidate.raw_label}: {candidate.raw_value}")[
+                                :_MAX_STATE_STRING_LENGTH
+                            ],
+                            confidence=Decimal("0.5000"),
+                            conflicts_and_uncertainties=[
+                                "duplicate semantic candidate requires deterministic resolution"
+                            ],
+                            model_and_prompt_version=None,
+                            status="PENDING",
+                        )
+                    )
+                session.commit()
         candidate_ids = sorted(configured_ids | set(state.get("quarantine_candidate_ids", [])))
         status: TerminalStatus = "AWAITING_REVIEW" if candidate_ids else "RUNNING"
         return {
@@ -778,22 +814,88 @@ class StageAIngestionServices:
             "audit_events": [f"candidates_quarantined:{len(candidate_ids)}"],
         }
 
+    def _revalidate_quarantine_candidate(self, candidate: QuarantineCandidate) -> bool:
+        """Replay one approved row against the freshly retained evidence.
+
+        A quarantine candidate is never promoted merely because a reviewer approved
+        it.  The source bytes, configured row, exact text, normalized Decimal, and
+        deterministic mapping must still agree at publication time.  The current
+        Stage A quarantine recipe is intentionally ambiguous, so an exact replay is
+        useful evidence but remains unpublished.
+        """
+        for definition in self.definitions.values():
+            for recipe in definition.quarantine_rows:
+                if str(recipe["candidate_id"]) != candidate.id:
+                    continue
+                retained = self._workspace.retained.get(definition.key)
+                if retained is None:
+                    return False
+                try:
+                    values = self._parser.extract_row_values(
+                        content=self._store.verify(retained),
+                        raw_label=str(recipe["raw_label"]),
+                        occurrence=int(recipe.get("row_occurrence", 0)),
+                    )
+                    raw_value = values[int(recipe.get("value_index", 0))]
+                    normalized = normalize_reported_value(
+                        raw_value,
+                        rule=str(recipe["normalization"]),
+                    )
+                except (IndexError, KeyError, PublicSourceError, ValueError):
+                    return False
+                company = next(
+                    (item for item in self.companies if item["id"] == definition.company_id),
+                    None,
+                )
+                if company is None:
+                    return False
+                return (
+                    retained.sha256 == definition.content_sha256
+                    and candidate.evidence_id == f"evidence:{definition.key}"
+                    and candidate.raw_source_label == str(recipe["raw_label"])
+                    and raw_value == candidate.raw_value
+                    and normalized == candidate.proposed_normalized_value
+                    and candidate.proposed_metric_id == str(recipe["proposed_metric_id"])
+                    and candidate.unit == str(recipe["canonical_unit"])
+                    and candidate.scale == str(recipe["reported_scale"])
+                    and candidate.period_end == date.fromisoformat(str(recipe["period_end"]))
+                    and candidate.methodology == str(recipe["proposed_methodology"])
+                    and candidate.reporting_entity_id == str(company["reporting_entity"])
+                    and candidate.reporting_scope_id == str(company["reporting_scope"])
+                    and not candidate.conflicts_and_uncertainties
+                )
+        return False
+
     def _record_review(self, state: IngestionState) -> IngestionUpdate:
         decision = state.get("review_decision", "pending")
+        if not state.get("quarantine_candidate_ids"):
+            return {
+                "terminal_status": "RUNNING",
+                "audit_events": ["review_not_required:candidates=0"],
+            }
         if decision not in {"approve", "reject"}:
             raise IngestionServiceError(
                 "REVIEW_DECISION_INVALID",
                 "review resume must contain approve or reject",
             )
+        target = state.get("review_candidate_id")
+        candidate_ids = list(state.get("quarantine_candidate_ids", []))
+        if target is not None:
+            if target not in candidate_ids:
+                raise IngestionServiceError(
+                    "REVIEW_CANDIDATE_NOT_FOUND",
+                    "review candidate is not part of this pipeline run",
+                )
+            candidate_ids = [target]
         repository = IntelligenceRepository(self.engine)
-        for candidate_id in state.get("quarantine_candidate_ids", []):
+        for candidate_id in candidate_ids:
             repository.record_review_decision(
                 candidate_id=candidate_id,
                 decision=decision,
-                reviewer=state.get("reviewer", "langgraph-human-review"),
+                reviewer=state.get("reviewer", "local-reviewer"),
                 rationale=state.get(
                     "review_rationale",
-                    "explicit durable-thread review resume",
+                    "explicit deterministic review resume",
                 ),
                 thread_id=_required_thread_id(state),
             )
@@ -805,6 +907,24 @@ class StageAIngestionServices:
     def _publish(self, state: IngestionState) -> IngestionUpdate:
         thread_id = _required_thread_id(state)
         with Session(self.engine) as session:
+            configured_ids = self._configured_quarantine_ids()
+            run_candidates = session.scalars(
+                select(QuarantineCandidate).where(
+                    QuarantineCandidate.pipeline_run_id == state.get("run_id")
+                )
+            ).all()
+            runtime_duplicates = [
+                candidate for candidate in run_candidates if candidate.id not in configured_ids
+            ]
+            if runtime_duplicates:
+                for candidate in runtime_duplicates:
+                    if candidate.status != "REJECTED":
+                        candidate.status = "QUARANTINED_AFTER_REVALIDATION"
+                session.commit()
+                raise IngestionServiceError(
+                    "UNRESOLVED_RUNTIME_DUPLICATE",
+                    "runtime-detected duplicate candidates block publication",
+                )
             pending_revalidation = session.scalars(
                 select(QuarantineCandidate).where(
                     QuarantineCandidate.pipeline_run_id == state.get("run_id"),
@@ -812,7 +932,17 @@ class StageAIngestionServices:
                 )
             ).all()
             for candidate in pending_revalidation:
+                # Quarantine rows are deliberately ambiguous mappings.  Re-read the
+                # retained source and compare the exact row value before any public
+                # observation write.  A changed/missing row or a remaining conflict
+                # fails closed and never becomes an observation.
+                revalidated = self._revalidate_quarantine_candidate(candidate)
                 candidate.status = "QUARANTINED_AFTER_REVALIDATION"
+                if revalidated:
+                    candidate.conflicts_and_uncertainties = [
+                        *candidate.conflicts_and_uncertainties,
+                        "candidate has no deterministic publication mapping",
+                    ]
             session.commit()
         seed_stage_a(self.engine, config_dir=self.config_root, thread_id=thread_id)
         with Session(self.engine) as session:
@@ -954,17 +1084,8 @@ def _validate_bounded_state(state: IngestionState) -> None:
             raise IngestionServiceError("STATE_BOUND_EXCEEDED", msg)
 
 
-def _checkpoint_thread(config: RunnableConfig) -> str:
-    configurable = cast("dict[str, object]", config.get("configurable", {}))
-    return str(configurable.get("thread_id", ""))
-
-
-def _failure_update(
-    *,
-    stage: StageName,
-    state: IngestionState,
-    code: str,
-) -> dict[str, Any]:
+def _failure_update(*, stage: StageName, state: IngestionState, code: str) -> IngestionUpdate:
+    """Build a bounded failure transition; the audit stage always follows it."""
     outcomes = {
         "PUBLISHED": int(state.get("terminal_outcomes", {}).get("PUBLISHED", 0)),
         "NOT_DISCLOSED": int(state.get("terminal_outcomes", {}).get("NOT_DISCLOSED", 0)),
@@ -978,160 +1099,407 @@ def _failure_update(
         "FAILED": int(state.get("terminal_outcomes", {}).get("FAILED", 0)) + 1,
     }
     return {
-        "visited": [stage],
         "terminal_status": "FAILED",
         "terminal_outcomes": outcomes,
-        "error_codes": [code],
+        "error_codes": [*state.get("error_codes", []), code],
         "audit_events": [f"stage_failed:{stage}:{code}"],
     }
 
 
-def _stage_node(
-    stage: StageName,
-    services: IngestionServices,
-) -> Callable[[IngestionState, RunnableConfig], dict[str, Any]]:
-    def node(state: IngestionState, config: RunnableConfig) -> dict[str, Any]:
-        checkpoint_thread = _checkpoint_thread(config)
-        if checkpoint_thread != state.get("thread_id"):
-            return _failure_update(stage=stage, state=state, code="THREAD_MISMATCH")
-        try:
-            _validate_bounded_state(state)
-            update = dict(services.execute(stage, state))
-            update["visited"] = [stage]
-        except IngestionServiceError as error:
-            return _failure_update(stage=stage, state=state, code=error.code)
+def _merge_update(state: IngestionState, update: IngestionUpdate) -> IngestionState:
+    """Apply one stage's bounded update without framework-specific reducers."""
+    merged = dict(state)
+    for key, value in update.items():
+        if key in {"visited", "audit_events"}:
+            previous = cast("list[str]", merged.get(key, []))
+            merged[key] = [*previous, *cast("list[str]", value)]
         else:
-            return update
-
-    node.__name__ = stage
-    return node
+            merged[key] = value
+    return cast("IngestionState", merged)
 
 
-def _continue_route(state: IngestionState) -> Literal["next", "audit"]:
-    return "audit" if state.get("terminal_status") == "FAILED" else "next"
+def _default_outcomes() -> dict[str, int]:
+    return {
+        "PUBLISHED": 0,
+        "NOT_DISCLOSED": 0,
+        "SOURCE_NOT_CHECKED": 0,
+        "QUARANTINED": 0,
+        "FAILED": 0,
+    }
 
 
-def _review_route(
+def _validate_transition_identity(
     state: IngestionState,
-) -> Literal["request_human_review", "publish", "audit"]:
-    if state.get("terminal_status") == "FAILED":
-        return "audit"
-    if state.get("quarantine_candidate_ids"):
-        return "request_human_review"
-    return "publish"
+    stage: StageName,
+    update: IngestionUpdate,
+) -> None:
+    """Reject discovery output that escapes the run identity bound at entry."""
+    if stage == "discover_sources" and (
+        (update.get("run_key") is not None and update["run_key"] != state.get("run_key"))
+        or (update.get("run_id") is not None and update["run_id"] != state.get("run_id"))
+    ):
+        raise IngestionServiceError(
+            "RUN_IDENTITY_MISMATCH",
+            "discovery no longer matches the bound pipeline run identity",
+        )
 
 
-def _request_review_node(
-    services: IngestionServices,
-) -> Callable[[IngestionState, RunnableConfig], dict[str, Any]]:
-    def node(state: IngestionState, config: RunnableConfig) -> dict[str, Any]:
-        if _checkpoint_thread(config) != state.get("thread_id"):
-            return _failure_update(
-                stage="request_human_review",
-                state=state,
-                code="THREAD_MISMATCH",
-            )
-        decision = interrupt(
+class DeterministicIngestionRuntime:
+    """Run the 16 ingestion stages as explicit typed Python transitions.
+
+    The runtime deliberately keeps only bounded metadata in ``IngestionState``.
+    Evidence bytes and parsed values remain in ``StageAIngestionServices`` until
+    the existing repository publication functions perform their immutable writes.
+    ``resume`` reconstructs this object from the database and replays the stages,
+    so a CLI process boundary does not depend on an in-memory checkpoint.
+    """
+
+    def __init__(self, services: IngestionServices | None = None) -> None:
+        """Bind the real Stage A services used for deterministic persistence."""
+        self.services = services or StageAIngestionServices()
+        self._engine = getattr(self.services, "engine", None)
+
+    @property
+    def engine(self) -> Engine:
+        """Expose the bound repository engine for callers and diagnostics."""
+        if not isinstance(self._engine, Engine):
+            msg = "runtime persistence requires StageAIngestionServices"
+            raise TypeError(msg)
+        return self._engine
+
+    def _initial_state(
+        self,
+        *,
+        thread_id: str | None,
+        state: IngestionState | None,
+    ) -> IngestionState:
+        initial: dict[str, Any] = dict(state or {})
+        configured = cast("dict[str, Any]", getattr(self.services, "definitions", {}))
+        requested = tuple(initial.get("source_keys") or sorted(configured))
+        identity = getattr(self.services, "_run_identity", None)
+        if callable(identity):
+            run_key, default_run_id = identity(requested)
+        else:
+            payload = {"service": type(self.services).__name__, "source_keys": requested}
+            run_key = hashlib.sha256(
+                json.dumps(payload, sort_keys=True, default=str).encode()
+            ).hexdigest()
+            default_run_id = f"pipeline:{run_key[:32]}"
+        resolved_thread = thread_id or str(initial.get("thread_id") or f"thread:{run_key[:24]}")
+        initial.update(
             {
-                "kind": "metric_candidate_review",
-                "candidate_ids": list(state.get("quarantine_candidate_ids", [])),
-                "allowed_decisions": ["approve", "reject"],
-                "thread_id": state.get("thread_id"),
+                "thread_id": resolved_thread,
+                "run_key": run_key,
+                "run_id": default_run_id,
+                "source_keys": list(initial.get("source_keys") or []),
+                "visited": list(initial.get("visited") or []),
+                "review_decision": initial.get("review_decision", "pending"),
+                "published_count": int(initial.get("published_count", 0)),
+                "not_disclosed_count": int(initial.get("not_disclosed_count", 0)),
+                "source_not_checked_count": int(initial.get("source_not_checked_count", 0)),
+                "retry_counts": dict(initial.get("retry_counts") or {}),
+                "terminal_status": initial.get("terminal_status", "RUNNING"),
+                "terminal_outcomes": dict(initial.get("terminal_outcomes") or _default_outcomes()),
+                "error_codes": list(initial.get("error_codes") or []),
+                "audit_events": list(initial.get("audit_events") or []),
             }
         )
-        if not isinstance(decision, dict) or decision.get("decision") not in {
-            "approve",
-            "reject",
-        }:
-            return _failure_update(
-                stage="request_human_review",
-                state=state,
-                code="REVIEW_PAYLOAD_INVALID",
+        return cast("IngestionState", initial)
+
+    def _ensure_pipeline_run(self, state: IngestionState) -> PipelineRun:
+        """Create the idempotent run row before acquisition or parsing begins."""
+        if self._engine is None:
+            msg = "runtime persistence requires StageAIngestionServices"
+            raise TypeError(msg)
+        initialize_schema(self.engine)
+        run_id = str(state["run_id"])
+        run_key = str(state["run_key"])
+        now = utc_now()
+        quarters = cast("list[dict[str, Any]]", getattr(self.services, "quarters", []))
+        data = cast("dict[str, Any]", getattr(self.services, "data", {}))
+        requested_periods = [str(item["period_end"]) for item in quarters]
+        with Session(self.engine) as session:
+            run = session.get(PipelineRun, run_id)
+            if run is not None:
+                if run.thread_id != state["thread_id"]:
+                    raise IngestionServiceError(
+                        "THREAD_MISMATCH",
+                        "idempotent run already belongs to a different thread",
+                    )
+                return run
+            run = PipelineRun(
+                id=run_id,
+                run_key=run_key,
+                status="RUNNING",
+                thread_id=str(state["thread_id"]),
+                started_at=now,
+                completed_at=None,
+                error_count=0,
+                retry_count=0,
+                requested_company_id=None,
+                requested_periods=requested_periods,
+                code_version="stage-a-explicit-runtime-v1",
+                config_version=str(data.get("dataset_version", "runtime-v1")),
+                parser_version="2.0.0",
+                terminal_outcomes=_default_outcomes(),
             )
-        review_state = cast("IngestionState", dict(state))
-        review_state["review_decision"] = decision["decision"]
+            session.add(run)
+            session.commit()
+            return run
+
+    def _persist_progress(self, state: IngestionState) -> None:
+        """Persist status, outcomes, retry count, and terminal timestamps."""
+        if self._engine is None:
+            return
+        run_id = state.get("run_id")
+        if not run_id:
+            return
+        with Session(self.engine) as session:
+            run = session.get(PipelineRun, run_id)
+            if run is None:
+                return
+            status = state.get("terminal_status", "RUNNING")
+            run.status = str(status)
+            run.error_count = len(state.get("error_codes", []))
+            run.retry_count = sum(state.get("retry_counts", {}).values())
+            run.terminal_outcomes = dict(state.get("terminal_outcomes", _default_outcomes()))
+            if status in {"FAILED", "COMPLETED"}:
+                run.completed_at = run.completed_at or utc_now()
+            session.commit()
+
+    def _persist_failure(
+        self,
+        state: IngestionState,
+        *,
+        stage: StageName,
+        error: str,
+        retryable: bool,
+    ) -> None:
+        """Store one safe classified failure for audit and replay diagnostics."""
+        if self._engine is None:
+            return
+        run_id = state.get("run_id")
+        if not run_id:
+            return
+        code = state.get("error_codes", ["DETERMINISTIC_STAGE_FAILED"])[-1]
+        error_id = hashlib.sha256(f"{run_id}:{stage}:{code}".encode()).hexdigest()[:32]
+        with Session(self.engine) as session:
+            if session.get(IngestionError, error_id) is None:
+                session.add(
+                    IngestionError(
+                        id=error_id,
+                        pipeline_run_id=run_id,
+                        stage=stage,
+                        error_code=code,
+                        retryable=retryable,
+                        safe_message=error,
+                    )
+                )
+                session.commit()
+
+    def _persisted_state(self, state: IngestionState) -> IngestionState | None:
+        """Reconstruct bounded terminal metadata from a persisted run."""
+        if self._engine is None:
+            return None
+        with Session(self.engine) as session:
+            run = session.get(PipelineRun, state.get("run_id"))
+            if run is None:
+                return None
+            if run.thread_id != state["thread_id"]:
+                raise IngestionServiceError(
+                    "THREAD_MISMATCH",
+                    "run must be resumed with its original thread",
+                )
+            status = str(run.status)
+            if status not in {"AWAITING_REVIEW", "COMPLETED", "FAILED"}:
+                return None
+            candidate_ids = list(
+                session.scalars(
+                    select(QuarantineCandidate.id).where(
+                        QuarantineCandidate.pipeline_run_id == run.id
+                    )
+                ).all()
+            )
+            terminal_status: TerminalStatus = (
+                "AWAITING_REVIEW"
+                if status == "AWAITING_REVIEW"
+                else "FAILED"
+                if status == "FAILED"
+                else "COMPLETED"
+            )
+            visited = list(INGESTION_NODES)
+            if terminal_status == "AWAITING_REVIEW":
+                visited = list(INGESTION_NODES[: INGESTION_NODES.index("request_human_review")])
+            return cast(
+                "IngestionState",
+                {
+                    **state,
+                    "quarantine_candidate_ids": sorted(candidate_ids),
+                    "terminal_status": terminal_status,
+                    "terminal_outcomes": dict(run.terminal_outcomes or _default_outcomes()),
+                    "published_count": int((run.terminal_outcomes or {}).get("PUBLISHED", 0)),
+                    "not_disclosed_count": int(
+                        (run.terminal_outcomes or {}).get("NOT_DISCLOSED", 0)
+                    ),
+                    "source_not_checked_count": int(
+                        (run.terminal_outcomes or {}).get("SOURCE_NOT_CHECKED", 0)
+                    ),
+                    "visited": visited,
+                    "audit_events": [f"pipeline_reconstructed:{status.lower()}"],
+                },
+            )
+
+    def _transition(self, state: IngestionState, stage: StageName) -> IngestionState:
+        """Execute one stage and persist failures as an audit-first transition."""
         try:
-            update = dict(services.execute("request_human_review", review_state))
+            _validate_bounded_state(state)
+            update = self.services.execute(stage, state)
+            _validate_transition_identity(state, stage, update)
         except IngestionServiceError as error:
-            return _failure_update(
-                stage="request_human_review",
-                state=state,
-                code=error.code,
+            failed = _merge_update(
+                state,
+                _failure_update(stage=stage, state=state, code=error.code),
             )
-        update["visited"] = ["request_human_review"]
-        update["review_decision"] = decision["decision"]
-        return update
+            failed["visited"] = [*failed.get("visited", []), stage]
+            self._persist_failure(
+                failed,
+                stage=stage,
+                error=error.safe_message,
+                retryable=error.retryable,
+            )
+            self._persist_progress(failed)
+            return failed
+        transitioned = _merge_update(state, update)
+        transitioned["visited"] = [*transitioned.get("visited", []), stage]
+        self._persist_progress(transitioned)
+        return transitioned
 
-    return node
+    def _run_state(  # noqa: C901
+        self,
+        state: IngestionState,
+        *,
+        pause_for_review: bool,
+    ) -> IngestionState:
+        """Advance linearly through the exact stage tuple."""
+        raw_state = cast("dict[str, Any]", state)
+        review_context = {
+            key: raw_state[key]
+            for key in ("review_decision", "review_candidate_id", "reviewer", "review_rationale")
+            if key in raw_state
+        }
+        for stage_value in INGESTION_NODES:
+            stage = cast("StageName", stage_value)
+            if stage == "request_human_review":
+                if pause_for_review and state.get("quarantine_candidate_ids"):
+                    state["terminal_status"] = "AWAITING_REVIEW"
+                    self._persist_progress(state)
+                    break
+                if (
+                    state.get("quarantine_candidate_ids")
+                    and state.get("review_decision") == "pending"
+                ):
+                    state["terminal_status"] = "AWAITING_REVIEW"
+                    self._persist_progress(state)
+                    break
+            state = self._transition(state, stage)
+            if stage != "request_human_review":
+                raw_state = cast("dict[str, Any]", state)
+                for key, value in review_context.items():
+                    raw_state[key] = value
+            if state.get("terminal_status") == "FAILED":
+                if stage != "emit_audit_events":
+                    state = self._transition(state, "emit_audit_events")
+                break
+            if stage == "request_human_review" and state.get("quarantine_candidate_ids"):
+                pending = None
+                if self._engine is not None:
+                    with Session(self.engine) as session:
+                        pending = session.scalar(
+                            select(QuarantineCandidate.id).where(
+                                QuarantineCandidate.pipeline_run_id == state.get("run_id"),
+                                QuarantineCandidate.status == "PENDING",
+                            )
+                        )
+                if pending is not None:
+                    state["terminal_status"] = "AWAITING_REVIEW"
+                    self._persist_progress(state)
+                    break
+        return state
+
+    def run(
+        self,
+        state: IngestionState | None = None,
+        *,
+        thread_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Run from discovery to completion or the durable review boundary."""
+        current = self._initial_state(thread_id=thread_id, state=state)
+        if self._engine is not None:
+            initialize_schema(self.engine)
+        persisted = self._persisted_state(current)
+        if persisted is not None:
+            return dict(persisted)
+        if self._engine is not None:
+            self._ensure_pipeline_run(current)
+        return dict(self._run_state(current, pause_for_review=True))
+
+    def resume(
+        self,
+        *,
+        thread_id: str,
+        decision: Literal["approve", "reject"],
+        candidate_id: str,
+        reviewer: str = "local-reviewer",
+        rationale: str = "explicit deterministic review resume",
+    ) -> dict[str, Any]:
+        """Reconstruct a persisted run and resume it on the original thread."""
+        if decision not in {"approve", "reject"}:
+            msg = "review decision must be approve or reject"
+            raise ValueError(msg)
+        if self._engine is None:
+            msg = "review resume requires a persisted StageAIngestionServices run"
+            raise ValueError(msg)
+        initialize_schema(self.engine)
+        with Session(self.engine) as session:
+            candidate = session.get(QuarantineCandidate, candidate_id)
+            if candidate is None:
+                raise KeyError(candidate_id)
+            run = session.get(PipelineRun, candidate.pipeline_run_id)
+            if run is None or run.thread_id != thread_id:
+                msg = "review must resume the candidate's original thread"
+                raise ValueError(msg)
+            if candidate_id not in set(
+                session.scalars(
+                    select(QuarantineCandidate.id).where(
+                        QuarantineCandidate.pipeline_run_id == run.id
+                    )
+                ).all()
+            ):
+                msg = "review candidate is not part of the persisted run"
+                raise ValueError(msg)
+            persisted_run_key = run.run_key
+            persisted_run_id = run.id
+        source_keys = sorted(cast("dict[str, object]", getattr(self.services, "definitions", {})))
+        current = self._initial_state(
+            thread_id=thread_id,
+            state=cast("IngestionState", {"source_keys": source_keys}),
+        )
+        if current.get("run_key") != persisted_run_key or current.get("run_id") != persisted_run_id:
+            msg = "persisted review run no longer matches the current source configuration"
+            raise ValueError(msg)
+        current["review_decision"] = decision
+        current["review_candidate_id"] = candidate_id
+        current["reviewer"] = reviewer
+        current["review_rationale"] = rationale
+        return dict(self._run_state(current, pause_for_review=False))
 
 
-def create_ingestion_graph(
+def create_ingestion_runtime(
     *,
     services: IngestionServices | None = None,
-    checkpointer: BaseCheckpointSaver[Any] | None = None,
-) -> CompiledStateGraph[Any, Any, Any, Any]:
-    """Compile all 16 Stage A stages over typed services and bounded checkpoint state."""
-    bound_services = services or StageAIngestionServices()
-    builder = StateGraph(IngestionState)
-    for stage in INGESTION_NODES:
-        if stage == "request_human_review":
-            builder.add_node(stage, cast("Any", _request_review_node(bound_services)))
-        else:
-            builder.add_node(
-                stage,
-                cast("Any", _stage_node(cast("StageName", stage), bound_services)),
-            )
-    builder.add_edge(START, INGESTION_NODES[0])
-    quarantine_index = INGESTION_NODES.index("quarantine_ambiguous_candidates")
-    linear_stages = INGESTION_NODES[:quarantine_index]
-    for left, right in pairwise(linear_stages):
-        builder.add_conditional_edges(
-            left,
-            _continue_route,
-            {"next": right, "audit": "emit_audit_events"},
-        )
-    builder.add_conditional_edges(
-        linear_stages[-1],
-        _continue_route,
-        {"next": "quarantine_ambiguous_candidates", "audit": "emit_audit_events"},
-    )
-    builder.add_conditional_edges(
-        "quarantine_ambiguous_candidates",
-        _review_route,
-        {
-            "request_human_review": "request_human_review",
-            "publish": "publish_approved_observations",
-            "audit": "emit_audit_events",
-        },
-    )
-    builder.add_conditional_edges(
-        "request_human_review",
-        _continue_route,
-        {"next": "publish_approved_observations", "audit": "emit_audit_events"},
-    )
-    builder.add_conditional_edges(
-        "publish_approved_observations",
-        _continue_route,
-        {"next": "refresh_comparability_and_materializations", "audit": "emit_audit_events"},
-    )
-    builder.add_edge(
-        "refresh_comparability_and_materializations",
-        "emit_audit_events",
-    )
-    builder.add_edge("emit_audit_events", END)
-    return builder.compile(checkpointer=checkpointer, name="public_servicing_ingestion_v1")
-
-
-def resume_review(
-    graph: CompiledStateGraph[Any, Any, Any, Any],
-    *,
-    thread_id: str,
-    decision: Literal["approve", "reject"],
-) -> dict[str, Any]:
-    """Resume a paused review using exactly its durable opaque thread ID."""
-    config = RunnableConfig(configurable={"thread_id": thread_id})
-    result = graph.invoke(Command[Any](resume={"decision": decision}), config=config)
-    return dict(result)
+) -> DeterministicIngestionRuntime:
+    """Create the framework-free deterministic ingestion runtime."""
+    return DeterministicIngestionRuntime(services=services)
 
 
 def run_cli_review_resume(  # noqa: PLR0913
@@ -1144,36 +1512,20 @@ def run_cli_review_resume(  # noqa: PLR0913
     rationale: str,
     config_dir: Path | None = None,
 ) -> dict[str, object]:
-    """Rebuild and resume the deterministic review graph on its persisted run thread."""
-    with Session(engine) as session:
-        candidate = session.get(QuarantineCandidate, candidate_id)
-        if candidate is None:
-            raise KeyError(candidate_id)
-        run = session.get(PipelineRun, candidate.pipeline_run_id)
-        if run is None or run.thread_id != thread_id:
-            msg = "review must resume the candidate's original thread"
-            raise ValueError(msg)
-
+    """Rebuild services from configuration and resume the persisted run thread."""
     services = StageAIngestionServices(engine=engine, config_dir=config_dir)
-    graph = create_ingestion_graph(services=services, checkpointer=InMemorySaver())
-    config = RunnableConfig(configurable={"thread_id": thread_id})
-    interrupted = graph.invoke(
-        {
-            "thread_id": thread_id,
-            "source_keys": [],
-            "visited": [],
-            "review_decision": "pending",
-            "reviewer": reviewer,
-            "review_rationale": rationale,
-            "published_count": 0,
-            "audit_events": [],
-        },
-        config=config,
+    runtime = DeterministicIngestionRuntime(services)
+    resumed = runtime.resume(
+        thread_id=thread_id,
+        candidate_id=candidate_id,
+        decision=decision,
+        reviewer=reviewer,
+        rationale=rationale,
     )
-    if candidate_id not in interrupted.get("quarantine_candidate_ids", []):
-        msg = "candidate is not part of the interrupted review thread"
+    if resumed.get("terminal_status") == "FAILED":
+        codes = ",".join(cast("list[str]", resumed.get("error_codes", [])))
+        msg = f"review resume failed closed: {codes or 'DETERMINISTIC_STAGE_FAILED'}"
         raise ValueError(msg)
-    resumed = resume_review(graph, thread_id=thread_id, decision=decision)
     with Session(engine) as session:
         reviewed = session.get(QuarantineCandidate, candidate_id)
         if reviewed is None:

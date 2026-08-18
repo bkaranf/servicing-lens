@@ -25,9 +25,9 @@ explanations are secondary objectives.
 
 The Stage A recorded-data vertical slice is implemented. It provides versioned
 TFC/PFSI configuration, hash-verified retained SEC DOM serializations, exact observations and
-explicit missingness, SQLAlchemy/Alembic persistence, typed read tools, a
+explicit missingness, SQLAlchemy/Alembic persistence, deterministic read services, a
 read-only API, server-rendered dashboard pages, a provenance dialog, and an
-interruptible review graph. A public-core `edgartools` qualification path handles
+interruptible deterministic review runtime. A public-core `edgartools` qualification path handles
 opt-in SEC discovery and filing-specific XBRL. Legacy direct-client and regulatory
 adapters remain in the pre-cleanup implementation but are outside the active
 source boundary; they are not eligible for new product observations. Recorded
@@ -148,10 +148,10 @@ Stage A is complete only when all of the following are demonstrated:
 9. Controlled review can approve or reject it with an audit record.
 10. At least one comparison is \`not_comparable\` with an explicit reason.
 11. All calculations use \`Decimal\` and deterministic formulas.
-12. Dashboard and API work with model calls, Deep Agents, tracing, and optional
-    LangGraph persistence disabled.
+12. Dashboard, API, and ingestion runtime are deterministic and have no model,
+    agent, tracing, or workflow-framework runtime dependency.
 13. The complete local quality suite passes.
 14. No private servicing, borrower, customer, payment, account, or credential
-    data exists in code, fixtures, graph state, prompts, logs, or UI.
+    data exists in code, fixtures, runtime state, logs, or UI.
 15. Documentation describes only behavior actually present or clearly labeled as
     planned Stage A behavior.

@@ -171,8 +171,8 @@ Resolution proceeds in this order:
 7. Publish only if the mapping is unique and supported.
 
 Multiple possible entities, inherited scope from a nearby table, missing period
-dates, or an unsupported crosswalk creates a quarantine candidate. A model may
-propose a mapping with evidence, but it cannot resolve or publish it.
+dates, or an unsupported crosswalk creates a quarantine candidate. A proposed
+mapping requires evidence and deterministic validation before publication.
 
 ## Prohibited scope collapse
 

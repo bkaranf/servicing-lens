@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from mortgage_servicing_dashboard.capabilities import StaticCapabilities
 from mortgage_servicing_dashboard.config import AppSettings
 from mortgage_servicing_dashboard.database import (
     PipelineRun,
@@ -52,7 +53,6 @@ from mortgage_servicing_dashboard.repository import (
     seed_stage_a,
 )
 from mortgage_servicing_dashboard.sources import PublicSourceError
-from mortgage_servicing_dashboard.tools import StaticFoundationInformation
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -130,7 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def doctor_payload(settings: AppSettings) -> dict[str, Any]:
     """Build a deterministic, allow-listed readiness payload."""
-    information = StaticFoundationInformation()
+    information = StaticCapabilities()
     configuration = settings.safe_summary()
     configuration.pop("edgar_api_key_configured", None)
     configuration.pop("edgar_api_base_url", None)
@@ -153,13 +153,7 @@ def _format_text(payload: dict[str, Any]) -> str:
             f"phase: {capabilities['phase']}",
             f"status: {capabilities['status']}",
             f"environment: {configuration['environment']}",
-            f"model configured: {str(configuration['model_configured']).lower()}",
-            f"model calls enabled: {str(configuration['model_calls_enabled']).lower()}",
-            f"Deep Agents enabled: {str(configuration['deep_agent_enabled']).lower()}",
-            (
-                "LangGraph persistence enabled: "
-                f"{str(configuration['langgraph_persistence_enabled']).lower()}"
-            ),
+            "runtime: deterministic, framework-free",
             "selected universe: TFC, PFSI",
             "customer data access: disabled",
             "operational actions: disabled",

@@ -22,14 +22,10 @@ classifiers = [
 ]
 dependencies = [
     "alembic>=1.17.0,<2.0.0",
-    "deepagents>=0.7.5,<0.8.0",
     "edgartools==5.48.0",
     "fastapi>=0.116.0,<1.0.0",
     "httpx>=0.28.0,<1.0.0",
     "jinja2>=3.1.0,<4.0.0",
-    "langchain>=1.3.14,<1.4.0",
-    "langchain-core>=1.5.3,<2.0.0",
-    "langgraph>=1.2.5,<1.3.0",
     "psycopg[binary]>=3.2.0,<4.0.0",
     "pydantic>=2.12.0,<3.0.0",
     "pydantic-settings>=2.10.0,<3.0.0",
@@ -40,7 +36,6 @@ dependencies = [
 
 [project.scripts]
 msi = "mortgage_servicing_dashboard.cli:main"
-msd-foundation = "mortgage_servicing_dashboard.cli:main"
 
 [dependency-groups]
 dev = [
@@ -95,12 +90,12 @@ docstring-code-format = true
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "ANN401", # Framework callbacks intentionally expose dynamic payloads.
+    "ANN401", # Dynamic callbacks intentionally expose dynamic payloads.
     "COM812", # Conflicts with the formatter.
     "CPY",    # Copyright headers are managed at repository level.
-    "TC001",  # Runtime imports keep framework-facing annotations inspectable.
-    "TC002",  # Runtime imports keep framework-facing annotations inspectable.
-    "TC003",  # Runtime imports keep framework-facing annotations inspectable.
+    "TC001",  # Runtime imports keep annotations inspectable.
+    "TC002",  # Runtime imports keep annotations inspectable.
+    "TC003",  # Runtime imports keep annotations inspectable.
 ]
 
 [tool.ruff.lint.per-file-ignores]

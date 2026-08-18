@@ -31,21 +31,6 @@ from mortgage_servicing_dashboard.database import (
 )
 from mortgage_servicing_dashboard.presentation import fiscal_period_label
 from mortgage_servicing_dashboard.repository import IntelligenceRepository, seed_stage_a
-from mortgage_servicing_dashboard.tools import build_intelligence_tools
-
-_READ_TOOL_NAMES = {
-    "list_companies",
-    "get_company_profile",
-    "list_metric_definitions",
-    "get_metric_series",
-    "list_observations",
-    "compare_metric",
-    "get_observation_provenance",
-    "get_evidence",
-    "get_disclosure_coverage",
-    "list_earnings_events",
-    "get_pipeline_freshness",
-}
 
 
 def test_fiscal_period_label_distinguishes_annual_from_quarterly() -> None:
@@ -339,8 +324,7 @@ def test_chart_and_accessible_table_share_one_exact_observation_set(
         link.startswith("/evidence/") and link.endswith("#cited-source-locator")
         for link in parser.provenance_links
     )
-    assert "Geometry was generated with exact decimal arithmetic" in html
-    assert "AI, tracing and optional persistence off" in html
+    assert "exact decimal arithmetic and retained evidence" in html
 
     selected = repository.observations(
         metric_id="total_servicing_upb",
@@ -407,53 +391,3 @@ def test_empty_stale_partial_missing_and_error_states_are_real_views(
     error_html = bytes(missing_page.body).decode()
     assert "No data was changed" in error_html
     assert 'role="alert"' in error_html
-
-
-def test_exactly_eleven_typed_read_tools_and_no_generic_capabilities(
-    repository: IntelligenceRepository,
-) -> None:
-    tools = {tool.name: tool for tool in build_intelligence_tools(repository)}
-    assert set(tools) == _READ_TOOL_NAMES
-    forbidden_fragments = {
-        "sql",
-        "http",
-        "browser",
-        "file",
-        "shell",
-        "execute",
-        "write",
-        "delete",
-        "approve",
-        "publish",
-        "mutate",
-    }
-    assert not any(
-        fragment in tool_name.split("_") for tool_name in tools for fragment in forbidden_fragments
-    )
-    assert {
-        "company_id",
-        "metric_id",
-        "period_end",
-        "include_missing",
-        "limit",
-    } <= set(tools["list_observations"].args)
-    with pytest.raises(ValueError, match="limit"):
-        tools["list_observations"].invoke({"limit": 51})
-    with pytest.raises(ValueError, match="Unknown metric"):
-        tools["compare_metric"].invoke({"metric_id": "unknown", "period_end": "2026-06-30"})
-
-    series = tools["get_metric_series"].invoke(
-        {"company_id": "tfc", "metric_id": "total_servicing_upb"}
-    )
-    assert 1 <= len(series) <= 4
-    provenance: dict[str, Any] = tools["get_observation_provenance"].invoke(
-        {"observation_id": series[-1]["id"]}
-    )
-    _assert_no_float(provenance)
-    assert {
-        "metric_version",
-        "reported_precision",
-        "extraction_method",
-        "validation_summary",
-        "revision_history",
-    } <= provenance.keys()

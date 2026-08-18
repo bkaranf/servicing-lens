@@ -28,8 +28,7 @@ Mypy remains strict, Pytest denies sockets, and branch-aware coverage remains at
 least 90%. The doctor command is deterministic and emits only allow-listed,
 non-secret configuration and readiness data.
 
-\`msi doctor\` is the authoritative local readiness command. The inherited
-\`msd-foundation\` entry point remains only as a compatibility alias.
+\`msi doctor\` is the authoritative local readiness command.
 
 ## Database and migration gate
 
@@ -102,9 +101,9 @@ Tests prove:
   cells explicitly;
 - one deliberate ambiguity enters quarantine;
 - quarantined values are absent from public reads;
-- CLI approve/reject rebuilds the graph deterministically to its interrupt,
-  resumes on the same opaque run thread, records the reviewer decision, and
-  revalidates before any publication; and
+- CLI approve/reject reconstructs the deterministic runtime from its persisted
+  run thread, records the reviewer decision, and revalidates before any
+  publication; and
 - rejected and superseded history remains recoverable.
 
 ## API, UI, and accessibility
@@ -128,25 +127,9 @@ UI tests cover:
 - no external CDN asset; and
 - empty, stale, partial, conflicted, quarantined, and unavailable states.
 
-The UI/API must operate with model calls, Deep Agents, remote tracing, and optional
-LangGraph persistence disabled.
-
-## Agent and tool boundary
-
-Construction and negative tests prove:
-
-- LangChain exposes only the eleven typed read tools documented in
-  \`docs/ORCHESTRATION.md\`;
-- no generic SQL, HTTP, browser, filesystem, shell, execution, unrestricted
-  retriever, mutation, publication, or approval tool is visible;
-- model-generated values absent from tool results cannot appear as authoritative
-  output;
-- comparability comes from the deterministic service;
-- Deep Agents have bounded tasks, tools, recursion/subagents, tokens, runtime, and
-  result size;
-- Deep Agents have no network, unrestricted MCP, shell, filesystem mutation,
-  persistent memory, publication, or approval capability; and
-- all framework switches fail closed independently.
+The UI/API and ingestion runtime run entirely through deterministic repository,
+API, presentation, and explicit state-transition code. No model, agent,
+tracing, or workflow-framework switch is part of the application configuration.
 
 ## Dependency, secret, and generated-artifact checks
 

@@ -101,7 +101,6 @@ class HealthResponse(BaseModel):
     database: str
     companies: int
     latest_period_end: str | None
-    model_calls_enabled: bool
 
 
 class ReadResponse(BaseModel):
@@ -302,7 +301,6 @@ class FreshnessResponse(ReadResponse):
     quarantine_count: int
     pipeline_status: str
     terminal_outcomes: dict[str, object]
-    model_calls_enabled: bool
     reported_count: int
     coverage_state: str
     quarantined_candidate_count: int
@@ -825,7 +823,6 @@ def create_app(  # noqa: C901, PLR0915
             database="reachable",
             companies=len(repo.companies()),
             latest_period_end=latest.isoformat() if latest is not None else None,
-            model_calls_enabled=False,
         )
 
     @app.get(
@@ -1135,7 +1132,6 @@ def create_app(  # noqa: C901, PLR0915
                 "chart": chart,
                 "quality": quality,
                 "safe_source_url": _safe_source_url,
-                "model_calls_enabled": False,
                 "servicing_cards": serialized_cards,
                 "earnings_briefs": serialize_earnings(earnings_briefs),
                 "scale_assessment": asdict(scale_assessment),

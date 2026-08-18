@@ -111,7 +111,7 @@
     </section>{% endif %}
 
     <section class="evidence-panel wrap" aria-labelledby="evidence-title">
-      <header><div><p class="eyebrow">Evidence explorer</p><h2 id="evidence-title">Reported portfolio history</h2></div><p>Geometry was generated with exact decimal arithmetic. AI, tracing and optional persistence off.</p></header>
+      <header><div><p class="eyebrow">Evidence explorer</p><h2 id="evidence-title">Reported portfolio history</h2></div><p>Geometry is generated with exact decimal arithmetic and retained evidence.</p></header>
       <div class="view-tabs" role="tablist" aria-label="Evidence views"><button id="chart-tab" role="tab" aria-selected="true" aria-controls="chart-panel" tabindex="0">Observation list</button><button id="table-tab" role="tab" aria-selected="false" aria-controls="table-panel" tabindex="-1">Accessible table</button></div>
       <div id="chart-panel" role="tabpanel" aria-labelledby="chart-tab" tabindex="0" class="observation-grid">
       {% for row in chart.table_rows %}<a class="observation-chip provenance-trigger" href="{{ row.evidence_locator_url or '/api/v1/observations/' ~ row.id }}" data-observation-id="{{ row.id }}"><strong>{{ row.ticker }} · {{ row.period_label }}</strong><span>{{ row.display_value }}</span><small>{{ row.metric_name }}</small></a>{% endfor %}

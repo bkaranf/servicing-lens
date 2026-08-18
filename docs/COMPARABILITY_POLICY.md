@@ -6,8 +6,8 @@ Comparability is a relationship between two exact observation revisions under a
 versioned policy. It is not a universal property stored on one observation.
 Matching display names or metric IDs does not make values comparable.
 
-The deterministic comparability service owns every verdict. Models can explain a
-returned assessment but cannot create or override one.
+The deterministic comparability service owns every verdict. Explanations are
+versioned reason codes and cannot create or override an assessment.
 
 ## Verdicts
 
@@ -87,7 +87,7 @@ The initial reason vocabulary includes:
 - \`REVIEW_PENDING\`.
 
 Each reason includes a safe explanation, affected dimension, observation IDs, and
-policy-rule version. Free-form model prose is not a reason code.
+policy-rule version. Free-form prose is not a reason code.
 
 ## Portfolio-metric preference
 

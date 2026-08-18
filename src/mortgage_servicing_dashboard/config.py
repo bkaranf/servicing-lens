@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _MINIMUM_SEC_IDENTITY_LENGTH = 8
@@ -54,11 +54,7 @@ class LogLevel(StrEnum):
 
 
 class AppSettings(BaseSettings):
-    """Load the application's safe, non-secret settings.
-
-    Provider credentials use secret-bearing fields and must never be serialized through
-    CLI, API, logging, or exception surfaces.
-    """
+    """Load the application's safe settings and SEC acquisition configuration."""
 
     model_config = SettingsConfigDict(
         env_prefix="MSD_",
@@ -71,11 +67,6 @@ class AppSettings(BaseSettings):
 
     environment: EnvironmentName = EnvironmentName.DEVELOPMENT
     log_level: LogLevel = LogLevel.INFO
-    model: str | None = None
-    enable_model_calls: bool = False
-    enable_deep_agent: bool = False
-    enable_langgraph_persistence: bool = False
-    max_prompt_chars: int = Field(default=2_000, ge=1, le=8_000)
     sec_user_agent: str | None = Field(default=None, repr=False)
     edgar_identity: SecretStr | None = Field(
         default=None,
@@ -89,7 +80,7 @@ class AppSettings(BaseSettings):
     )
     edgar_api_base_url: str = _EDGAR_TOOLS_BASE_URL
 
-    @field_validator("model", "sec_user_agent", "edgar_identity", "edgar_api_key", mode="before")
+    @field_validator("sec_user_agent", "edgar_identity", "edgar_api_key", mode="before")
     @classmethod
     def normalize_optional_string(cls, value: Any) -> Any:
         """Treat an empty optional string environment variable as unconfigured.
@@ -136,46 +127,6 @@ class AppSettings(BaseSettings):
         """
         return None if value is None else validate_sec_user_agent(value)
 
-    @field_validator("model")
-    @classmethod
-    def require_provider_qualified_model(cls, value: str | None) -> str | None:
-        """Require the profile-safe `provider:model` identifier shape.
-
-        Args:
-            value: Normalized model identifier.
-
-        Returns:
-            The validated model identifier or `None`.
-
-        Raises:
-            ValueError: If a configured identifier cannot select a harness profile exactly.
-        """
-        if value is None:
-            return None
-        provider, separator, model_name = value.partition(":")
-        if not separator or not provider or not model_name or ":" in model_name:
-            msg = "MSD_MODEL must use the provider:model format"
-            raise ValueError(msg)
-        return value
-
-    @model_validator(mode="after")
-    def require_model_when_enabled(self) -> AppSettings:
-        """Reject live-call enablement without a provider-qualified model.
-
-        Returns:
-            The validated settings instance.
-
-        Raises:
-            ValueError: If model calls are enabled without a model identifier.
-        """
-        if self.enable_model_calls and self.model is None:
-            msg = "MSD_MODEL is required when MSD_ENABLE_MODEL_CALLS is true"
-            raise ValueError(msg)
-        if self.enable_deep_agent and not self.enable_model_calls:
-            msg = "MSD_ENABLE_DEEP_AGENT requires MSD_ENABLE_MODEL_CALLS"
-            raise ValueError(msg)
-        return self
-
     def safe_summary(self) -> dict[str, str | int | bool]:
         """Return only values approved for CLI output and logs.
 
@@ -185,16 +136,10 @@ class AppSettings(BaseSettings):
         return {
             "environment": self.environment.value,
             "log_level": self.log_level.value,
-            "model_configured": self.model is not None,
-            "model_calls_enabled": self.enable_model_calls,
-            "deep_agent_enabled": self.enable_deep_agent,
-            "langgraph_persistence_enabled": self.enable_langgraph_persistence,
-            "max_prompt_chars": self.max_prompt_chars,
             "sec_user_agent_configured": self.sec_user_agent is not None,
             "edgar_identity_configured": self.edgar_identity is not None,
             "edgar_api_key_configured": self.edgar_api_key is not None,
             "edgar_api_base_url": self.edgar_api_base_url,
-            "remote_tracing_allowed": False,
         }
 
     def require_edgar_api_key(self) -> SecretStr:

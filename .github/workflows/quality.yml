@@ -23,12 +23,6 @@ jobs:
       matrix:
         python-version: ["3.11", "3.14"]
     env:
-      LANGCHAIN_TRACING: "false"
-      LANGCHAIN_TRACING_V2: "false"
-      LANGSMITH_TRACING: "false"
-      MSD_ENABLE_DEEP_AGENT: "false"
-      MSD_ENABLE_LANGGRAPH_PERSISTENCE: "false"
-      MSD_ENABLE_MODEL_CALLS: "false"
       MSI_CONFIG_DIR: ${{ github.workspace }}/config
       RUFF_OUTPUT_FORMAT: github
     steps:

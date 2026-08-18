@@ -14,8 +14,9 @@ amounts, balances, UPB, rates, and derived values use \`NUMERIC\` mapped to Pyth
 Timestamps are timezone-aware.
 
 Typed Pydantic/domain models validate boundaries. Pure financial and
-comparability functions do not depend on SQLAlchemy, FastAPI, LangChain, or
-LangGraph.
+comparability functions do not depend on SQLAlchemy or FastAPI; the ingestion
+runtime uses explicit typed Python state transitions without an orchestration
+framework.
 
 ## Required tables
 
@@ -67,7 +68,7 @@ bytes.
 | \`earnings_events\` | One company earnings event; fiscal period, event/publication times, filing and evidence links |
 | \`pipeline_runs\` | One idempotent pipeline execution; run key, requested company/period/stages, code/config/parser versions, state, timestamps, counts |
 | \`ingestion_errors\` | One structured error attached to a run/stage/evidence ID; safe code, deterministic/transient class, retryability, terminal effect |
-| \`quarantine_candidates\` | One unpublished extraction candidate and bounded metadata/excerpt reference; proposed semantics, conflicts, uncertainty, model/parser versions, state |
+| \`quarantine_candidates\` | One unpublished extraction candidate and bounded metadata/excerpt reference; proposed semantics, conflicts, uncertainty, parser/recipe/code versions, state |
 | \`human_review_decisions\` | One attributable approve/reject/escalate decision; candidate, reviewer identity/role, reason, evidence snapshot, thread/run IDs, resulting revision/config version, timestamp |
 
 Migration `0002_phase2_structured_acquisition` adds filing identity, taxonomy,
@@ -100,8 +101,7 @@ Every \`metric_observations\` row includes:
 - observation state;
 - methodology and accounting basis;
 - extraction method;
-- parser, model, prompt, recipe, code, and configuration versions where
-  applicable;
+- parser, recipe, code, and configuration versions where applicable;
 - quality state and validation summary;
 - valid-from/valid-to timestamps;
 - known-from/known-to timestamps;

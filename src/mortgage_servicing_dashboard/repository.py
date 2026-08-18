@@ -1494,7 +1494,7 @@ def _seed_pipeline_run(
     existing = session.get(PipelineRun, run_id)
     if existing is not None:
         if thread_id is not None and existing.thread_id != thread_id:
-            msg = "idempotent run already belongs to a different checkpoint thread"
+            msg = "idempotent run already belongs to a different runtime thread"
             raise ValueError(msg)
         return existing
     quarantine_count = sum(len(bundle.definition.quarantine_rows) for bundle in bundles.values())
@@ -2264,7 +2264,7 @@ def seed_stage_a(
     Args:
         engine: Application database engine.
         config_dir: Optional explicit versioned configuration root.
-        thread_id: Optional durable graph thread that owns the idempotent run.
+        thread_id: Optional durable runtime thread that owns the idempotent run.
 
     Returns:
         Counts of newly inserted primary catalog/evidence/observation records.
@@ -4628,7 +4628,6 @@ class IntelligenceRepository:
             "quarantine_count": quarantine_count,
             "pipeline_status": run.status if run is not None else "NOT_RUN",
             "terminal_outcomes": run.terminal_outcomes if run is not None else {},
-            "model_calls_enabled": False,
             "calendar": self.calendar(),
         }
 
@@ -5041,7 +5040,13 @@ class IntelligenceRepository:
                     "thread_id": thread_id,
                 }
             )[:32]
-            if session.get(HumanReviewDecision, decision_id) is None:
+            existing_decision = session.get(HumanReviewDecision, decision_id)
+            if existing_decision is not None and (
+                existing_decision.reviewer != reviewer or existing_decision.rationale != rationale
+            ):
+                msg = "review decision already exists with different reviewer metadata"
+                raise ValueError(msg)
+            if existing_decision is None:
                 session.add(
                     HumanReviewDecision(
                         id=decision_id,

@@ -44,10 +44,10 @@ enter quarantine rather than establishing an implicit precedence.
 
 ### Discovery-only material
 
-Search results, search snippets, news, aggregators, third-party transcripts, and
-model recollection can help locate a primary document. They cannot support a
-published value. Paywalled or license-restricted material is not ingested without
-separate documented authority.
+Search results, search snippets, news, aggregators, and third-party transcripts
+can help locate a primary document. They cannot support a published value.
+Paywalled or license-restricted material is not ingested without separate
+documented authority.
 
 Screenshots are never financial evidence. A PDF page image may be an internal
 navigation aid, but the observation must resolve to retained document bytes and a
@@ -84,8 +84,8 @@ view. Reacquiring different bytes from the same URL creates new evidence; it nev
 rewrites the earlier record. Parses, OCR, tables, and XBRL normalizations remain
 reproducible derivatives and do not replace an original response when one exists.
 
-Raw document bodies remain outside graph state, model prompts, tool results, logs,
-and checkpoints. Those surfaces carry source IDs and bounded metadata references.
+Raw document bodies remain outside bounded runtime metadata and logs. Those
+surfaces carry source IDs and bounded metadata references.
 
 ## Representation preference
 
@@ -107,10 +107,9 @@ Publication authority follows this order:
 
 1. authoritative structured fact;
 2. deterministic table or document parser;
-3. controlled manual extraction with evidence and audited review; and
-4. LLM-proposed candidate extraction into quarantine.
+3. controlled manual extraction with evidence and audited review.
 
-An LLM result is never a published observation. An LLM candidate must include:
+A manually extracted candidate must include:
 
 - proposed metric and metric-definition version;
 - raw source label and raw value;
@@ -122,11 +121,11 @@ An LLM result is never a published observation. An LLM candidate must include:
 - an exact bounded evidence excerpt;
 - confidence;
 - conflicts and uncertainties; and
-- model and prompt versions.
+- parser, recipe, and code versions where applicable.
 
-The candidate remains quarantined until deterministic validation or a controlled
-human review accepts it. Manual extraction and review use the CLI or authenticated
-admin service; direct database edits are prohibited.
+The candidate remains quarantined until deterministic validation and controlled
+human review. Manual extraction and review use the CLI; direct database edits are
+prohibited.
 
 ## Evidence-to-observation publication gate
 
@@ -162,16 +161,16 @@ Inputs use explicit classifications:
 
 Only the first three are permitted in this repository, with synthetic data limited
 to conspicuously labeled tests. Restricted internal data and prohibited customer
-data are rejected before persistence or model context.
+data are rejected before persistence or runtime use.
 
 Typed CIKs, accession IDs, RSSDs, tickers, and hashes are approved public
 identifiers. They belong in validated structured metadata and are not rejected
 merely for being numeric or identifier-like.
 
 Corporate contact blocks, signatures, email addresses, and telephone numbers are
-removed deterministically from any bounded model excerpt. Secrets and credentials
-remain blocked. Borrower, customer, payment, account, authentication, and other
-nonpublic personal data are prohibited.
+removed deterministically from any bounded source excerpt. Secrets and
+credentials remain blocked. Borrower, customer, payment, account,
+authentication, and other nonpublic personal data are prohibited.
 
 ## Replay, freshness, and failure behavior
 

@@ -45,8 +45,8 @@ source discovery and retain the issuer wording in observation evidence.
 - A measured zero requires source evidence. Missing, unknown, not applicable, and
   not disclosed carry no numeric value.
 - Eligible evidence is an authoritative structured fact, deterministic filed
-  table/document extraction, or controlled manual extraction. An LLM candidate
-  remains quarantined.
+  table/document extraction, or controlled manual extraction. An ambiguous
+  candidate remains quarantined.
 - Cross-company comparison follows the pairwise comparability policy. Matching
   canonical IDs alone is insufficient.
 

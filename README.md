@@ -23,8 +23,8 @@ Stage A is closed as a deterministic recorded-data vertical slice, and the
 application now lives in this history-preserving standalone repository. It includes
 versioned configuration, hash-verified retained SEC DOM serializations,
 SQLAlchemy/Alembic persistence,
-a read-only API and dashboard, an interruptible LangGraph review workflow, and a
-socket-blocked acceptance suite. The public-core `edgartools` qualification path
+a read-only API and dashboard, an explicit deterministic 16-stage ingestion and
+review runtime, and a socket-blocked acceptance suite. The public-core `edgartools` qualification path
 is exposed as `msi sync`; legacy acquisition implementations remain in the tree
 pending bounded cleanup. Live access remains opt-in.
 Phase 3 deepens only TFC and PFSI across the same four quarters. Its complete
@@ -48,7 +48,7 @@ Start with the [documentation index](docs/README.md). The binding documents cove
 - [reporting entities and scopes](docs/REPORTING_ENTITY_AND_SCOPE_MODEL.md);
 - [metric definitions](docs/METRIC_CATALOG.md);
 - [data model](docs/DATA_MODEL.md);
-- [orchestration and agent boundaries](docs/ORCHESTRATION.md);
+- [deterministic ingestion and review](docs/ORCHESTRATION.md);
 - [comparability](docs/COMPARABILITY_POLICY.md);
 - [implementation and acceptance gates](docs/IMPLEMENTATION_PLAN.md); and
 - [architecture decisions](docs/DECISIONS.md).
@@ -73,8 +73,7 @@ authoritative for this product.
 - Ambiguity enters quarantine. Models never publish or approve values.
 - Revisions preserve prior evidence and as-known-at history.
 - Public routes are read-only.
-- Dashboard and API work with model calls, Deep Agents, tracing, and optional
-  LangGraph persistence disabled.
+- Dashboard and API use only deterministic local application services.
 - Default tests are deterministic and network-free.
 
 ## Installation
@@ -116,9 +115,9 @@ configuration and evidence root.
 
 All listed commands are implemented. Stage A ingest is atomic across the complete
 governed source set; discovery can be filtered by issuer. Review approval and
-rejection rebuild the deterministic graph to its interrupt, resume on the
-candidate's persisted run thread, create an audited decision, and run
-revalidation; they never edit a published observation directly.
+rejection reconstruct the deterministic runtime from the candidate's persisted
+run thread, create an audited decision, and run revalidation; they never edit a
+published observation directly.
 
 `msi sync` uses the public core `edgartools` company, filing, attachment, and XBRL
 interfaces for bounded per-CIK qualification, evidence retention, deterministic

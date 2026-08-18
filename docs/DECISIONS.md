@@ -12,17 +12,17 @@ investment, legal, security, or regulatory approval.
 | D-001 | ACCEPTED | Reset the product from synthetic internal loan operations to public mortgage-servicing intelligence and archive the predecessor unchanged |
 | D-002 | ACCEPTED | Stage A covers TFC and PFSI for Q3 2025 through Q2 2026 only |
 | D-003 | ACCEPTED | Use FastAPI, Pydantic, SQLAlchemy 2, Alembic, local SQLite with PostgreSQL-compatible schemas, server-rendered Jinja2/HTMX, and locally hosted chart assets |
-| D-004 | ACCEPTED | Make the application independently installable from released dependencies |
+| D-004 | ACCEPTED | Make the application independently installable from released dependencies and a reviewed lockfile |
 | D-005 | ACCEPTED | Deterministic services and exact arithmetic are authoritative; models never publish financial values |
 | D-006 | ACCEPTED | Preserve immutable evidence, reporting entity/scope, bitemporal history, revisions, and pairwise comparability |
 | D-007 | ACCEPTED | Use controlled SEC/IR/regulatory boundaries and filed-evidence precedence; Stage A publishes only retained SEC exhibits |
-| D-008 | ACCEPTED | Keep LangChain, LangGraph, and Deep Agents responsibilities and switches separate |
+| D-008 | SUPERSEDED | Keep the former optional AI/workflow responsibilities separate (superseded by the framework-free runtime decision below) |
 | D-009 | ACCEPTED | Use explicit public-document classifications and typed public identifiers |
 | D-010 | ACCEPTED | Public routes are read-only; Stage A candidate review is an audited CLI boundary |
 | D-011 | ACCEPTED | Default tests and CI are deterministic, offline, socket-blocked, strict, and branch-covered at 90% or more |
 | D-012 | ACCEPTED | Do not start controlled expansion until Stage A and the intervening phase gates pass |
 | D-013 | ACCEPTED | Extract the application from its former source repository into a standalone repository after Stage A |
-| D-014 | DEFERRED | Select model/provider, production graph persistence, tracing, hosting, authentication, and production retention only through separate approval |
+| D-014 | SUPERSEDED | Defer only hosting, authentication, and production-retention choices; the application runtime remains framework-free |
 | D-015 | ACCEPTED | Stage A passed its closure audit on 2026-08-12; proceed to D-013 extraction before later pipeline phases |
 | D-016 | ACCEPTED | Phase 2 live acquisition, structured adapters, regulatory scopes, and calendar passed its exit gate on 2026-08-12 |
 | D-017 | ACCEPTED | Phase 3 TFC/PFSI profitability and expense metric deepening passed its exit gate on 2026-08-12 |
@@ -50,8 +50,8 @@ Useful predecessor principles are reaffirmed:
 - no model numeric authority;
 - no silent guessing or scope collapse;
 - no history destruction;
-- separate LangChain, LangGraph, and Deep Agents responsibilities;
-- independent kill switches; and
+- explicit typed state transitions and audited review;
+- fail-closed publication; and
 - network-free deterministic tests.
 
 ## D-002 — Stage A selection
@@ -87,18 +87,17 @@ repository-compatible value.
 
 ## D-004 — Self-containment and upstream boundary
 
-Remove editable local overrides for \`langchain\` and \`langchain-core\`. Resolve
-compatible released packages with \`uv\` and deliberately update the lockfile.
-\`mortgage_servicing_dashboard/\` must install independently from its own
-\`pyproject.toml\` and \`uv.lock\`.
+Resolve compatible released packages with \`uv\` and deliberately update the
+lockfile. \`mortgage_servicing_dashboard/\` must install independently from its
+own \`pyproject.toml\` and \`uv.lock\`.
 
 Do not use path or editable dependency overrides for application behavior.
 
 ## D-005 — Financial and publication authority
 
 Pure deterministic services own parsing, exact normalization, formulas,
-validation, reconciliation, revision identity, and comparability. LLM output can
-only propose a quarantined candidate or explain approved tool results.
+validation, reconciliation, revision identity, comparability, and publication.
+Review decisions can only act on persisted candidates and retained evidence.
 
 Missing disclosure is not zero. A model cannot estimate, choose a conflict,
 approve a candidate, publish an observation, or decide comparability.
@@ -124,15 +123,14 @@ entities.
 Search snippets, screenshots, aggregators, transcripts, and model recollection are
 not evidence for financial values.
 
-## D-008 — Framework responsibilities
+## D-008 — Former framework responsibilities (superseded)
 
-LangGraph coordinates 16 small typed ingestion stages. Raw documents do not enter
-state. Persistence is independently disabled unless a backend is injected and
-configured.
-
-LangChain exposes only typed bounded read tools over application services. Deep
-Agents are optional, independently disabled, analyst-initiated, and limited to the
-same tools. Neither framework is required for the dashboard or API to function.
+The former framework-oriented design is retained here as historical decision
+context. It is superseded by D-020: the active application uses a small explicit
+typed Python runtime for the exact 16 ingestion stages, with persistence,
+quarantine, human-review records, and revalidation handled by application
+services. No model, tracing, checkpoint, or workflow framework is required by
+the dashboard, API, CLI, or ingestion runtime.
 
 ## D-009 — Public-document classification
 
@@ -146,7 +144,7 @@ The controlled classifications are:
 
 Typed public CIKs, accession IDs, RSSDs, tickers, and hashes are structured
 metadata rather than arbitrary prompt prose. Restricted/prohibited data is rejected.
-Corporate contact blocks are removed from bounded model excerpts.
+Corporate contact blocks remain outside application runtime state and logs.
 
 ## D-010 — Read and review boundaries
 
@@ -219,15 +217,26 @@ Rollback is non-destructive: discard the standalone clone or its new remote and
 repeat from the frozen source commit. The source repository is never a rollback
 target because extraction did not modify it.
 
-## D-014 — Production and model choices deferred
+## D-014 — Former production/model choices (superseded)
 
-Stage A requires no live model provider, Deep Agent, remote tracing, production
-checkpointer, production hosting, or public authentication provider. Those choices
-affect security, privacy, retention, region, cost, support, and governance and
-require separate accepted decisions.
+The former model, tracing, and production-checkpoint choices are no longer part
+of the active application runtime. Hosting, authentication, and production
+retention remain separate future decisions because they affect security,
+privacy, retention, region, cost, support, and governance.
 
 This deferral does not block deterministic ingestion, the controlled review CLI,
 the read API, or the dashboard.
+
+## D-020 — Framework-free deterministic runtime
+
+The active application uses explicit typed Python state transitions for the exact
+16-stage ingestion order. A pipeline run is persisted at discovery, failures
+record an `IngestionError` before the terminal audit event, and quarantine pauses
+the run for an attributable same-thread human decision. Resume reconstructs the
+runtime from persisted identifiers, revalidates retained evidence immediately
+before any publication, and preserves immutable revisions. Public HTTP routes
+remain GET-only. No model-provider, tracing, checkpoint, or workflow-framework
+dependency is permitted in the active runtime.
 
 ## D-015 — Stage A exit
 
@@ -375,7 +384,7 @@ and the direct-SEC acquisition portion of D-016. It does not transfer numeric or
 publication authority to the provider: deterministic local code continues to
 own metric semantics, entity/scope/period resolution, exact `Decimal`
 normalization, validation, reconciliation, revisions, persistence, publication,
-API, and presentation. No LLM extraction fallback is permitted.
+API, and presentation. No external extraction fallback is permitted.
 
 Legacy acquisition remains in place only during the non-destructive migration.
 It may be removed only after a shadow run reproduces every currently published

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -14,8 +15,6 @@ import pytest
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
-from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
@@ -26,7 +25,9 @@ from mortgage_servicing_dashboard.database import (
     Company,
     ComparabilityAssessment,
     HumanReviewDecision,
+    IngestionError,
     MetricObservation,
+    ObservationRevision,
     PipelineRun,
     QuarantineCandidate,
     create_database_engine,
@@ -45,15 +46,12 @@ from mortgage_servicing_dashboard.domain import (
 )
 from mortgage_servicing_dashboard.ingestion import (
     INGESTION_NODES,
+    DeterministicIngestionRuntime,
+    IngestionServiceError,
+    IngestionState,
+    IngestionUpdate,
     StageAIngestionServices,
-    create_ingestion_graph,
-    resume_review,
-)
-from mortgage_servicing_dashboard.privacy import (
-    DataClassification,
-    PromptBoundary,
-    SensitiveContentError,
-    strip_corporate_contact_blocks,
+    StageName,
 )
 from mortgage_servicing_dashboard.repository import (
     IntelligenceRepository,
@@ -62,7 +60,63 @@ from mortgage_servicing_dashboard.repository import (
     seed_stage_a,
 )
 from mortgage_servicing_dashboard.sources import PublicSourceError, SecClient
-from mortgage_servicing_dashboard.tools import build_intelligence_tools
+
+
+class _RecordingRuntimeServices:
+    """Small deterministic service double used to assert transition order."""
+
+    def __init__(self, *, fail_stage: StageName | None = None) -> None:
+        self.calls: list[StageName] = []
+        self.fail_stage = fail_stage
+
+    def execute(self, stage: StageName, state: IngestionState) -> IngestionUpdate:
+        self.calls.append(stage)
+        if stage == self.fail_stage:
+            code = "FIXTURE_STAGE_FAILED"
+            raise IngestionServiceError(code, "fixture stage failed")
+        if stage == "publish_approved_observations":
+            return {
+                "terminal_status": "COMPLETED",
+                "terminal_outcomes": {
+                    "PUBLISHED": 0,
+                    "NOT_DISCLOSED": 0,
+                    "SOURCE_NOT_CHECKED": 0,
+                    "QUARANTINED": 0,
+                    "FAILED": 0,
+                },
+            }
+        if stage == "refresh_comparability_and_materializations":
+            return {"terminal_status": state.get("terminal_status", "RUNNING")}
+        if stage == "emit_audit_events":
+            status = state.get("terminal_status", "RUNNING")
+            return {
+                "terminal_status": status,
+                "audit_events": [
+                    f"ingestion_terminal:{status.lower()}:published=0:not_disclosed=0:source_not_checked=0"
+                ],
+            }
+        return {"terminal_status": "RUNNING"}
+
+
+class _FailingStageAServices(StageAIngestionServices):
+    """Real persisted services with one deterministic stage failure."""
+
+    def __init__(
+        self,
+        *,
+        fail_stage: StageName,
+        retryable: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.fail_stage = fail_stage
+        self.retryable = retryable
+
+    def execute(self, stage: StageName, state: IngestionState) -> IngestionUpdate:
+        if stage == self.fail_stage:
+            code = "FIXTURE_STAGE_FAILED"
+            raise IngestionServiceError(code, "fixture stage failed", retryable=self.retryable)
+        return super().execute(stage, state)
 
 
 @pytest.fixture
@@ -318,7 +372,7 @@ def test_api_routes_and_dashboard_are_read_only(seeded_engine: Engine) -> None:
         return route.endpoint
 
     health = endpoint("/api/v1/health")(repo)
-    assert health.model_calls_enabled is False
+    assert health.status == "ready"
     assert len(endpoint("/api/v1/companies")(repo)) == 2
     assert endpoint("/api/v1/companies/{company_id}")("tfc", repo)["ticker"] == "TFC"
     with pytest.raises(HTTPException):
@@ -406,26 +460,41 @@ def test_api_routes_and_dashboard_are_read_only(seeded_engine: Engine) -> None:
     assert public_methods <= {"GET", "HEAD"}
 
 
-def test_ingestion_graph_happy_path_and_same_thread_review_resume(tmp_path: Path) -> None:
+def test_deterministic_ingestion_happy_path_and_same_thread_review_resume(tmp_path: Path) -> None:
     engine = create_database_engine(f"sqlite:///{(tmp_path / 'graph.db').as_posix()}")
     services = StageAIngestionServices(engine=engine, retention_root=tmp_path / "evidence")
-    graph = create_ingestion_graph(services=services, checkpointer=InMemorySaver())
-    config = RunnableConfig(configurable={"thread_id": "review"})
-    state = {
-        "thread_id": "review",
-        "source_keys": [],
-        "visited": [],
-        "review_decision": "pending",
-        "published_count": 0,
-        "audit_events": [],
-    }
-    interrupted = graph.invoke(state, config=config)
-    assert interrupted["__interrupt__"]
+    runtime = DeterministicIngestionRuntime(services)
+    interrupted = runtime.run(thread_id="review")
+    assert interrupted["terminal_status"] == "AWAITING_REVIEW"
     assert len(interrupted["candidate_ids"]) == 36
     assert interrupted["quarantine_candidate_ids"] == [
         "candidate-pfsi-2026q2-expenses-excluding-valuation"
     ]
-    rejected = resume_review(graph, thread_id="review", decision="reject")
+    with Session(engine) as session:
+        run = session.get(PipelineRun, interrupted["run_id"])
+        assert run is not None
+        assert run.status == "AWAITING_REVIEW"
+        candidate = session.get(QuarantineCandidate, interrupted["quarantine_candidate_ids"][0])
+        assert candidate is not None
+        assert candidate.status == "PENDING"
+
+    # A fresh service/runtime in another process can reconstruct the paused run
+    # from its persisted thread without replaying an in-memory workspace.
+    reconstructed = DeterministicIngestionRuntime(
+        StageAIngestionServices(engine=engine, retention_root=tmp_path / "reconstructed")
+    )
+    replayed = reconstructed.run(thread_id="review")
+    assert replayed["terminal_status"] == "AWAITING_REVIEW"
+    assert replayed["run_id"] == interrupted["run_id"]
+    assert replayed["visited"] == list(INGESTION_NODES[:12])
+
+    rejected = runtime.resume(
+        thread_id="review",
+        candidate_id=interrupted["quarantine_candidate_ids"][0],
+        decision="reject",
+        reviewer="local-reviewer",
+        rationale="deterministic test review",
+    )
     assert rejected["review_decision"] == "reject"
     assert rejected["published_count"] == 36
     assert rejected["not_disclosed_count"] == 0
@@ -438,6 +507,199 @@ def test_ingestion_graph_happy_path_and_same_thread_review_resume(tmp_path: Path
         "FAILED": 0,
     }
     assert rejected["visited"] == list(INGESTION_NODES)
+    with Session(engine) as session:
+        run = session.get(PipelineRun, interrupted["run_id"])
+        assert run is not None
+        assert run.status == "COMPLETED"
+        decision = session.scalar(select(HumanReviewDecision))
+        assert decision is not None
+        assert decision.reviewer == "local-reviewer"
+        assert decision.rationale == "deterministic test review"
+        assert decision.thread_id == "review"
+    engine.dispose()
+
+
+def test_runtime_success_order_is_explicit_and_failure_audits_after_prefix(tmp_path: Path) -> None:
+    successful_services = _RecordingRuntimeServices()
+    successful = DeterministicIngestionRuntime(successful_services).run(thread_id="ordered")
+    assert successful_services.calls == list(INGESTION_NODES)
+    assert successful["visited"] == list(INGESTION_NODES)
+    assert successful["terminal_status"] == "COMPLETED"
+
+    failing_services = _RecordingRuntimeServices(fail_stage="parse_document")
+    failed = DeterministicIngestionRuntime(failing_services).run(thread_id="failed")
+    assert failing_services.calls == [
+        "discover_sources",
+        "acquire_source",
+        "hash_and_store",
+        "parse_document",
+        "emit_audit_events",
+    ]
+    assert failed["visited"] == failing_services.calls
+    assert failed["terminal_status"] == "FAILED"
+    assert failed["error_codes"] == ["FIXTURE_STAGE_FAILED"]
+    assert failed["audit_events"][-2:] == [
+        "stage_failed:parse_document:FIXTURE_STAGE_FAILED",
+        "ingestion_terminal:failed:published=0:not_disclosed=0:source_not_checked=0",
+    ]
+
+    database_url = f"sqlite:///{(tmp_path / 'failed.db').as_posix()}"
+    engine = create_database_engine(database_url)
+    persisted_services = _FailingStageAServices(
+        engine=engine,
+        retention_root=tmp_path / "failed-evidence",
+        fail_stage="discover_sources",
+        retryable=True,
+    )
+    persisted = DeterministicIngestionRuntime(persisted_services).run(thread_id="failed-db")
+    assert persisted["terminal_status"] == "FAILED"
+    with Session(engine) as session:
+        run = session.get(PipelineRun, persisted["run_id"])
+        assert run is not None
+        assert run.status == "FAILED"
+        error = session.scalar(
+            select(IngestionError).where(IngestionError.pipeline_run_id == run.id)
+        )
+        assert error is not None
+        assert error.stage == "discover_sources"
+        assert error.error_code == "FIXTURE_STAGE_FAILED"
+        assert error.retryable is True
+    engine.dispose()
+
+
+def test_runtime_rejects_review_when_persisted_run_identity_drifts(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'identity.db').as_posix()}")
+    services = StageAIngestionServices(engine=engine, retention_root=tmp_path / "evidence")
+    runtime = DeterministicIngestionRuntime(services)
+    paused = runtime.run(thread_id="identity-bound")
+    candidate_id = paused["quarantine_candidate_ids"][0]
+    monkeypatch.setattr(
+        services,
+        "_run_identity",
+        lambda _source_keys: ("f" * 64, f"pipeline:{'f' * 32}"),
+    )
+
+    with pytest.raises(ValueError, match="no longer matches"):
+        runtime.resume(
+            thread_id="identity-bound",
+            candidate_id=candidate_id,
+            decision="approve",
+        )
+
+    with Session(engine) as session:
+        candidate = session.get(QuarantineCandidate, candidate_id)
+        assert candidate is not None
+        assert candidate.status == "PENDING"
+        assert session.scalar(select(func.count()).select_from(HumanReviewDecision)) == 0
+    engine.dispose()
+
+
+def test_runtime_persists_detected_duplicates_as_reviewable_quarantine(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'duplicate.db').as_posix()}")
+    services = StageAIngestionServices(engine=engine, retention_root=tmp_path / "evidence")
+    original_parse = services._parse
+    duplicate_id = "candidate-runtime-semantic-duplicate"
+
+    def parse_with_duplicate(state: IngestionState) -> IngestionUpdate:
+        update = original_parse(state)
+        first = services._workspace.candidates[0]
+        duplicate = replace(first, candidate_id=duplicate_id)
+        services._workspace = replace(
+            services._workspace,
+            candidates=(*services._workspace.candidates, duplicate),
+        )
+        return update
+
+    monkeypatch.setattr(services, "_parse", parse_with_duplicate)
+    runtime = DeterministicIngestionRuntime(services)
+    paused = runtime.run(thread_id="duplicate")
+    assert duplicate_id in paused["quarantine_candidate_ids"]
+    configured_id = next(
+        candidate_id
+        for candidate_id in paused["quarantine_candidate_ids"]
+        if candidate_id != duplicate_id
+    )
+    with Session(engine) as session:
+        candidate = session.get(QuarantineCandidate, duplicate_id)
+        assert candidate is not None
+        assert candidate.status == "PENDING"
+        assert candidate.conflicts_and_uncertainties == [
+            "duplicate semantic candidate requires deterministic resolution"
+        ]
+
+    still_paused = runtime.resume(
+        thread_id="duplicate",
+        candidate_id=configured_id,
+        decision="reject",
+    )
+    assert still_paused["terminal_status"] == "AWAITING_REVIEW"
+    failed = runtime.resume(
+        thread_id="duplicate",
+        candidate_id=duplicate_id,
+        decision="approve",
+    )
+    assert failed["terminal_status"] == "FAILED"
+    assert "UNRESOLVED_RUNTIME_DUPLICATE" in failed["error_codes"]
+    with Session(engine) as session:
+        duplicate = session.get(QuarantineCandidate, duplicate_id)
+        assert duplicate is not None
+        assert duplicate.status == "QUARANTINED_AFTER_REVALIDATION"
+        assert session.scalar(select(func.count()).select_from(MetricObservation)) == 0
+        run = session.get(PipelineRun, failed["run_id"])
+        assert run is not None
+        assert run.status == "FAILED"
+        error = session.scalar(
+            select(IngestionError).where(
+                IngestionError.pipeline_run_id == failed["run_id"],
+                IngestionError.error_code == "UNRESOLVED_RUNTIME_DUPLICATE",
+            )
+        )
+        assert error is not None
+    engine.dispose()
+
+
+def test_runtime_revalidates_before_publication(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'revalidation.db').as_posix()}")
+    services = StageAIngestionServices(engine=engine, retention_root=tmp_path / "evidence")
+    runtime = DeterministicIngestionRuntime(services)
+    paused = runtime.run(thread_id="revalidate")
+    candidate_id = paused["quarantine_candidate_ids"][0]
+    events: list[str] = []
+    original_revalidate = services._revalidate_quarantine_candidate
+
+    def wrapped_revalidate(candidate: QuarantineCandidate) -> bool:
+        events.append("revalidate")
+        return original_revalidate(candidate)
+
+    monkeypatch.setattr(services, "_revalidate_quarantine_candidate", wrapped_revalidate)
+    original_seed = seed_stage_a
+
+    def wrapped_seed(*args: Any, **kwargs: Any) -> dict[str, int]:
+        assert events == ["revalidate"]
+        events.append("publish")
+        return original_seed(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "mortgage_servicing_dashboard.ingestion.seed_stage_a",
+        wrapped_seed,
+    )
+    resumed = runtime.resume(
+        thread_id="revalidate",
+        candidate_id=candidate_id,
+        decision="approve",
+        reviewer="reviewer@example.test",
+        rationale="revalidation ordering",
+    )
+    assert resumed["terminal_status"] == "COMPLETED"
+    assert events == ["revalidate", "publish"]
     engine.dispose()
 
 
@@ -488,87 +750,6 @@ def test_sec_client_success_cache_retries_and_boundaries(tmp_path: Path) -> None
     client.close()
 
 
-def test_privacy_classifications_public_identifiers_and_contacts() -> None:
-    boundary = PromptBoundary(max_chars=300, secret_environment={})
-    approved = boundary.approve(
-        "CIK 0000092230 accession 0000092230-26-000096 public filing",
-        classification=DataClassification.PUBLIC,
-    )
-    assert "0000092230" in approved.text
-    regulatory = boundary.approve(
-        "Public RSSD summary.", classification=DataClassification.PUBLIC_REGULATORY
-    )
-    assert regulatory.classification is DataClassification.PUBLIC_REGULATORY
-    issuer = boundary.approve(
-        "Issuer quarterly performance summary.", classification=DataClassification.ISSUER_PUBLIC
-    )
-    assert issuer.classification is DataClassification.ISSUER_PUBLIC
-    with pytest.raises(SensitiveContentError, match="restricted_private"):
-        boundary.approve("private data", classification=DataClassification.RESTRICTED_PRIVATE)
-    cleaned = strip_corporate_contact_blocks(
-        "Investor Relations: person@example.com\nFinancial results follow."
-    )
-    assert "example.com" not in cleaned
-    assert "Financial results" in cleaned
-
-
-def test_read_only_intelligence_tools(seeded_engine: Engine) -> None:
-    repo = IntelligenceRepository(seeded_engine)
-    tools = {tool.name: tool for tool in build_intelligence_tools(repo)}
-    assert set(tools) == {
-        "list_companies",
-        "get_company_profile",
-        "list_metric_definitions",
-        "get_metric_series",
-        "list_observations",
-        "compare_metric",
-        "get_observation_provenance",
-        "get_evidence",
-        "get_disclosure_coverage",
-        "list_earnings_events",
-        "get_pipeline_freshness",
-    }
-    assert len(tools["list_companies"].invoke({})) == 2
-    assert tools["get_company_profile"].invoke({"company_id": "tfc"})["observation_count"] == 20
-    assert len(tools["list_metric_definitions"].invoke({})) == 32
-    series = tools["get_metric_series"].invoke(
-        {"company_id": "tfc", "metric_id": "total_servicing_upb"}
-    )
-    assert len(series) == 4
-    observation_id = series[0]["id"]
-    assert (
-        len(
-            tools["list_observations"].invoke(
-                {
-                    "company_id": "tfc",
-                    "metric_id": "total_servicing_upb",
-                    "period_end": "2026-06-30",
-                }
-            )
-        )
-        == 1
-    )
-    assert tools["get_observation_provenance"].invoke({"observation_id": observation_id})[
-        "source_url"
-    ]
-    assert tools["get_observation_provenance"].invoke({"observation_id": "missing"}) == {
-        "status": "not_found"
-    }
-    assert tools["get_evidence"].invoke({"evidence_id": "evidence:tfc_2026_q2_qps"})["original_url"]
-    assert tools["get_evidence"].invoke({"evidence_id": "missing"}) == {"status": "not_found"}
-    assert (
-        tools["compare_metric"].invoke(
-            {"metric_id": "total_servicing_upb", "period_end": "2026-06-30"}
-        )["status"]
-        == "not_comparable"
-    )
-    with pytest.raises(ValueError, match="Unknown metric"):
-        tools["compare_metric"].invoke({"metric_id": "unknown", "period_end": "2026-06-30"})
-    assert len(tools["get_disclosure_coverage"].invoke({})) == 8
-    assert len(tools["list_earnings_events"].invoke({})) == 2
-    assert tools["get_pipeline_freshness"].invoke({})["published_count"] == 36
-
-
 def test_cli_database_commands(  # noqa: PLR0915
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -600,6 +781,12 @@ def test_cli_database_commands(  # noqa: PLR0915
         run = session.get(PipelineRun, candidate.pipeline_run_id)
         assert run is not None
         review_thread = run.thread_id
+        observations_before_review = session.scalar(
+            select(func.count()).select_from(MetricObservation)
+        )
+        revisions_before_review = session.scalar(
+            select(func.count()).select_from(ObservationRevision)
+        )
     engine.dispose()
     assert main(["review", "approve", "--database-url", database_url]) == 2
     assert "candidate-id" in json.loads(capsys.readouterr().out)["error"]
@@ -624,6 +811,57 @@ def test_cli_database_commands(  # noqa: PLR0915
     assert reviewed["thread_id"] == review_thread
     assert reviewed["terminal_status"] == "COMPLETED"
     assert reviewed["terminal_outcomes"]["QUARANTINED"] == 1
+    engine = create_database_engine(database_url)
+    with Session(engine) as session:
+        candidate = session.get(QuarantineCandidate, candidate_id)
+        assert candidate is not None
+        assert candidate.status == "QUARANTINED_AFTER_REVALIDATION"
+        published_candidate = session.scalar(
+            select(MetricObservation).where(
+                MetricObservation.metric_version_id.like(f"{candidate.proposed_metric_id}:%"),
+                MetricObservation.period_end == candidate.period_end,
+                MetricObservation.value == candidate.proposed_normalized_value,
+            )
+        )
+        assert published_candidate is None
+        assert (
+            session.scalar(select(func.count()).select_from(MetricObservation))
+            == observations_before_review
+        )
+        assert (
+            session.scalar(select(func.count()).select_from(ObservationRevision))
+            == revisions_before_review
+        )
+    engine.dispose()
+    repeated_approve = [
+        "review",
+        "approve",
+        "--database-url",
+        database_url,
+        "--candidate-id",
+        candidate_id,
+        "--thread-id",
+        review_thread,
+    ]
+    assert main(repeated_approve) == 0
+    capsys.readouterr()
+    engine = create_database_engine(database_url)
+    with Session(engine) as session:
+        approve_decisions = session.scalars(
+            select(HumanReviewDecision).where(HumanReviewDecision.decision == "APPROVE")
+        ).all()
+        assert len(approve_decisions) == 1
+        assert (
+            session.scalar(select(func.count()).select_from(MetricObservation))
+            == observations_before_review
+        )
+        assert (
+            session.scalar(select(func.count()).select_from(ObservationRevision))
+            == revisions_before_review
+        )
+    engine.dispose()
+    assert main([*repeated_approve, "--reviewer", "different-reviewer"]) == 4
+    assert "review resume failed closed" in json.loads(capsys.readouterr().out)["error"]
     assert (
         main(
             [

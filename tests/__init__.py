@@ -1,1 +1,1 @@
-"""Tests for the mortgage servicing dashboard foundation."""
+"""Tests for the public mortgage-servicing intelligence application."""
