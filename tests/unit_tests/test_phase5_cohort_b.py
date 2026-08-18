@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import shutil
 import subprocess
 import sys
@@ -30,6 +31,7 @@ from mortgage_servicing_dashboard.database import (
     MetricDefinition,
     MetricDefinitionVersion,
     MetricObservation,
+    ObservationEvidence,
     ReportingEntity,
     ReportingScope,
     Security,
@@ -83,6 +85,7 @@ _EXPECTED_SUPPORTED_UNIVERSE_HASH = (
     "b6920b7936a3fb5cdc7dabc2a095dbb690b1cbceb7610c133c948a2b2a0495dd"
 )
 _EXPECTED_LEGACY_BASELINE_HASH = "112661f7d3414793f747c6cdd9a890f480a2f98768bb8268cae9ad70c2e3f0b2"
+_EXPECTED_LEGACY_EVIDENCE_HASH = "bb80fd7ee5fc5c081dc4741cf1a33c7686211a05ccfc351412e819aae879c981"
 _NOW = datetime(2026, 8, 18, 16, tzinfo=UTC)
 _ISSUER_ORDER = ("tfc", "wfc", "jpm", "bac", "usb", "pfsi", "rkt", "uwmc", "ritm", "ldi")
 _COMPANIES = {
@@ -763,25 +766,78 @@ def test_phase5_cohort_b_real_parser_pipeline_api_dashboard_and_idempotence(  # 
     engine.dispose()
 
 
-def test_phase5_replay_coexists_with_exact_legacy_439_baseline(tmp_path: Path) -> None:
+def test_phase5_replay_coexists_with_exact_legacy_439_baseline(  # noqa: PLR0915
+    tmp_path: Path,
+) -> None:
     assert hashlib.sha256(_LEGACY_BASELINE_PATH.read_bytes()).hexdigest() == (
         _EXPECTED_LEGACY_BASELINE_HASH
     )
     engine = create_database_engine(f"sqlite:///{(tmp_path / 'phase5-legacy.db').as_posix()}")
     seed_phase3(engine, config_dir=_ROOT / "config")
     with _LEGACY_BASELINE_PATH.open(encoding="utf-8", newline="") as stream:
-        baseline_ids = {row["observation_id"] for row in csv.DictReader(stream)}
-    assert len(baseline_ids) == 439
+        baseline_rows = list(csv.DictReader(stream))
+    expected_snapshot = {
+        row["observation_id"]: (
+            row["normalized_decimal_value"] or None,
+            row["observation_state"],
+            row["publication_state"],
+            row["methodology"],
+        )
+        for row in baseline_rows
+    }
+    expected_links = {
+        row["observation_id"]: tuple(sorted(filter(None, row["evidence_ids"].split(";"))))
+        for row in baseline_rows
+    }
+    assert len(baseline_rows) == len(expected_snapshot) == 439
     with Session(engine) as session:
         baseline = session.scalars(
             select(MetricObservation)
-            .where(MetricObservation.id.in_(baseline_ids))
+            .where(MetricObservation.id.in_(expected_snapshot))
             .order_by(MetricObservation.id)
         ).all()
         assert len(baseline) == 439
         baseline_snapshot = {
-            row.id: (str(row.value), row.observation_state, row.methodology) for row in baseline
+            row.id: (
+                None if row.value is None else str(row.value),
+                row.observation_state,
+                row.publication_state,
+                row.methodology,
+            )
+            for row in baseline
         }
+        assert baseline_snapshot == expected_snapshot
+        actual_links: dict[str, list[str]] = {
+            observation_id: [] for observation_id in expected_snapshot
+        }
+        for observation_id, evidence_id in session.execute(
+            select(ObservationEvidence.observation_id, ObservationEvidence.evidence_id).where(
+                ObservationEvidence.observation_id.in_(expected_snapshot)
+            )
+        ):
+            actual_links[observation_id].append(evidence_id)
+        assert {
+            observation_id: tuple(sorted(evidence_ids))
+            for observation_id, evidence_ids in actual_links.items()
+        } == expected_links
+        evidence_ids = sorted(
+            {evidence_id for linked_ids in expected_links.values() for evidence_id in linked_ids}
+        )
+        evidence_projection = [
+            (row.id, row.content_sha256)
+            for row in session.scalars(
+                select(SourceEvidence)
+                .where(SourceEvidence.id.in_(evidence_ids))
+                .order_by(SourceEvidence.id)
+            )
+        ]
+        assert len(evidence_projection) == len(evidence_ids) == 22
+        assert (
+            hashlib.sha256(
+                json.dumps(evidence_projection, separators=(",", ":")).encode()
+            ).hexdigest()
+            == _EXPECTED_LEGACY_EVIDENCE_HASH
+        )
     pipeline, companies, _ = _pipeline(engine)
     summaries = _run_batch(pipeline, companies)
     results = tuple(result for summary in summaries for result in summary.filing_results)
@@ -846,7 +902,12 @@ def test_phase5_replay_coexists_with_exact_legacy_439_baseline(tmp_path: Path) -
     assert freshness["source_assessment_count"] > 0
     with Session(engine) as session:
         after = {
-            row.id: (str(row.value), row.observation_state, row.methodology)
+            row.id: (
+                None if row.value is None else str(row.value),
+                row.observation_state,
+                row.publication_state,
+                row.methodology,
+            )
             for row in session.scalars(
                 select(MetricObservation).where(MetricObservation.id.in_(baseline_snapshot))
             ).all()

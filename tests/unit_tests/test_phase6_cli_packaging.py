@@ -23,6 +23,11 @@ _PHASE5_RUNTIME_FILES = {
     "cohort-b-universe.v1.yaml",
     "financial_fields.v1.yaml",
 }
+_REMOVED_WHEEL_MAPPINGS = {
+    "config/financial_fields.v1.yaml": "financial_fields.v1.yaml",
+    "config/xbrl_concepts.yaml": "xbrl_concepts.yaml",
+    "tests/fixtures/edgartools/golden-sources.v1.yaml": "golden-sources.v1.yaml",
+}
 _COHORT_A = ("TFC", "WFC", "PFSI", "RKT")
 _COHORT_B = ("TFC", "WFC", "JPM", "BAC", "USB", "PFSI", "RKT", "UWMC", "RITM", "LDI")
 
@@ -60,6 +65,17 @@ def test_wheel_shared_data_is_the_bounded_phase5_runtime_set() -> None:
         "registry-evidence-fields.v1.yaml",
         "supported-universe.v1.yaml",
     } & set(packaged_phase5)
+    assert set(_REMOVED_WHEEL_MAPPINGS).isdisjoint(shared_data)
+    assert all((_ROOT / source).is_file() for source in _REMOVED_WHEEL_MAPPINGS)
+
+
+def test_runtime_state_and_sqlite_sidecars_have_explicit_ignore_rules() -> None:
+    rules = {
+        line.strip()
+        for line in (_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    assert {".msi/", ".msi-a/", "*.db", "*.db-journal", "*.db-wal", "*.db-shm"} <= rules
 
 
 def test_built_wheel_installs_both_declarative_cohort_selectors(
@@ -95,6 +111,11 @@ def test_built_wheel_installs_both_declarative_cohort_selectors(
             "phase5/registry-evidence-fields.v1.yaml",
             "tests/fixtures/phase5",
         )
+    )
+    assert not any(
+        member.endswith(f"/share/public-mortgage-servicing-intelligence/config/{destination}")
+        for member in members
+        for destination in _REMOVED_WHEEL_MAPPINGS.values()
     )
 
     _run(

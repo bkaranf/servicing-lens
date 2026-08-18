@@ -66,6 +66,8 @@ def test_doctor_json_contains_only_safe_readiness_data(
     assert exit_code == 0
     assert captured.err == ""
     assert payload["capabilities"]["status"] == "ready"
+    assert payload["stage"] == "expanded_comparison"
+    assert payload["capabilities"]["phase"] == "expanded_comparison"
     assert payload["readiness"] == {
         "checked": [
             "packaged_phase5_configuration",
@@ -124,6 +126,8 @@ def test_doctor_text_entrypoint(
 ) -> None:
     assert main(["doctor"]) == 0
     output = capsys.readouterr().out
+    assert "comparison capability: expanded_comparison" in output
+    assert "legacy Phase 3 role: legacy_retained_dataset_compatibility" in output
     assert "registered scope: Phase 5 cohort B (5 banks + 5 nonbanks)" in output
     assert "customer data access: disabled" in output
 

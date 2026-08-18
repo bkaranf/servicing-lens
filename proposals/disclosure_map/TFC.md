@@ -1,8 +1,9 @@
 # TFC Phase 3 disclosure map
 
-Status: official-source assessment as of August 12, 2026. This map covers the
-final 53-metric Phase 3 catalog for Q3 2025 through Q2 2026. It is a disclosure
-map, not a ranking or investment recommendation.
+Status: completed historical Phase 3 official-source assessment as of August 12,
+2026. This map covers the final 53-metric Phase 3 catalog for Q3 2025 through Q2
+2026. It remains an audit record; it is not the current Phase 5 field registry, a
+ranking, or an investment recommendation.
 
 ## Checked eligible source set
 
@@ -10,8 +11,9 @@ Each quarter's complete eligible SEC-registrant source set is the filed Quarterl
 Performance Summary plus the same-period Form 10-Q or Form 10-K. Full original
 HTTP response bytes, source identities, timestamps, byte lengths, SHA-256 hashes,
 and locators are retained under `config/recorded_evidence/phase3/tfc/` and listed
-in `manifest.v1.yaml`. The deterministic source/recipe authority is
-`config/phase3/tfc_sources.yaml`.
+in `manifest.v1.yaml`. The retained historical source/parser authority is
+`config/phase3/tfc_sources.yaml`; no separate issuer-level metric recipe is part
+of the current runtime.
 
 | Period | Filed exhibit | Periodic filing |
 | --- | --- | --- |

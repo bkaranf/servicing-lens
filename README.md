@@ -23,8 +23,10 @@ and PFSI for Q3 2025 through Q2 2026. Scope labels are deliberate: selecting a
 Phase 5 registry does not claim that every configured metric is disclosed for
 every issuer.
 
-Missing disclosure remains `NOT_DISCLOSED`. The application does not estimate a
-value to complete a comparison.
+A field becomes `NOT_DISCLOSED` only after its complete eligible source set has
+been checked. An untracked or unchecked field remains absent or
+`SOURCE_NOT_CHECKED`. The application never estimates a value to complete a
+comparison.
 
 ## Status
 
@@ -33,6 +35,11 @@ and financial-field registry are installed with the wheel. Cohort B is the defau
 for company discovery, live filing discovery, live ingestion, and sync. Cohort A
 remains an explicit bounded selector. Both use the same public-core `edgartools`
 adapter, deterministic validation, and atomic persistence path.
+
+A separate supported-universe registry records five additional banks and five
+additional nonbanks whose bounded current-filing evidence has been vetted. Those
+ten expansion entries are registry-only and explicitly not published; they are not
+an active cohort selector, a historical-coverage claim, or a ranking.
 
 Large retained filing bytes, bounded replay excerpts, and generated evidence-case
 outputs are not wheel runtime data. They remain checkout-only verification assets.
@@ -60,9 +67,11 @@ Start with the [documentation index](docs/README.md). The binding documents cove
 - [metric definitions](docs/METRIC_CATALOG.md);
 - [data model](docs/DATA_MODEL.md);
 - [deterministic ingestion and review](docs/ORCHESTRATION.md);
-- [comparability](docs/COMPARABILITY_POLICY.md);
-- [implementation and acceptance gates](docs/IMPLEMENTATION_PLAN.md); and
+- [comparability](docs/COMPARABILITY_POLICY.md); and
 - [architecture decisions](docs/DECISIONS.md).
+
+The [implementation plan](docs/IMPLEMENTATION_PLAN.md) is a historical sequence
+and record of completed gates, not active implementation or acquisition authority.
 
 The former synthetic internal loan-operations documentation is preserved as
 historical context under \`docs/archive/internal_servicing_operations_foundation/\` and is not
@@ -83,7 +92,7 @@ authoritative for this product.
   scale, precision, and time are part of a value.
 - Ambiguity enters quarantine. Models never publish or approve values.
 - Revisions preserve prior evidence and as-known-at history.
-- Public routes are read-only.
+- Public routes are GET-only.
 - Dashboard and API use only deterministic local application services.
 - Default tests are deterministic and network-free.
 
@@ -157,8 +166,9 @@ the verified bounded derived fixtures below `--runtime-dir/evidence/edgartools` 
 content SHA-256. Passing that same runtime root to `serve` makes the advertised
 evidence resolvable. Repeating the replay against that database reports
 `UNCHANGED`. A bare wheel contains the Phase 5 registries and live-sync manifests
-needed at runtime, but not replay excerpts or retained evidence bytes; it returns a structured
-`phase5_replay_unavailable` error. Phase 3 retained evidence is also checkout-only.
+needed at runtime, but not replay excerpts or retained evidence bytes; it returns
+a structured `phase5_replay_unavailable` error. Phase 3 retained evidence is also
+checkout-only.
 
 Validate and inspect a populated local database without seeding it:
 
@@ -193,9 +203,10 @@ pages enhanced with local vanilla JavaScript for:
 - methodology; and
 - evidence drill-through.
 
-Chart assets are hosted locally and every chart has an accessible table. Every
-page shows data-as-of time and clearly labels reported actual, preliminary,
-pro-forma, announced-impact, derived, and not-disclosed states.
+Charts are rendered as local inline SVG with accessible table equivalents; no
+external chart library or CDN is used. Every page shows data-as-of time and clearly
+labels reported actual, preliminary, pro-forma, announced-impact, derived, and
+not-disclosed states.
 
 The light Servicing Lens interface uses stable governed company and metric order,
 a searchable company universe, a comparison bench with three visual slots, three
@@ -207,17 +218,21 @@ existing FastAPI routes, repository, evidence views, and public read API remain
 authoritative.
 
 Presentation-only normalization lives in `presentation.py` and uses exact
-`Decimal` arithmetic. The current governed dataset maps fields as follows:
+`Decimal` arithmetic. It presents each company's latest eligible published
+servicing measure while preserving whether that measure is
+`total_servicing_upb`, `servicing_for_others_upb`, or `owned_msr_upb`, together
+with its reporting scope. UPB growth is calculated only across adjacent fiscal
+quarters with the same metric, entity, scope, methodology, currency, unit, and
+metric version.
 
-- Servicing UPB: latest reported `total_servicing_upb`.
-- UPB growth: exact quarter-over-quarter change in reported total servicing UPB,
-  only when the observations are adjacent fiscal quarters with matching entity,
-  scope, methodology, currency, unit, and metric version.
-- PFSI owned/MSR mix: `owned_msr_upb / total_servicing_upb`.
-- TFC bank-owned share: `bank_owned_loans_serviced_upb / total_servicing_upb`;
-  this is explicitly not labeled as owned-MSR mix.
+When the historical compatibility dataset supplies both exact inputs, PFSI
+owned/MSR mix is `owned_msr_upb / total_servicing_upb`; TFC bank-owned share is
+`bank_owned_loans_serviced_upb / total_servicing_upb` and is explicitly not
+labeled as owned-MSR mix.
+
+- Values without every required compatible input remain unavailable.
 - Customer loans, servicing platform, and earnings sentiment: unavailable because
-  the governed Stage A pipeline does not currently publish those fields.
+  the governed publication pipelines do not currently publish those fields.
 
 Mix inputs must share the same period and compatible entity, scope, currency,
 unit, and period type. Relative portfolio scales render only when the repository's

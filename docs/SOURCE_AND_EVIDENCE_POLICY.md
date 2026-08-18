@@ -8,9 +8,17 @@ merely because it is public. Published observations require an eligible source,
 immutable evidence, an exact locator, resolved entity/period/scope semantics, and
 successful validation.
 
-Stage A covers TFC and PFSI for Q3 2025 through Q2 2026. The source-discovery
-assessment must verify the actual available filings and documents before a metric
-is configured for publication.
+The default published Phase 5 cohort contains five banks and five nonbanks over a
+bounded Q3 2024 through Q2 2026 filing window. A separate supported-universe
+registry contains five additional banks and five additional nonbanks whose
+current-filing evidence is vetted but not published. Neither registry asserts
+complete metric disclosure, prior-period coverage beyond its tracked evidence, or
+a ranking. The historical Stage A and Phase 3 TFC/PFSI datasets remain
+checkout-only compatibility and audit paths.
+
+For every cohort, source discovery must verify the actual filing, document, field,
+entity, period, and reporting scope before publication is configured. Registry
+eligibility alone never authorizes a numeric observation.
 
 ## Eligible sources and acquisition
 
@@ -84,6 +92,15 @@ length verified before parsing, and has a locator that resolves in the retained
 view. Reacquiring different bytes from the same URL creates new evidence; it never
 rewrites the earlier record. Parses, OCR, tables, and XBRL normalizations remain
 reproducible derivatives and do not replace an original response when one exists.
+
+The tracked Phase 5 replay uses hash-verified
+`BOUNDED_DERIVED_REPLAY_EXCERPT` files produced from edgartools-retrieved filing
+content. Each excerpt has its own byte length and SHA-256 and is explicitly not
+the original SEC document. The evidence case separately preserves the original
+CIK, accession, form, filing date, report period, document name, SEC URL, exact
+locator, retrieval time, edgartools version, byte length, and SHA-256. Replay
+excerpts and generated evidence cases are checkout-only verification assets, not
+wheel runtime data.
 
 Raw document bodies remain outside bounded runtime metadata and logs. Those
 surfaces carry source IDs and bounded metadata references.
@@ -175,8 +192,15 @@ authentication, and other nonpublic personal data are prohibited.
 
 ## Replay, freshness, and failure behavior
 
-- A cached replay performs discovery-independent parsing through publication with
-  sockets disabled.
+- A Phase 5 cohort selector without `--live` performs discovery-independent
+  checkout replay through the same parser, validation, and atomic publication path
+  with sockets disabled and an explicit isolated database.
+- Replaying the same verified cases reports `UNCHANGED` and creates no duplicate
+  observations. A bare wheel fails with the bounded
+  `phase5_replay_unavailable` error before creating replay state because it does
+  not contain the checkout-only excerpts.
+- Explicit live discovery, ingest, and sync use the centralized public-edgartools
+  lane only. There is no custom SEC client or fallback provider.
 - Same bytes plus the same parser, mapping, metric, and code versions produce the
   same semantic observation set.
 - Conditional retrieval or a later filing can create a new evidence/revision

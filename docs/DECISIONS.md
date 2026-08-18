@@ -1,7 +1,9 @@
 # Decisions
 
 Statuses are \`ACCEPTED\`, \`SUPERSEDED\`, \`REJECTED\`, or \`DEFERRED\`.
-Accepted decisions bind Stage A until a later entry explicitly supersedes them.
+Accepted decisions bind the current implementation until a later entry explicitly
+supersedes them. Completed phase decisions remain audit history even after their
+forward-looking constraints are superseded.
 Acceptance here is an implementation decision, not production, accounting,
 investment, legal, security, or regulatory approval.
 
@@ -10,17 +12,17 @@ investment, legal, security, or regulatory approval.
 | ID | Status | Decision |
 | --- | --- | --- |
 | D-001 | ACCEPTED | Reset the product from synthetic internal loan operations to public mortgage-servicing intelligence and archive the predecessor unchanged |
-| D-002 | ACCEPTED | Stage A covers TFC and PFSI for Q3 2025 through Q2 2026 only |
-| D-003 | ACCEPTED | Use FastAPI, Pydantic, SQLAlchemy 2, Alembic, local SQLite with PostgreSQL-compatible schemas, server-rendered Jinja2/HTMX, and locally hosted chart assets |
+| D-002 | SUPERSEDED | Stage A covers TFC and PFSI for Q3 2025 through Q2 2026 only |
+| D-003 | SUPERSEDED | Use FastAPI, Pydantic, SQLAlchemy 2, Alembic, local SQLite with PostgreSQL-compatible schemas, server-rendered Jinja2/HTMX, and locally hosted chart assets |
 | D-004 | ACCEPTED | Make the application independently installable from released dependencies and a reviewed lockfile |
 | D-005 | ACCEPTED | Deterministic services and exact arithmetic are authoritative; models never publish financial values |
 | D-006 | ACCEPTED | Preserve immutable evidence, reporting entity/scope, bitemporal history, revisions, and pairwise comparability |
-| D-007 | ACCEPTED | Use controlled SEC/IR/regulatory boundaries and filed-evidence precedence; Stage A publishes only retained SEC exhibits |
+| D-007 | SUPERSEDED | Use controlled SEC/IR/regulatory boundaries and filed-evidence precedence; Stage A publishes only retained SEC exhibits |
 | D-008 | SUPERSEDED | Keep the former optional AI/workflow responsibilities separate (superseded by the framework-free runtime decision below) |
 | D-009 | ACCEPTED | Use explicit public-document classifications and typed public identifiers |
-| D-010 | ACCEPTED | Public routes are read-only; Stage A candidate review is an audited CLI boundary |
+| D-010 | ACCEPTED | Public routes are GET-only; retained candidate review is an audited CLI boundary |
 | D-011 | ACCEPTED | Default tests and CI are deterministic, offline, socket-blocked, strict, and branch-covered at 90% or more |
-| D-012 | ACCEPTED | Do not start controlled expansion until Stage A and the intervening phase gates pass |
+| D-012 | SUPERSEDED | Do not start controlled expansion until Stage A and the intervening phase gates pass |
 | D-013 | ACCEPTED | Extract the application from its former source repository into a standalone repository after Stage A |
 | D-014 | SUPERSEDED | Defer only hosting, authentication, and production-retention choices; the application runtime remains framework-free |
 | D-015 | ACCEPTED | Stage A passed its closure audit on 2026-08-12; proceed to D-013 extraction before later pipeline phases |
@@ -28,6 +30,8 @@ investment, legal, security, or regulatory approval.
 | D-017 | ACCEPTED | Phase 3 TFC/PFSI profitability and expense metric deepening passed its exit gate on 2026-08-12 |
 | D-018 | SUPERSEDED | Make the hosted EdgarTools REST API the sole active external SEC-data provider, subject to an exact parity gate before legacy removal |
 | D-019 | ACCEPTED | Use open-source edgartools as the sole SEC acquisition layer and replace legacy parity with financial qualification |
+| D-020 | ACCEPTED | Use a framework-free deterministic 16-stage runtime for the retained review workflow |
+| D-021 | ACCEPTED | Adopt the Phase 5 published/supported registries and Phase 6 GET-only application as the current product boundary |
 
 ## D-001 — Public-product scope reset
 
@@ -54,7 +58,7 @@ Useful predecessor principles are reaffirmed:
 - fail-closed publication; and
 - network-free deterministic tests.
 
-## D-002 — Stage A selection
+## D-002 — Stage A selection (historical; superseded by D-021)
 
 Stage A implements one verified bank and one verified nonbank:
 
@@ -69,7 +73,7 @@ At least five useful metrics must complete the source-to-UI path. The full initi
 catalog is defined even when an issuer does not disclose a metric. No third issuer
 or broader period is added before Stage A exits.
 
-## D-003 — Application stack
+## D-003 — Application stack (partly retained; UI prescription superseded by D-021)
 
 Use:
 
@@ -113,7 +117,7 @@ Corrections and later knowledge create superseding revisions. They never destroy
 evidence or rewrite what the system previously knew. Comparability is stored
 pairwise against exact observation revisions and a policy version.
 
-## D-007 — Source boundaries
+## D-007 — Source boundaries (historical; superseded by D-019)
 
 SEC access occurs only through the controlled adapter under fair-access behavior.
 Filed materials take precedence over unfiled issuer copies. FFIEC Call Report,
@@ -148,9 +152,9 @@ Corporate contact blocks remain outside application runtime state and logs.
 
 ## D-010 — Read and review boundaries
 
-Public HTTP routes are GET-only analytical reads. Stage A uses an audited CLI for
-candidate review. Review records identity, role, evidence snapshot, decision,
-reason, thread/run, and resulting revision/config version.
+Public HTTP routes are GET-only analytical reads. The historical Stage A workflow
+uses an audited CLI for candidate review. Review records identity, role, evidence
+snapshot, decision, reason, thread/run, and resulting revision/config version.
 
 There is no direct database edit, generic admin SQL, model approval, or public
 candidate mutation route.
@@ -165,7 +169,7 @@ Dependency, secret, migration, schema-contract, generated-artifact, route/tool
 inventory, provenance, accessibility, and restricted-data checks are release
 gates.
 
-## D-012 — Controlled-expansion hold
+## D-012 — Controlled-expansion hold (historical; superseded by D-021)
 
 The earlier broad target of ten issuers and eight quarters is superseded by the
 governing 2026-08-12 objective. Controlled expansion adds exactly two banks and
@@ -238,7 +242,7 @@ before any publication, and preserves immutable revisions. Public HTTP routes
 remain GET-only. No model-provider, tracing, checkpoint, or workflow-framework
 dependency is permitted in the active runtime.
 
-## D-015 — Stage A exit
+## D-015 — Stage A exit (historical exit record)
 
 Stage A exited on 2026-08-12 after the complete local gate and independent
 closure audits passed together. The exit evidence is:
@@ -274,7 +278,7 @@ tracing, and any model-provider decision. D-012 is satisfied for Stage A; the
 governing phased objective permits Phase 1 extraction now and permits universe
 expansion only after Phases 2 and 3 pass their gates.
 
-## D-016 — Phase 2 acquisition and structured-data exit
+## D-016 — Phase 2 acquisition and structured-data exit (historical exit record)
 
 Phase 2 exited on 2026-08-12 after the standalone repository gate. Recorded
 evidence remains the offline default and no normal test opens a socket. The exit
@@ -323,7 +327,7 @@ failed source checks. D-014 production/model decisions remain deferred. Phase 3
 may now deepen TFC/PFSI metrics; issuer expansion remains blocked until Phase 3
 passes.
 
-## D-017 — Phase 3 profitability and expense metric-deepening exit
+## D-017 — Phase 3 profitability and expense metric-deepening exit (historical exit record)
 
 Phase 3 exited on 2026-08-12 after the final standalone-repository gate and an
 independent semantic audit. It deepens TFC and PFSI only, for Q3 2025 through Q2
@@ -422,3 +426,24 @@ transport, the hand-written SEC client, inactive providers, tracked evidence
 bloat, and unused dependencies may be removed only after the selected TFC/PFSI
 financial output passes qualification and explicit destructive approval is
 recorded. No legacy observation history is dropped by this decision.
+
+## D-021 — Phase 5/6 current product boundary
+
+The default end-to-end published registry is Phase 5 cohort B: TFC, WFC, JPM,
+BAC, USB, PFSI, RKT, UWMC, RITM, and LDI over the tracked Q3 2024 through Q2 2026
+cases. Cohort A remains an explicit four-company selector. A separate five-bank,
+five-nonbank expansion registry is evidence-vetted but not published, does not
+assert prior-seven-filing coverage, and creates no ranking or completeness claim.
+
+The current numeric path is deterministic checkout replay or explicit live access
+through the sole public-core `edgartools` lane, with exact filing, locator, version,
+byte-length, and SHA-256 provenance. Phase 6 serves an existing populated database
+through GET-only FastAPI/Jinja2 routes, local vanilla JavaScript, inline SVG, and
+accessible tables; there is no active HTMX or chart-library runtime.
+
+This decision supersedes D-002's current-universe limit, D-003's HTMX/chart-library
+prescription, D-012's expansion hold, D-017's forward-looking Phase 5 hold, and
+D-019's prequalification migration hold while preserving their completed audit
+history and all legacy observations. It reaffirms D-003's remaining local
+application stack, D-005/D-006 financial and provenance authority, D-010's
+GET-only boundary, D-011's offline quality gate, and D-019's sole-provider rule.

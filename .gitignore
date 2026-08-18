@@ -14,9 +14,12 @@ build/
 .env.*
 !.env.example
 .msi/
+.msi-a/
 .ci/
 artifacts/
 .lavish/
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 .DS_Store

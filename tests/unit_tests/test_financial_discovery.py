@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import hashlib
+import importlib
 import re
 from collections import Counter
 from dataclasses import replace
@@ -55,9 +57,12 @@ _LEGACY_BASELINE_PATH = _REPOSITORY_ROOT / "config" / "audit" / "legacy-439-base
 _GOLDEN_MANIFEST_PATH = (
     _REPOSITORY_ROOT / "tests" / "fixtures" / "edgartools" / "golden-sources.v1.yaml"
 )
-_AVAILABILITY_PATH = (
-    _REPOSITORY_ROOT / "artifacts" / "edgar-tools-migration" / "financial-availability.csv"
+_PHASE5_MANIFEST_PATHS = (
+    _REPOSITORY_ROOT / "config" / "phase5" / "cohort-a-sources.v1.yaml",
+    _REPOSITORY_ROOT / "config" / "phase5" / "cohort-b-sources.v1.yaml",
 )
+_LEGACY_BASELINE_SHA256 = "112661f7d3414793f747c6cdd9a890f480a2f98768bb8268cae9ad70c2e3f0b2"
+_LEGACY_BASELINE_BYTE_LENGTH = 326_936
 _ACCESSION = "0000092230-26-000099"
 _CIK = "0000092230"
 _DOCUMENT = "tfc-20260630.htm"
@@ -219,27 +224,32 @@ def _inline_xbrl(*, selected_format: str = "ixt:num-dot-decimal") -> bytes:
 </html>""".encode()
 
 
-def test_legacy_audit_baseline_remains_readable_archival_evidence() -> None:
+def test_legacy_439_baseline_is_byte_identical_with_exact_ids_and_states() -> None:
+    payload = _LEGACY_BASELINE_PATH.read_bytes()
+
+    assert len(payload) == _LEGACY_BASELINE_BYTE_LENGTH
+    assert hashlib.sha256(payload).hexdigest() == _LEGACY_BASELINE_SHA256
     with _LEGACY_BASELINE_PATH.open(encoding="utf-8", newline="") as stream:
-        reader = csv.DictReader(stream)
-        assert reader.fieldnames is not None
-        assert {
-            "observation_id",
-            "company_id",
-            "metric_id",
-            "metric_version",
-            "period_end",
-            "observation_state",
-            "publication_state",
-        } <= set(reader.fieldnames)
-        first = next(reader)
-    assert first["observation_id"]
-    assert first["company_id"]
-    assert first["metric_id"]
-    assert first["metric_version"]
-    assert first["period_end"]
-    assert first["observation_state"] in {"REPORTED_ACTUAL", "DERIVED", "NOT_DISCLOSED"}
-    assert first["publication_state"] == "PUBLISHED"
+        rows = list(csv.DictReader(stream))
+    observation_ids = {row["observation_id"] for row in rows}
+    assert len(rows) == len(observation_ids) == 439
+    assert Counter(row["company_id"] for row in rows) == {"pfsi": 223, "tfc": 216}
+    assert Counter(row["observation_state"] for row in rows) == {
+        "REPORTED_ACTUAL": 174,
+        "DERIVED": 43,
+        "NOT_DISCLOSED": 222,
+    }
+    assert Counter(row["publication_state"] for row in rows) == {"PUBLISHED": 439}
+    assert all(
+        row["normalized_decimal_value"]
+        for row in rows
+        if row["observation_state"] != "NOT_DISCLOSED"
+    )
+    assert all(
+        not row["normalized_decimal_value"]
+        for row in rows
+        if row["observation_state"] == "NOT_DISCLOSED"
+    )
 
 
 def test_compact_mapping_is_raw_document_only_and_preserves_consolidated_scope() -> None:
@@ -882,25 +892,39 @@ def test_golden_manifest_has_exactly_four_bounded_honestly_reviewed_cases() -> N
         assert all(case.get("review_gap") for case in cases)
 
 
-def test_financial_availability_has_16_rows_and_honest_pfsi_stop_classifications() -> None:
-    with _AVAILABILITY_PATH.open(encoding="utf-8", newline="") as stream:
-        rows = list(csv.DictReader(stream))
+def test_phase5_availability_is_owned_by_tracked_governed_manifests() -> None:
+    generator = importlib.import_module("scripts.generate_phase5_manifest")
+    governed_snapshots = generator._GOVERNED_SNAPSHOTS
+    case_counts: dict[str, int] = {}
+    snapshot_hashes: set[str] = set()
+    for manifest_path in _PHASE5_MANIFEST_PATHS:
+        manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+        assert isinstance(manifest, dict)
+        cases = manifest["cases"]
+        assert isinstance(cases, list)
+        case_counts[manifest_path.name] = len(cases)
+        snapshot_hash = manifest["acquisition_snapshot"]["sha256"]
+        snapshot_hashes.add(snapshot_hash)
+        generator_profile = governed_snapshots[snapshot_hash]
 
-    assert len(rows) == 16
-    assert Counter(row["issuer_id"] for row in rows) == {"tfc": 8, "pfsi": 8}
-    assert all(row["field_id"] == "total_assets" for row in rows)
-    assert all(row["selection_decision"] == "SELECTED" for row in rows)
-    assert all(ReviewStatus(row["review_status"]) for row in rows)
-    assert all("NOT_FOUND" not in row["availability_status"] for row in rows)
-    assert Counter(row["availability_status"] for row in rows) == {
-        "FILING_METADATA_AVAILABLE_FACT_NOT_INSPECTED": 12,
-        "QUALIFIED_RAW_DOCUMENT_INLINE_XBRL": 4,
+        assert manifest["manifest_version"] == generator_profile["manifest_version"]
+        assert tuple(dict.fromkeys(case["issuer_id"] for case in cases)) == tuple(
+            sorted(generator_profile["issuer_ids"])
+        )
+        assert manifest["mapping_version"] == "financial-fields-phase5-v1"
+        assert manifest["status"] == "FILING_XBRL_LINEAGE_VERIFIED"
+        assert manifest["expected_case_count"] == len(cases)
+        assert manifest["approved_expectations"] == [case["case_id"] for case in cases]
+        assert Counter(case["classification"] for case in cases) == {
+            "CORE_FINANCIAL": len(cases) // 2,
+            "OPTIONAL_SERVICING": len(cases) // 2,
+        }
+        assert all(case["review_status"] == "FILING_XBRL_LINEAGE_VERIFIED" for case in cases)
+        assert all(case["edgartools_source"]["acquisition_status"] == "QUALIFIED" for case in cases)
+        assert all(case["edgartools_source"]["integrity_verified"] is True for case in cases)
+
+    assert case_counts == {
+        "cohort-a-sources.v1.yaml": 64,
+        "cohort-b-sources.v1.yaml": 160,
     }
-    assert Counter(row["cross_check_status"] for row in rows) == {
-        "NOT_PERFORMED": 12,
-        "EXACT_DISTINCT_REPRESENTATION_MATCH": 4,
-    }
-    assert Counter(row["review_status"] for row in rows) == {
-        ReviewStatus.REVIEW_REQUIRED: 12,
-        ReviewStatus.REVIEWER_APPROVED: 4,
-    }
+    assert snapshot_hashes == set(governed_snapshots)

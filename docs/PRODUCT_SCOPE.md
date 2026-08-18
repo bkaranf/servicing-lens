@@ -23,40 +23,57 @@ explanations are secondary objectives.
 
 ## Current repository state
 
-The Stage A recorded-data vertical slice is implemented. It provides versioned
-TFC/PFSI configuration, hash-verified retained SEC DOM serializations, exact observations and
-explicit missingness, SQLAlchemy/Alembic persistence, deterministic read services, a
-read-only API, server-rendered dashboard pages, a provenance dialog, and an
-interruptible deterministic review runtime. A public-core `edgartools` qualification path handles
-opt-in SEC discovery and filing-specific XBRL. Legacy direct-client and regulatory
-adapters remain in the pre-cleanup implementation but are outside the active
-source boundary; they are not eligible for new product observations. Recorded
-evidence remains the socket-blocked default. This is not a claim of production
-readiness or broad market coverage.
+Phase 5 cohort B is the default end-to-end published registry: five banks and
+five nonbanks over the bounded Q3 2024 through Q2 2026 filing window. The
+checkout replay publishes only the compact configured financial fields supported
+by its tracked evidence cases, through the same deterministic parser, validation,
+exact-`Decimal`, and atomic persistence path used by explicit live acquisition.
+Every published observation retains exact filing and evidence provenance.
 
-## Stage A selection
+Phase 6 exposes populated data through a non-mutating FastAPI application with
+GET-only routes, server-rendered Jinja2 pages, local vanilla JavaScript, inline SVG
+charts, accessible tables, and bounded evidence drill-through. The sole live SEC
+lane is the public core `edgartools` adapter and always requires explicit opt-in.
+The socket-blocked checkout replay remains the normal deterministic verification
+path; replay assets are not installed as wheel runtime data.
 
-Stage A is deliberately limited to:
+The evidence-vetted supported-universe registry contains ten additional current
+registrants (five banks and five nonbanks). Each expansion entry is explicitly
+registry-only and not published. It is not an ingest selector, a prior-seven-filing
+coverage claim, or a ranking. None of these states claims production readiness,
+comprehensive issuer or metric coverage, or industry leadership.
+
+## Current published universe
+
+| Class | Published cohort B issuers | Bounded filing periods |
+| --- | --- | --- |
+| Banks | TFC, WFC, JPM, BAC, USB | Q3 2024 through Q2 2026 |
+| Nonbanks | PFSI, RKT, UWMC, RITM, LDI | Q3 2024 through Q2 2026 |
+
+The versioned cohort registry, not this prose or a ticker literal in code, is the
+runtime authority. Cohort A remains an explicit smaller selector for TFC, WFC,
+PFSI, and RKT. Selecting either cohort does not assert that every issuer discloses
+every field or that different issuer-defined servicing populations are comparable.
+The word “published” describes the governed pipeline state, not catalog
+completeness.
+
+## Historical Stage A selection (superseded)
+
+Stage A was deliberately limited to:
 
 | Class | Selected issuer | Ticker | Fiscal periods |
 | --- | --- | --- | --- |
 | Bank | Truist Financial Corporation | TFC | Q3 2025, Q4 2025, Q1 2026, Q2 2026 |
 | Nonbank | PennyMac Financial Services, Inc. | PFSI | Q3 2025, Q4 2025, Q1 2026, Q2 2026 |
 
-The versioned company-universe configuration, not this prose or a ticker literal
-in code, is the runtime authority. It must record verified legal identities,
-CIKs, fiscal calendars, reporting entities and scopes, accounting-policy regimes,
-and effective dates. Source-discovery evidence must remain reviewable.
+At least five useful servicing metrics were required to complete the path from
+source to dashboard. A metric could remain \`NOT_DISCLOSED\` for either issuer.
+Stage A did not force symmetric coverage and never substituted
+\`total_servicing_upb\` for \`servicing_for_others_upb\` or \`owned_msr_upb\`.
 
-At least five useful servicing metrics must complete the path from source to
-dashboard. A metric can remain \`NOT_DISCLOSED\` for either issuer. Stage A does not
-force symmetric coverage and never substitutes \`total_servicing_upb\` for
-\`servicing_for_others_upb\` or \`owned_msr_upb\`.
-
-Controlled expansion is blocked until every Stage A acceptance gate and the
-intervening standalone, acquisition, and metric-deepening phase gates pass. The
-governing objective permits exactly two additional banks and two additional
-nonbanks over the same four-quarter window before UI alignment.
+This selection and its controlled-expansion hold are retained as completed audit
+history. They no longer define the default runtime universe; D-021 supersedes
+their forward-looking scope after the Phase 5 and Phase 6 gates.
 
 ## In-scope user outcomes
 
@@ -64,8 +81,9 @@ Users can:
 
 - see tracked-company coverage, source freshness, latest filings, published
   quarters, pipeline status, missing metrics, and quarantined candidates;
-- compare TFC and PFSI over the selected periods and see units, reported or
-  derived state, accessible trends, and pairwise comparability results;
+- compare two or three active companies present in the populated database and see
+  units, reported or derived state, accessible trends, and pairwise comparability
+  results;
 - inspect one company's reporting structure, latest earnings event, portfolio,
   servicing economics, MSR position, disclosure changes, and quality warnings;
 - open an evidence drawer from every value to inspect the metric definition,
@@ -96,29 +114,37 @@ The versioned JSON API exposes only bounded read operations:
 - \`GET /api/v1/calendar\`
 - \`GET /api/v1/pipeline/freshness\`
 
-The dashboard is server-rendered with Jinja2 and HTMX. Chart assets are hosted
-locally and every chart has an equivalent accessible table. Public routes are
-read-only.
+The dashboard is server-rendered with Jinja2 and enhanced by local vanilla
+JavaScript. Charts are local inline SVG with equivalent accessible tables. There
+is no HTMX or external chart-library runtime. Public routes are GET-only.
 
 The controlled CLI surface is:
 
 - \`msi doctor\`
 - \`msi discover\`
-- \`msi ingest\` (the complete governed Stage A source set)
-- \`msi discover --live\` and \`msi ingest --live\` (explicit opt-in SEC access)
+- \`msi sync\` (explicit live SEC access; dry run still reads the SEC)
+- \`msi ingest --phase5-cohort-a\` and \`msi ingest --phase5-cohort-b\`
+- \`msi discover --live\` and \`msi ingest --live\` (explicit live SEC access)
+- \`msi ingest --stage-a\` and \`msi ingest --phase3\` (checkout-only historical
+  compatibility)
 - \`msi calendar\`
+- \`msi coverage\`
+- \`msi evidence\`
 - \`msi validate\`
 - \`msi review list\`
 - \`msi review approve\`
 - \`msi review reject\`
 - \`msi serve\`
 
-Review commands create attributable audit decisions and revisions. They do not
-edit published observations directly.
+Review commands retain the historical quarantine workflow: they create
+attributable audit decisions and revisions and never edit published observations
+directly. Phase 5 replay and non-dry live publication require an explicit isolated
+database URL. A bare installed wheel has the live registries but not checkout-only
+replay bytes.
 
 ## Explicit exclusions
 
-The product is not and must not become under Stage A:
+The product is not and must not become:
 
 - a loan-level servicing operations dashboard, borrower portal, collections
   tool, payment system, loss-mitigation workflow, or servicing action agent;
@@ -133,9 +159,11 @@ The product is not and must not become under Stage A:
 - a claim of comprehensive issuer coverage, production readiness, or a complete
   industry ranking.
 
-## Stage A acceptance outcomes
+## Historical Stage A acceptance outcomes
 
-Stage A is complete only when all of the following are demonstrated:
+Stage A closed on August 12, 2026 after the following outcomes were demonstrated.
+This checklist is retained as audit history and is not the current universe or
+release definition:
 
 1. TFC and PFSI identities and source coverage are verified and ingested.
 2. Q3 2025 through Q2 2026 are represented where public disclosure exists.

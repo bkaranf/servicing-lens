@@ -557,8 +557,9 @@ def doctor_payload(
     nonbank_count = sum(item.classification == "nonbank" for item in companies)
     return {
         "application": "public-mortgage-servicing-intelligence",
+        # The public key remains stable while its value describes the current capability.
+        "stage": "expanded_comparison",
         # Retained for compatibility with the separately packaged Phase 3 data workflow.
-        "stage": "phase_3_metric_deepening",
         "stage_role": "legacy_retained_dataset_compatibility",
         "readiness": {
             "status": "ready_for_local_read_only_workflows",
@@ -600,7 +601,8 @@ def _format_text(payload: dict[str, Any]) -> str:
     return "\n".join(
         (
             f"application: {payload['application']}",
-            f"retained compatibility stage: {capabilities['phase']}",
+            f"comparison capability: {capabilities['phase']}",
+            f"legacy Phase 3 role: {capabilities['phase_role']}",
             f"status: {payload['readiness']['status']}",
             f"environment: {configuration['environment']}",
             (

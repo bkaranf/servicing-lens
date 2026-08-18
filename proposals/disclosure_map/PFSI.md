@@ -1,8 +1,9 @@
 # PFSI Phase 3 disclosure map
 
-Status: complete official-source review for Q3 2025 through Q2 2026, as of
-August 12, 2026. The machine-readable authority is
-`config/phase3/pfsi_sources.yaml`; this document summarizes it.
+Status: completed historical Phase 3 official-source review for Q3 2025 through
+Q2 2026, as of August 12, 2026. The retained machine-readable authority is
+`config/phase3/pfsi_sources.yaml`; this audit record summarizes it and does not
+define the current Phase 5 field registry.
 
 ## Entity, scope, and checked source set
 

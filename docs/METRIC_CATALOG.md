@@ -2,9 +2,11 @@
 
 ## Contract
 
-The catalog defines canonical meanings; it does not assert that TFC or PFSI
-discloses every metric. An unsupported cell is \`NOT_DISCLOSED\`, never zero,
-estimated, or populated from a “closest” metric.
+The catalog defines canonical meanings; it does not assert that any selected
+issuer discloses every metric. A cell becomes `NOT_DISCLOSED` only after its
+complete eligible source set has been checked. An untracked or unchecked field
+remains absent or `SOURCE_NOT_CHECKED`; neither state is zero, estimated, or
+populated from a “closest” metric.
 
 Definitions are immutable semantic versions, effective 2025-07-01 until
 superseded. The runtime catalog exposes exactly one current definition per
@@ -29,7 +31,7 @@ Every machine-readable definition contains:
 - prohibited interpretations.
 
 Aliases help qualify a candidate; text similarity alone never publishes a value.
-The exact TFC and PFSI labels belong in versioned \`metric_aliases\` records after
+Exact issuer labels belong in versioned mappings or `metric_aliases` records after
 source discovery and retain the issuer wording in observation evidence.
 
 ## Shared numeric and evidence rules
@@ -52,15 +54,22 @@ source discovery and retain the issuer wording in observation evidence.
 - Cross-company comparison follows the pairwise comparability policy. Matching
   canonical IDs alone is insufficient.
 
-## Canonical runtime catalog and historical lineage
+## Current Phase 5 fields and historical catalog lineage
 
-`config/metrics/catalog.yaml` is the sole declarative and runtime entry point.
-Its compact schema contains the base meanings, rich methodology dimensions,
-annualized cost and fee calculations, MSR fair-value economics, investor mix,
-and TFC SEC-versus-regulatory reconciliation rules. The composed typed catalog
-marks the newest semantic version for each metric `CURRENT` and all older
-versions `HISTORICAL`, preserving active observation lineage without creating
-competing canonical definitions.
+`config/phase5/financial_fields.v1.yaml` is the bounded field registry for the
+current Phase 5 acquisition and replay lane. It defines four canonical fields:
+`total_assets`, `total_servicing_upb`, `servicing_for_others_upb`, and
+`owned_msr_upb`. Each published issuer maps `total_assets` plus exactly one
+evidence-qualified servicing or owned-MSR field; those servicing populations are
+not treated as interchangeable. Filing-specific locators, contexts, units,
+precision, and dimensions remain part of the observation evidence.
+
+`config/metrics/catalog.yaml` remains the declarative catalog for the historical
+Stage A/Phase 3 compatibility dataset. It contains the richer servicing-economics,
+MSR, investor-mix, derivation, and retained regulatory-lineage definitions. The
+composed typed catalog marks the newest semantic version for each metric `CURRENT`
+and older versions `HISTORICAL`, preserving observation lineage without creating
+competing definitions.
 
 Every Phase 3 derivation requires exact `PUBLISHED` and `VALIDATED` observation
 revisions for all numerators, denominators, components, and averaging anchors.
@@ -133,13 +142,21 @@ and market/assumption changes as signed effects. Raw issuer signs remain evidenc
 | \`fnma_servicing_upb\` | UPB explicitly associated with Fannie Mae servicing at period end | Compatible servicing portfolio; currency; instant | Reported UPB | Include only source-defined FNMA population | Require agency label and scope evidence | Compare only compatible population | Do not infer from conventional residual |
 | \`fhlmc_servicing_upb\` | UPB explicitly associated with Freddie Mac servicing at period end | Compatible servicing portfolio; currency; instant | Reported UPB | Include only source-defined FHLMC population | Require agency label and scope evidence | Compare only compatible population | Do not merge FNMA and FHLMC without an explicit reported aggregate |
 
-## Stage A publication profile
+## Publication profiles
 
-The configuration identifies which of these definitions has a verified extraction
-path for TFC and PFSI in Q3 2025 through Q2 2026. Stage A requires a nonempty
-known configured subset; it does not require every catalog metric or a fixed
-global completeness count. An unsupported configured cell remains
-`NOT_DISCLOSED` with its checked-source provenance.
+The default Phase 5 cohort B publishes the compact field subset above for five
+banks and five nonbanks across the tracked Q3 2024 through Q2 2026 replay cases.
+Its end-to-end publication state is not a claim that the broader catalog is
+complete or that issuer-defined servicing populations are comparable. The
+additional supported-universe 5+5 entries are evidence-vetted registry records,
+not published observations, and their prior seven filings are not tracked by the
+bounded replay.
+
+Historically, Stage A and Phase 3 configured TFC and PFSI for Q3 2025 through Q2
+2026. Their completed disclosure maps record which of the richer definitions were
+reported, derived, or `NOT_DISCLOSED` after complete eligible-source review. That
+compatibility profile remains auditable but no longer defines the default
+published universe.
 
 Default cross-company portfolio comparisons prefer
 \`servicing_for_others_upb\` and \`owned_msr_upb\` when both issuers disclose

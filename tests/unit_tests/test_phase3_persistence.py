@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import shutil
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -16,6 +17,7 @@ from alembic.config import Config
 from sqlalchemy import func, inspect, select, text
 from sqlalchemy.orm import Session
 
+import mortgage_servicing_dashboard.repository as repository_module
 from mortgage_servicing_dashboard.api import ObservationResponse, create_app
 from mortgage_servicing_dashboard.cli import build_parser, doctor_payload
 from mortgage_servicing_dashboard.config import AppSettings
@@ -32,6 +34,7 @@ from mortgage_servicing_dashboard.database import (
     SourceEvidence,
     create_database_engine,
     default_database_url,
+    initialize_schema,
     session_scope,
 )
 from mortgage_servicing_dashboard.domain import (
@@ -49,6 +52,14 @@ from mortgage_servicing_dashboard.repository import (
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
+
+
+def _copy_phase3_config_dependencies(destination: Path) -> Path:
+    for relative_path in repository_module._PHASE3_CONFIG_DEPENDENCY_PATHS:
+        target = destination / relative_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(_ROOT / "config" / relative_path, target)
+    return destination
 
 
 def test_phase3_seed_is_idempotent_and_publicly_visible(  # noqa: PLR0915
@@ -71,7 +82,11 @@ def test_phase3_seed_is_idempotent_and_publicly_visible(  # noqa: PLR0915
     assert second == dict.fromkeys(second, 0)
 
     with Session(engine) as session:
-        run = session.scalar(select(PipelineRun).where(PipelineRun.id.like("pipeline:phase3:%")))
+        runs = session.scalars(
+            select(PipelineRun).where(PipelineRun.id.like("pipeline:phase3:%"))
+        ).all()
+        assert len(runs) == 1
+        (run,) = runs
         assert run is not None
         assert run.status in {"COMPLETED", "COMPLETED_WITH_BLOCKED_DERIVATIONS"}
         assert int(session.scalar(select(func.count(SourceEvidence.id))) or 0) >= first["evidence"]
@@ -201,6 +216,211 @@ def test_phase3_requires_external_retained_evidence_before_database_writes(
         seed_phase3(engine, config_dir=config_root)
 
     assert inspect(engine).get_table_names() == []
+    engine.dispose()
+
+
+def test_phase3_run_hashes_the_explicit_complete_configuration_closure(
+    tmp_path: Path,
+) -> None:
+    expected_paths = (
+        "metrics/catalog.yaml",
+        "phase3/pfsi_sources.yaml",
+        "phase3/tfc_sources.yaml",
+        "recorded_evidence/phase3/pfsi/manifest.v1.yaml",
+        "recorded_evidence/phase3/tfc/manifest.v1.yaml",
+        "regulatory/regulatory_mappings.v1.yaml",
+        "stage_a_data.yaml",
+        "universe.yaml",
+    )
+    assert expected_paths == repository_module._PHASE3_CONFIG_DEPENDENCY_PATHS
+
+    config_root = _copy_phase3_config_dependencies(tmp_path / "config")
+
+    baseline = repository_module._phase3_config_hashes(config_root)
+    assert tuple(baseline) == expected_paths
+    unrelated = config_root / "phase5" / "unrelated.yaml"
+    unrelated.parent.mkdir(parents=True)
+    unrelated.write_text("not_a_phase3_dependency: true\n", encoding="utf-8")
+    assert repository_module._phase3_config_hashes(config_root) == baseline
+
+    catalog = config_root / "metrics" / "catalog.yaml"
+    catalog.write_text(catalog.read_text(encoding="utf-8") + "\n# changed\n", encoding="utf-8")
+    changed = repository_module._phase3_config_hashes(config_root)
+    assert {path for path in baseline if baseline[path] != changed[path]} == {
+        "metrics/catalog.yaml"
+    }
+
+
+def test_phase3_external_config_root_drives_run_hash_and_regulatory_mapping(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Use one explicit root for hashing, Stage A config, and regulatory mapping."""
+    pytest.importorskip("mortgage_servicing_dashboard.phase3")
+    import mortgage_servicing_dashboard.phase3 as phase3_module  # noqa: PLC0415
+    import mortgage_servicing_dashboard.regulatory as regulatory_module  # noqa: PLC0415
+
+    source_root = _ROOT / "config"
+    external_root = _copy_phase3_config_dependencies(tmp_path / "external-config")
+    dataset = phase3_module.load_phase3_dataset(source_root)
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'external-root.db').as_posix()}")
+    seed_stage_a(engine, config_dir=source_root)
+
+    config_requests: list[Path | None] = []
+    regulatory_requests: list[Path] = []
+    real_config_directory = repository_module.config_directory
+    real_regulatory_loader = regulatory_module.load_regulatory_config
+
+    def tracking_config_directory(explicit: Path | None = None) -> Path:
+        config_requests.append(explicit)
+        return real_config_directory(explicit)
+
+    def tracking_regulatory_loader(path: Path) -> object:
+        regulatory_requests.append(path)
+        return real_regulatory_loader(path)
+
+    monkeypatch.setattr(repository_module, "config_directory", tracking_config_directory)
+    monkeypatch.setattr(repository_module, "seed_stage_a", lambda *_args, **_kwargs: {})
+    monkeypatch.setattr(phase3_module, "load_phase3_dataset", lambda _root: dataset)
+    monkeypatch.setattr(regulatory_module, "load_regulatory_config", tracking_regulatory_loader)
+
+    inserted = seed_phase3(engine, config_dir=external_root)
+
+    expected_mapping = external_root / "regulatory" / "regulatory_mappings.v1.yaml"
+    assert inserted["reported_observations"] > 0
+    assert config_requests == [external_root, external_root]
+    assert regulatory_requests == [expected_mapping]
+    assert (
+        repository_module._phase3_config_hashes(external_root)[
+            "regulatory/regulatory_mappings.v1.yaml"
+        ]
+        == hashlib.sha256(expected_mapping.read_bytes()).hexdigest()
+    )
+    with Session(engine) as session:
+        run = session.scalar(select(PipelineRun).where(PipelineRun.id.like("pipeline:phase3:%")))
+        assert run is not None
+        expected_key = repository_module._phase3_run_key(
+            session,
+            dataset,
+            config_root=external_root,
+        )
+        assert run.run_key == expected_key
+        assert run.id == f"pipeline:phase3:{expected_key[:32]}"
+    engine.dispose()
+
+
+def test_phase3_run_key_is_checkout_and_storage_path_independent(tmp_path: Path) -> None:
+    """Relocation paths do not alter identity, while retained evidence content does."""
+    pytest.importorskip("mortgage_servicing_dashboard.phase3")
+    from mortgage_servicing_dashboard.phase3 import load_phase3_dataset  # noqa: PLC0415
+
+    source_root = _ROOT / "config"
+    relocated_root = _copy_phase3_config_dependencies(tmp_path / "relocated" / "config")
+    dataset = load_phase3_dataset(source_root)
+    relocated_evidence = tuple(
+        replace(
+            item,
+            actual_fixture_path=(tmp_path / "different-checkout" / item.actual_fixture_path.name),
+            retention_location=str(tmp_path / "different-storage" / item.actual_fixture_path.name),
+        )
+        for item in dataset.evidence
+    )
+    relocated_dataset = replace(dataset, evidence=relocated_evidence)
+    changed_evidence = replace(relocated_evidence[0], sha256="0" * 64)
+    changed_dataset = replace(
+        relocated_dataset,
+        evidence=(changed_evidence, *relocated_evidence[1:]),
+    )
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'relocation.db').as_posix()}")
+    initialize_schema(engine)
+
+    with Session(engine) as session:
+        source_key = repository_module._phase3_run_key(
+            session,
+            dataset,
+            config_root=source_root,
+        )
+        relocated_key = repository_module._phase3_run_key(
+            session,
+            relocated_dataset,
+            config_root=relocated_root,
+        )
+        changed_key = repository_module._phase3_run_key(
+            session,
+            changed_dataset,
+            config_root=relocated_root,
+        )
+
+    assert source_key == relocated_key
+    assert changed_key != source_key
+    identity = repository_module._phase3_evidence_run_identity(relocated_evidence[0])
+    assert "actual_fixture_path" not in identity
+    assert "retention_location" not in identity
+    engine.dispose()
+
+
+def test_phase3_rejects_truncated_run_id_collision_without_partial_mutation(
+    tmp_path: Path,
+) -> None:
+    """A matching 128-bit ID prefix cannot alias a different full run key."""
+    pytest.importorskip("mortgage_servicing_dashboard.phase3")
+    from mortgage_servicing_dashboard.phase3 import load_phase3_dataset  # noqa: PLC0415
+
+    config_root = _ROOT / "config"
+    dataset = load_phase3_dataset(config_root)
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'collision.db').as_posix()}")
+    seed_stage_a(engine, config_dir=config_root)
+
+    with Session(engine) as session:
+        run_key = repository_module._phase3_run_key(
+            session,
+            dataset,
+            config_root=config_root,
+        )
+        differing_character = "0" if run_key[32] != "0" else "1"
+        colliding_full_key = f"{run_key[:32]}{differing_character}{run_key[33:]}"
+        run_id = f"pipeline:phase3:{run_key[:32]}"
+        session.add(
+            PipelineRun(
+                id=run_id,
+                run_key=colliding_full_key,
+                status="COLLISION_SENTINEL",
+                thread_id="thread:phase3:collision-sentinel",
+                started_at=dataset.knowledge_at,
+                completed_at=None,
+                error_count=0,
+                retry_count=0,
+                requested_company_id=None,
+                requested_periods=[],
+                code_version="collision-test",
+                config_version="collision-test",
+                parser_version="collision-test",
+                terminal_outcomes={},
+            )
+        )
+        session.commit()
+
+    def persisted_counts() -> dict[str, int]:
+        with Session(engine) as session:
+            return {
+                "runs": int(session.scalar(select(func.count(PipelineRun.id))) or 0),
+                "metrics": int(session.scalar(select(func.count(MetricDefinitionVersion.id))) or 0),
+                "evidence": int(session.scalar(select(func.count(SourceEvidence.id))) or 0),
+                "observations": int(session.scalar(select(func.count(MetricObservation.id))) or 0),
+                "assessments": int(
+                    session.scalar(select(func.count(EligibleSourceAssessment.id))) or 0
+                ),
+            }
+
+    before = persisted_counts()
+    with pytest.raises(ValueError, match="pipeline run ID collision"):
+        seed_phase3(engine, config_dir=config_root)
+    assert persisted_counts() == before
+    with Session(engine) as session:
+        collision = session.get(PipelineRun, run_id)
+        assert collision is not None
+        assert collision.run_key == colliding_full_key
+        assert collision.status == "COLLISION_SENTINEL"
     engine.dispose()
 
 
@@ -334,8 +554,10 @@ def test_phase3_cli_routes_are_explicit() -> None:
     assert ingest.command == "ingest"
     assert ingest.phase3 is True
     doctor = doctor_payload(AppSettings())
-    assert doctor["stage"] == "phase_3_metric_deepening"
-    assert doctor["capabilities"]["phase"] == "phase_3_metric_deepening"
+    assert doctor["stage"] == "expanded_comparison"
+    assert doctor["capabilities"]["phase"] == "expanded_comparison"
+    assert doctor["stage_role"] == "legacy_retained_dataset_compatibility"
+    assert doctor["capabilities"]["phase_role"] == "legacy_retained_dataset_compatibility"
 
 
 def test_phase3_dimensions_schema_and_api_contract() -> None:

@@ -10,7 +10,7 @@ from typing import Literal
 class CapabilitySnapshot:
     """Allow-listed application capabilities with no model or customer state."""
 
-    phase: Literal["phase_3_metric_deepening"]
+    phase: Literal["expanded_comparison"]
     phase_role: Literal["legacy_retained_dataset_compatibility"]
     status: Literal["ready"]
     readiness_scope: Literal["local_read_only_workflows"]
@@ -60,7 +60,7 @@ class StaticCapabilities:
     def capabilities(self) -> CapabilitySnapshot:
         """Return implemented and deliberately unavailable capabilities."""
         return CapabilitySnapshot(
-            phase="phase_3_metric_deepening",
+            phase="expanded_comparison",
             phase_role="legacy_retained_dataset_compatibility",
             status="ready",
             readiness_scope="local_read_only_workflows",

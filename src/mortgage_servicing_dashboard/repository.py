@@ -82,13 +82,23 @@ if TYPE_CHECKING:
     from mortgage_servicing_dashboard.metric_engine import (
         MetricDefinition as EngineMetricDefinition,
     )
-    from mortgage_servicing_dashboard.phase3 import Phase3Dataset
+    from mortgage_servicing_dashboard.phase3 import Phase3Dataset, Phase3Evidence
 
 _MAX_REPOSITORY_RESULTS = 500
 _MIN_COMPARISON_COMPANY_COUNT = 2
 _MAX_COMPARISON_COMPANY_COUNT = 3
 _EDGARTOOLS_METHOD = "SEC_FILING_XBRL_VIA_EDGARTOOLS"
 _FINANCIAL_MAPPING_VERSION = "financial-fields-v1"
+_PHASE3_CONFIG_DEPENDENCY_PATHS = (
+    "metrics/catalog.yaml",
+    "phase3/pfsi_sources.yaml",
+    "phase3/tfc_sources.yaml",
+    "recorded_evidence/phase3/pfsi/manifest.v1.yaml",
+    "recorded_evidence/phase3/tfc/manifest.v1.yaml",
+    "regulatory/regulatory_mappings.v1.yaml",
+    "stage_a_data.yaml",
+    "universe.yaml",
+)
 _LEGACY_UNIVERSE_VERSIONS = frozenset(
     {
         "phase-2-acquisition-2026-08-12",
@@ -2881,14 +2891,76 @@ def _phase3_run(
     *,
     config_root: Path,
 ) -> tuple[PipelineRun, bool]:
+    run_key = _phase3_run_key(session, dataset, config_root=config_root)
+    run_id = f"pipeline:phase3:{run_key[:32]}"
+    existing = session.get(PipelineRun, run_id)
+    if existing is not None:
+        if existing.run_key != run_key:
+            msg = "Phase 3 pipeline run ID collision: stored full run key differs"
+            raise ValueError(msg)
+        return existing, False
+    run = PipelineRun(
+        id=run_id,
+        run_key=run_key,
+        status="RUNNING",
+        thread_id=f"thread:phase3:{run_key[:24]}",
+        started_at=dataset.knowledge_at,
+        completed_at=None,
+        error_count=0,
+        retry_count=0,
+        requested_company_id=None,
+        requested_periods=sorted({item.period_end.isoformat() for item in dataset.assessments}),
+        code_version="phase3-profitability-deepening-v1",
+        config_version=dataset.catalog.base_version,
+        parser_version="phase3-dataset-v1",
+        terminal_outcomes={
+            "PUBLISHED": 0,
+            "NOT_DISCLOSED": 0,
+            "SOURCE_NOT_CHECKED": 0,
+            "QUARANTINED": 0,
+            "FAILED": 0,
+        },
+    )
+    session.add(run)
+    session.flush()
+    return run, True
+
+
+def _phase3_evidence_run_identity(item: Phase3Evidence) -> dict[str, object]:
+    """Return evidence identity without checkout or retention filesystem locations."""
+    return {
+        "evidence_id": item.evidence_id,
+        "source_key": item.source_key,
+        "company_id": item.company_id,
+        "source_class": item.source_class,
+        "accession": item.accession,
+        "url": item.url,
+        "period_end": item.period_end,
+        "published_at": item.published_at,
+        "retrieved_at": item.retrieved_at,
+        "sha256": item.sha256,
+        "byte_length": item.byte_length,
+        "media_type": item.media_type,
+        "representation": item.representation,
+        "capture_method": item.capture_method,
+        "locator": item.locator,
+        "parser_name": item.parser_name,
+        "parser_version": item.parser_version,
+    }
+
+
+def _phase3_run_key(
+    session: Session,
+    dataset: Phase3Dataset,
+    *,
+    config_root: Path,
+) -> str:
+    """Return the full path-independent identity of one Phase 3 publication run."""
     catalog_versions = sorted(
         f"{item.metric_id}:{item.semantic_version}" for item in dataset.catalog.definitions
     )
-    config_hashes = {
-        path.relative_to(config_root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
-        for path in sorted(config_root.rglob("*.yaml"))
-    }
-    run_key = _stable_hash(
+    config_hashes = _phase3_config_hashes(config_root)
+    return _stable_hash(
         _canonical_run_value(
             {
                 "mode": "phase3-recorded-publication",
@@ -2945,7 +3017,9 @@ def _phase3_run(
                         select(RawRegulatoryFact).order_by(RawRegulatoryFact.id)
                     )
                 ],
-                "evidence_typed": dataset.evidence,
+                "evidence_typed": [
+                    _phase3_evidence_run_identity(item) for item in dataset.evidence
+                ],
                 "assessments_typed": dataset.assessments,
                 "reported_typed": dataset.reported_candidates,
                 "support_typed": getattr(dataset, "support_candidates", ()),
@@ -2955,35 +3029,14 @@ def _phase3_run(
             }
         )
     )
-    run_id = f"pipeline:phase3:{run_key[:32]}"
-    existing = session.get(PipelineRun, run_id)
-    if existing is not None:
-        return existing, False
-    run = PipelineRun(
-        id=run_id,
-        run_key=run_key,
-        status="RUNNING",
-        thread_id=f"thread:phase3:{run_key[:24]}",
-        started_at=dataset.knowledge_at,
-        completed_at=None,
-        error_count=0,
-        retry_count=0,
-        requested_company_id=None,
-        requested_periods=sorted({item.period_end.isoformat() for item in dataset.assessments}),
-        code_version="phase3-profitability-deepening-v1",
-        config_version=dataset.catalog.base_version,
-        parser_version="phase3-dataset-v1",
-        terminal_outcomes={
-            "PUBLISHED": 0,
-            "NOT_DISCLOSED": 0,
-            "SOURCE_NOT_CHECKED": 0,
-            "QUARANTINED": 0,
-            "FAILED": 0,
-        },
-    )
-    session.add(run)
-    session.flush()
-    return run, True
+
+
+def _phase3_config_hashes(config_root: Path) -> dict[str, str]:
+    """Hash only configuration read by the composed Stage A and Phase 3 workflow."""
+    return {
+        relative_path: hashlib.sha256((config_root / relative_path).read_bytes()).hexdigest()
+        for relative_path in _PHASE3_CONFIG_DEPENDENCY_PATHS
+    }
 
 
 def _seed_phase3_evidence(
@@ -3897,6 +3950,7 @@ def _reconcile_phase3_regulatory(  # noqa: C901, PLR0915
     *,
     dataset: Phase3Dataset,
     run: PipelineRun,
+    config_root: Path,
 ) -> int:
     """Reconcile exact retained regulatory facts without choosing a preferred source."""
     from mortgage_servicing_dashboard.metric_engine import (  # noqa: PLC0415
@@ -3916,9 +3970,7 @@ def _reconcile_phase3_regulatory(  # noqa: C901, PLR0915
         load_regulatory_config,
     )
 
-    config = load_regulatory_config(
-        config_directory() / "regulatory" / "regulatory_mappings.v1.yaml"
-    )
+    config = load_regulatory_config(config_root / "regulatory" / "regulatory_mappings.v1.yaml")
     raw_facts = session.scalars(select(RawRegulatoryFact).order_by(RawRegulatoryFact.id)).all()
     inserted = 0
     reconciled_keys: set[tuple[str, date, str]] = set()
@@ -4232,6 +4284,7 @@ def seed_phase3(
             session,
             dataset=dataset,
             run=run,
+            config_root=root,
         )
         inserted["not_disclosed_observations"] = _seed_phase3_missing(
             session,

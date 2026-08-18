@@ -57,7 +57,7 @@ A scope records:
 - valid-time interval; and
 - source evidence.
 
-Controlled Stage A scope categories include:
+Controlled scope categories include:
 
 - \`CONSOLIDATED_COMPANY\`;
 - \`SERVICING_SEGMENT\`;
@@ -75,24 +75,50 @@ Controlled Stage A scope categories include:
 from a servicing-only comparison. Portfolio scopes are not assumed additive or
 nested unless the issuer explicitly reconciles them.
 
-## Stage A subjects
+The active Phase 5 SEC-only lane resolves observations to the filing registrant
+and an evidence-backed portfolio scope. The regulatory categories remain in the
+schema only for immutable historical Phase 2/3 lineage; FFIEC and FR Y-9C are not
+eligible current acquisition sources.
+
+## Current published and supported subjects
+
+| Registry state | Banks | Nonbanks | Coverage boundary |
+| --- | --- | --- | --- |
+| Phase 5 cohort B, end-to-end published | TFC, WFC, JPM, BAC, USB | PFSI, RKT, UWMC, RITM, LDI | Tracked Q3 2024 through Q2 2026 replay cases |
+| Supported expansion, evidence-vetted and not published | C, PNC, FITB, CFG, KEY | TWO, CHMI, NLY, FOA, VEL | Bounded current-filing evidence only; prior seven filings not tracked |
+
+Cohort A remains the smaller explicit selector for TFC, WFC, PFSI, and RKT. The
+versioned registries contain the verified legal names, CIKs, classifications,
+reporting-entity IDs, expected scopes, and exact evidence-case references. Cohort
+membership does not make two scopes comparable, and an expansion registry entry
+does not create a published observation or authorize a history claim.
+
+For published observations, provenance preserves the CIK, accession, form, filing
+date, report period, document name, SEC URL, locator, retrieval time, edgartools
+version, and byte length/SHA-256 for both the retained replay representation and
+the referenced original document where applicable.
+
+## Historical Stage A and Phase 2 subjects
+
+The completed Stage A selection was:
 
 | Company | Class | Required identity and scope checks |
 | --- | --- | --- |
 | Truist Financial Corporation (TFC) | Bank | Verify SEC registrant and CIK; bank holding company and applicable RSSD; depository subsidiaries; fiscal calendar; disclosed mortgage/servicing presentation; FR Y-9C or Call Report reporter; accounting and segment regime for each selected quarter |
 | PennyMac Financial Services, Inc. (PFSI) | Nonbank | Verify SEC registrant and CIK; traded security history; consolidated and disclosed servicing/mortgage-banking entities or segments; fiscal calendar; servicing portfolio populations; MSR accounting regime for each selected quarter |
 
-The versioned universe configuration contains the verified identifiers and exact
-source references. Documents and application code refer to stable IDs after
-resolution. The selected observation periods are Q3 2025, Q4 2025, Q1 2026, and
-Q2 2026 for each issuer's verified fiscal calendar.
+The selected observation periods were Q3 2025, Q4 2025, Q1 2026, and Q2 2026 for
+each issuer's verified fiscal calendar. This table is retained as audit history;
+it is superseded as the default product universe by the Phase 5 registries.
 
-Phase 2 records TFC's SEC registrant separately from the holding-company
+The retained Phase 2 dataset records TFC's SEC registrant separately from the holding-company
 regulatory reporter `tfc_bhc_regulatory_reporter` (RSSD 1074156) and the owned
 depository reporter `truist_bank_regulatory_reporter` (RSSD 852320). Their scopes
 are `tfc_bhc_regulatory` and `truist_bank_regulatory`. Neither is interchangeable
 with `tfc_consolidated_residential_mortgage_servicing`; the comparability engine
 returns `reporting scopes differ` before allowing arithmetic across those scopes.
+These retained regulatory identities do not reopen a current regulatory
+acquisition path.
 
 ## Fiscal-calendar model
 

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import shutil
+import struct
 import subprocess
+import zlib
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
@@ -27,6 +29,83 @@ from mortgage_servicing_dashboard.repository import (
     ObservationRecord,
     seed_stage_a,
 )
+
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def _png_chunks(payload: bytes) -> list[tuple[bytes, bytes]]:
+    assert payload.startswith(_PNG_SIGNATURE)
+    chunks: list[tuple[bytes, bytes]] = []
+    offset = len(_PNG_SIGNATURE)
+    while offset < len(payload):
+        assert offset + 12 <= len(payload)
+        length = int(struct.unpack(">I", payload[offset : offset + 4])[0])
+        chunk_type = payload[offset + 4 : offset + 8]
+        chunk_end = offset + 12 + length
+        assert chunk_end <= len(payload)
+        chunk_payload = payload[offset + 8 : offset + 8 + length]
+        expected_crc = int(struct.unpack(">I", payload[offset + 8 + length : chunk_end])[0])
+        assert zlib.crc32(chunk_type + chunk_payload) & 0xFFFFFFFF == expected_crc
+        chunks.append((chunk_type, chunk_payload))
+        offset = chunk_end
+    assert offset == len(payload)
+    return chunks
+
+
+def _paeth_predictor(left: int, above: int, upper_left: int) -> int:
+    estimate = left + above - upper_left
+    left_distance = abs(estimate - left)
+    above_distance = abs(estimate - above)
+    upper_left_distance = abs(estimate - upper_left)
+    if left_distance <= above_distance and left_distance <= upper_left_distance:
+        return left
+    if above_distance <= upper_left_distance:
+        return above
+    return upper_left
+
+
+def _decode_png_rgb(payload: bytes) -> tuple[int, int, bytes, list[tuple[bytes, bytes]]]:
+    chunks = _png_chunks(payload)
+    chunk_types = [chunk_type for chunk_type, _ in chunks]
+    assert chunk_types[0] == b"IHDR"
+    assert chunk_types[-1] == b"IEND"
+    assert chunk_types.count(b"IHDR") == chunk_types.count(b"IEND") == 1
+    header = struct.unpack(">IIBBBBB", chunks[0][1])
+    width, height = int(header[0]), int(header[1])
+    assert header[2:] == (8, 2, 0, 0, 0)  # RGB8, standard compression/filter, no interlace.
+
+    compressed = b"".join(chunk for chunk_type, chunk in chunks if chunk_type == b"IDAT")
+    filtered = zlib.decompress(compressed)
+    bytes_per_pixel = 3
+    stride = width * bytes_per_pixel
+    assert len(filtered) == height * (stride + 1)
+    previous = bytearray(stride)
+    decoded = bytearray()
+    offset = 0
+    for _ in range(height):
+        filter_type = filtered[offset]
+        assert filter_type in range(5)
+        encoded = filtered[offset + 1 : offset + 1 + stride]
+        row = bytearray(stride)
+        for index, value in enumerate(encoded):
+            left = row[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+            above = previous[index]
+            upper_left = previous[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+            if filter_type == 0:
+                predictor = 0
+            elif filter_type == 1:
+                predictor = left
+            elif filter_type == 2:
+                predictor = above
+            elif filter_type == 3:
+                predictor = (left + above) // 2
+            else:
+                predictor = _paeth_predictor(left, above, upper_left)
+            row[index] = (value + predictor) & 0xFF
+        decoded.extend(row)
+        previous = row
+        offset += stride + 1
+    return width, height, bytes(decoded), chunks
 
 
 def _repository(tmp_path: Path) -> IntelligenceRepository:
@@ -305,10 +384,37 @@ def test_servicing_lens_template_has_search_kpis_earnings_and_social_contract() 
     assert 'data-company-id="{{ brief.company_id }}"' in template
     assert "Open official earnings source" in template
     assert 'property="og:image"' in template
-    assert (package / "static" / "og.png").stat().st_size > 1_000_000
     assert "BigInt(" not in javascript
     assert "parseFloat" not in javascript
     assert "Number(" not in javascript
+
+
+def test_social_image_is_canonical_valid_and_visually_nonempty() -> None:
+    image_path = (
+        Path(__file__).parents[2] / "src" / "mortgage_servicing_dashboard" / "static" / "og.png"
+    )
+    width, height, pixels, chunks = _decode_png_rgb(image_path.read_bytes())
+
+    assert (width, height) == (1200, 630)
+    chunk_types = [chunk_type for chunk_type, _ in chunks]
+    assert set(chunk_types) <= {b"IHDR", b"sRGB", b"gAMA", b"pHYs", b"IDAT", b"IEND"}
+    metadata = {chunk_type: payload for chunk_type, payload in chunks if chunk_type != b"IDAT"}
+    assert metadata[b"sRGB"] == b"\x00"
+    assert struct.unpack(">I", metadata[b"gAMA"]) == (45455,)
+    pixels_per_unit_x, pixels_per_unit_y, unit = struct.unpack(">IIB", metadata[b"pHYs"])
+    assert pixels_per_unit_x == pixels_per_unit_y
+    assert 3700 <= pixels_per_unit_x <= 3800
+    assert unit == 1
+
+    rgb_pixels = [pixels[index : index + 3] for index in range(0, len(pixels), 3)]
+    dark_pixels = sum(max(pixel) < 80 for pixel in rgb_pixels)
+    chromatic_pixels = sum(max(pixel) - min(pixel) > 25 for pixel in rgb_pixels)
+    light_pixels = sum(min(pixel) > 225 for pixel in rgb_pixels)
+    sampled_colors = set(rgb_pixels[::97])
+    assert dark_pixels > 5_000
+    assert chromatic_pixels > 25_000
+    assert light_pixels > 300_000
+    assert len(sampled_colors) > 1_000
 
 
 def test_rendered_routes_preserve_specific_governed_content_and_table_semantics(
