@@ -73,7 +73,7 @@ def test_calendar_freshness_includes_awaiting_expected_filing() -> None:
     assert awaiting.last_reported_period.period_end == date(2026, 6, 30)
 
 
-def test_calendar_cli_is_graceful_without_implicit_legacy_seed(
+def test_calendar_cli_rejects_missing_database_without_creating_it(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -89,9 +89,12 @@ def test_calendar_cli_is_graceful_without_implicit_legacy_seed(
                 "2026-08-12T12:00:00+00:00",
             ]
         )
-        == 0
+        == 1
     )
-    assert json.loads(capsys.readouterr().out)["calendar"] == []
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert json.loads(captured.err)["code"] == "database_not_found"
+    assert not (tmp_path / "calendar-cli.db").exists()
 
 
 def _event(year: int, *, accepted_day: int, suffix: int) -> FilingEarningsEvent:

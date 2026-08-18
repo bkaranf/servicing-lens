@@ -4,11 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TypedDict
 from urllib.parse import quote
 
+from mortgage_servicing_dashboard.domain import (
+    ComparabilityStatus,
+    ComparisonInput,
+    ObservationState,
+    assess_comparability,
+)
 from mortgage_servicing_dashboard.repository import ObservationRecord
 
 
@@ -57,6 +63,9 @@ class PresentationMetric:
     status: str
     note: str
     inputs: tuple[MetricInput, ...] = ()
+    reporting_scope: str | None = None
+    source_metric_id: str | None = None
+    source_metric_version: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -189,9 +198,7 @@ def _find_row(
     candidates = [
         row
         for row in rows
-        if row.metric_id == metric_id
-        and row.value is not None
-        and (period_end is None or row.period_end == period_end)
+        if row.metric_id == metric_id and (period_end is None or row.period_end == period_end)
     ]
     return max(candidates, key=lambda row: row.period_end, default=None)
 
@@ -205,8 +212,34 @@ def _reported_metric(
     unavailable_note: str,
 ) -> PresentationMetric:
     value = _to_base_units(row) if row is not None else None
-    if row is None or value is None:
+    if row is None:
         return _unavailable(key, label, unavailable_note)
+    if value is None:
+        if row.state == ObservationState.NOT_DISCLOSED.value:
+            return PresentationMetric(
+                key,
+                label,
+                None,
+                "NOT_DISCLOSED",
+                "not_disclosed",
+                "The governed source review records an explicit issuer non-disclosure",
+                (_metric_input(row),),
+                reporting_scope=row.reporting_scope_id,
+                source_metric_id=row.metric_id,
+                source_metric_version=row.metric_version,
+            )
+        return PresentationMetric(
+            key,
+            label,
+            None,
+            "Unavailable",
+            "unassessed",
+            "No numeric observation is available; absence is not evidence of non-disclosure",
+            (_metric_input(row),),
+            reporting_scope=row.reporting_scope_id,
+            source_metric_id=row.metric_id,
+            source_metric_version=row.metric_version,
+        )
     return PresentationMetric(
         key,
         label,
@@ -215,6 +248,9 @@ def _reported_metric(
         "reported",
         "Reported by issuer",
         (_metric_input(row),),
+        reporting_scope=row.reporting_scope_id,
+        source_metric_id=row.metric_id,
+        source_metric_version=row.metric_version,
     )
 
 
@@ -222,17 +258,61 @@ def _quarter_index(row: ObservationRecord) -> int:
     return row.fiscal_year * 4 + row.fiscal_quarter
 
 
-def _growth_semantics_align(current: ObservationRecord, prior: ObservationRecord) -> bool:
-    return (
-        current.metric_id == prior.metric_id
-        and current.metric_version == prior.metric_version
-        and current.reporting_entity_id == prior.reporting_entity_id
-        and current.reporting_scope_id == prior.reporting_scope_id
-        and current.methodology == prior.methodology
-        and current.currency == prior.currency
-        and current.unit == prior.unit
-        and _quarter_index(current) - _quarter_index(prior) == 1
+def _period_days(row: ObservationRecord) -> int | None:
+    if row.period_type == "instant" or row.period_start is None:
+        return None
+    return (date.fromisoformat(row.period_end) - date.fromisoformat(row.period_start)).days + 1
+
+
+def _compatibility_input(
+    row: ObservationRecord,
+    *,
+    metric_id: str | None = None,
+    metric_version: str | None = None,
+    methodology: str | None = None,
+    retain_period_identity: bool,
+) -> ComparisonInput:
+    """Build the same complete semantic contract used by repository comparisons."""
+    return ComparisonInput(
+        metric_id=metric_id or row.metric_id,
+        metric_version=metric_version or row.metric_version,
+        reporting_scope=row.reporting_scope_id,
+        period_days=_period_days(row),
+        currency=row.currency,
+        unit=row.unit,
+        methodology=methodology or row.methodology,
+        observation_state=ObservationState(row.state),
+        portfolio_population=row.portfolio_population,
+        dimensions=tuple(sorted(row.dimensions.items())),
+        period_kind=row.period_type if retain_period_identity else None,
+        period_start=(
+            date.fromisoformat(row.period_start)
+            if retain_period_identity and row.period_start
+            else None
+        ),
+        period_end=date.fromisoformat(row.period_end) if retain_period_identity else None,
+        # Repository values are already normalized to canonical units.
+        scale="1",
+        reporting_entity=row.reporting_entity_id,
+        fiscal_calendar_regime=row.fiscal_calendar_regime_id,
+        accounting_policy_regime=row.accounting_policy_regime_id,
     )
+
+
+def _growth_semantics_align(current: ObservationRecord, prior: ObservationRecord) -> bool:
+    if (
+        current.company_id != prior.company_id
+        or current.period_type != prior.period_type
+        or current.fiscal_quarter not in {1, 2, 3, 4}
+        or prior.fiscal_quarter not in {1, 2, 3, 4}
+        or _quarter_index(current) - _quarter_index(prior) != 1
+    ):
+        return False
+    result = assess_comparability(
+        _compatibility_input(current, retain_period_identity=False),
+        _compatibility_input(prior, retain_period_identity=False),
+    )
+    return result.status is ComparabilityStatus.COMPARABLE
 
 
 def _growth_metric(
@@ -289,16 +369,31 @@ def _growth_metric(
 
 
 def _mix_semantics_align(total: ObservationRecord, numerator: ObservationRecord) -> bool:
-    return (
-        total.period_end == numerator.period_end
-        and total.fiscal_year == numerator.fiscal_year
-        and total.fiscal_quarter == numerator.fiscal_quarter
-        and total.reporting_entity_id == numerator.reporting_entity_id
-        and total.reporting_scope_id == numerator.reporting_scope_id
-        and total.currency == numerator.currency
-        and total.unit == numerator.unit
-        and total.period_type == numerator.period_type
+    if (
+        total.company_id != numerator.company_id
+        or total.fiscal_year != numerator.fiscal_year
+        or total.fiscal_quarter != numerator.fiscal_quarter
+    ):
+        return False
+    # The metric identities intentionally differ for a governed ratio. Mask only
+    # those two expected identities; every other comparison semantic remains exact.
+    result = assess_comparability(
+        _compatibility_input(
+            total,
+            metric_id="governed_ratio_operand",
+            metric_version="1",
+            methodology="governed_ratio_operand",
+            retain_period_identity=True,
+        ),
+        _compatibility_input(
+            numerator,
+            metric_id="governed_ratio_operand",
+            metric_version="1",
+            methodology="governed_ratio_operand",
+            retain_period_identity=True,
+        ),
     )
+    return result.status is ComparabilityStatus.COMPARABLE
 
 
 def _mix_metric(  # noqa: PLR0911
@@ -544,18 +639,44 @@ def serialize_cards(
     Returns:
         JSON-safe Jinja payloads with provenance and guarded scale geometry.
     """
+    scale_contracts = {
+        (card.upb.source_metric_id, card.upb.source_metric_version)
+        for card in cards
+        if card.upb.value is not None
+        and card.upb.source_metric_id is not None
+        and card.upb.source_metric_version is not None
+    }
+    complete_single_metric = len(scale_contracts) == 1 and all(
+        card.upb.value is not None and card.upb.source_metric_id is not None for card in cards
+    )
+    scale_available = scale_assessment.available and complete_single_metric
+    effective_scale_status = (
+        scale_assessment.status
+        if scale_available or not scale_assessment.available
+        else "insufficient_information"
+    )
+    effective_scale_reasons = (
+        scale_assessment.reasons
+        if scale_available or not scale_assessment.available
+        else (
+            (
+                "Every issuer must have the same governed metric and version before "
+                "relative scale is shown"
+            ),
+        )
+    )
     maximum = max((card.upb.value or Decimal(0) for card in cards), default=Decimal(0))
     serialized: list[dict[str, object]] = []
     for card in cards:
         payload = asdict(card)
         scale = (
             (card.upb.value or Decimal(0)) / maximum * _HUNDRED
-            if scale_assessment.available and maximum and card.upb.value is not None
+            if scale_available and maximum and card.upb.value is not None
             else None
         )
         payload["relative_scale"] = str(_quantized(scale, "0.1")) if scale is not None else None
-        payload["scale_status"] = scale_assessment.status
-        payload["scale_reasons"] = scale_assessment.reasons
+        payload["scale_status"] = effective_scale_status
+        payload["scale_reasons"] = effective_scale_reasons
         payload["search_text"] = " ".join(
             value for value in (card.legal_name, card.ticker, card.platform) if value
         ).casefold()
@@ -565,17 +686,6 @@ def serialize_cards(
             "growth": payload["growth"],
             "upb": payload["upb"],
         }
-        for key, metric in (
-            ("upb", card.upb),
-            ("loans", card.customer_loans),
-            ("growth", card.growth),
-            ("owned", card.owned_mix),
-        ):
-            payload[f"sort_{key}"] = (
-                str((metric.value * Decimal(1000)).to_integral_value())
-                if metric.value is not None
-                else "-999999999999999999999999999"
-            )
         serialized.append(payload)
     return serialized
 

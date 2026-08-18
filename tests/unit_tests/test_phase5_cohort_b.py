@@ -695,7 +695,13 @@ def test_phase5_cohort_b_real_parser_pipeline_api_dashboard_and_idempotence(  # 
             company_id=selected_ids,
         )
         label_html = bytes(label_page.body).decode()
-        assert label_html.count(f"<span>{expected_label} · Q2 2026</span>") == 2
+        for selected_id in selected_ids:
+            selected_card = next(card for card in cards if card.id == selected_id)
+            assert selected_card.upb.reporting_scope is not None
+            assert (
+                f"<span>{expected_label} · Scope {selected_card.upb.reporting_scope} · "
+                "Q2 2026</span>"
+            ) in label_html
     overview = _endpoint(app, "/")(
         _request(app, "/"),
         repository,
@@ -789,6 +795,55 @@ def test_phase5_replay_coexists_with_exact_legacy_439_baseline(tmp_path: Path) -
         }
         for result in results
     )
+    repository = IntelligenceRepository(engine)
+    public_page = repository.observations()
+    complete_snapshot = repository.observation_snapshot()
+    assert len(public_page) == 500
+    assert repository.observation_count() == len(complete_snapshot) == 599
+    assert len({row.company_id for row in complete_snapshot}) == 10
+    latest_rows = [row for row in complete_snapshot if row.period_end == "2026-06-30"]
+    assert len(latest_rows) > 100
+    assert set(_ISSUER_ORDER) <= {row.company_id for row in latest_rows}
+
+    app = create_app(repository=repository)
+    overview = _endpoint(app, "/")(
+        _request(app, "/"),
+        repository,
+        metric_id="total_assets",
+        period_end=None,
+    )
+    assert overview.status_code == 200
+    overview_html = bytes(overview.body).decode()
+    assert all(ticker in overview_html for ticker in ("WFC", "JPM", "BAC", "USB", "RKT"))
+    governed_order = [str(company["id"]) for company in repository.companies()]
+    row_positions = [
+        overview_html.index(
+            f'<article class="company-row" role="row" data-company-id="{company_id}"'
+        )
+        for company_id in governed_order
+    ]
+    assert row_positions == sorted(row_positions)
+    assert 'id="company-sort"' not in overview_html
+    assert "data-sort-upb" not in overview_html
+    assert "different metric or scope definitions are not auto-sorted" in overview_html
+    assert "Scope " in overview_html
+    nondefault_overview = _endpoint(app, "/comparison")(
+        _request(app, "/comparison?company_id=wfc&company_id=jpm"),
+        repository,
+        metric_id="total_servicing_upb",
+        period_end=None,
+        company_id=["wfc", "jpm"],
+        third_company_id=None,
+    )
+    assert nondefault_overview.status_code == 200
+    nondefault_html = bytes(nondefault_overview.body).decode()
+    assert "Wells Fargo &amp; Company" in nondefault_html
+    assert "JPMorgan Chase &amp; Co." in nondefault_html
+    freshness = _endpoint(app, "/api/v1/pipeline/freshness")(repository)
+    assert freshness["calendar_freshness_state"] == "MIXED"
+    assert len(freshness["calendar_freshness_by_company"]) == 10
+    assert freshness["calendar_freshness_by_company"]["wfc"] == "CALENDAR_NOT_CONFIGURED"
+    assert freshness["source_assessment_count"] > 0
     with Session(engine) as session:
         after = {
             row.id: (str(row.value), row.observation_state, row.methodology)

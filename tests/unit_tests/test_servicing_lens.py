@@ -208,6 +208,25 @@ def test_scale_fails_closed_on_authoritative_not_comparable_result(tmp_path: Pat
     )
     assert comparison.status == "not_comparable"
     assert all(card["relative_scale"] is None for card in payload)
+
+    heterogeneous = [
+        replace(
+            cards[1],
+            upb=replace(
+                cards[1].upb,
+                label="Owned MSR UPB",
+                source_metric_id="owned_msr_upb",
+            ),
+        ),
+        cards[0],
+    ]
+    guarded = serialize_cards(
+        heterogeneous,
+        scale_assessment=ScaleAssessment("comparable", ()),
+    )
+    assert [item["id"] for item in guarded] == [card.id for card in heterogeneous]
+    assert all(item["relative_scale"] is None for item in guarded)
+    assert {item["scale_status"] for item in guarded} == {"insufficient_information"}
     assert all(card["scale_reasons"] == comparison.reasons for card in payload)
 
 
@@ -260,14 +279,16 @@ process.stdout.write(result);
     assert completed.stdout == "pfsi"
 
 
-def test_servicing_lens_template_has_search_sort_kpis_earnings_and_social_contract() -> None:
+def test_servicing_lens_template_has_search_kpis_earnings_and_social_contract() -> None:
     package = Path(__file__).parents[2] / "src" / "mortgage_servicing_dashboard"
     template = (package / "templates" / "dashboard.html").read_text(encoding="utf-8")
     javascript = (package / "static" / "dashboard.js").read_text(encoding="utf-8")
 
     assert 'id="company-search"' in template
-    assert 'id="company-sort"' in template
-    assert all(f'<option value="{key}"' in template for key in ("upb", "loans", "growth", "owned"))
+    assert 'id="company-sort"' not in template
+    assert "data-sort-upb" not in template
+    assert "companyRows.sort" not in javascript
+    assert "stable repository order" in template
     assert template.count('class="kpi-selector"') == 1  # One loop, rendered three times.
     assert "range(3)" in template
     assert 'class="compare-checkbox"' not in template
@@ -275,7 +296,7 @@ def test_servicing_lens_template_has_search_sort_kpis_earnings_and_social_contra
     assert 'method="get" action="/comparison"' in template
     assert 'name="company_id"' in template
     assert 'name="third_company_id"' in template
-    assert "{{ company.upb.label }} · {{ company.period_label }}" in template
+    assert "{{ company.upb.label }} · Scope {{ company.upb.reporting_scope" in template
     assert "Total servicing UPB · {{ company.period_label }}" not in template
     assert "sessionStorage" not in javascript
     assert "toggleCompany" not in javascript
@@ -285,7 +306,7 @@ def test_servicing_lens_template_has_search_sort_kpis_earnings_and_social_contra
     assert "Open official earnings source" in template
     assert 'property="og:image"' in template
     assert (package / "static" / "og.png").stat().st_size > 1_000_000
-    assert "BigInt(" in javascript
+    assert "BigInt(" not in javascript
     assert "parseFloat" not in javascript
     assert "Number(" not in javascript
 

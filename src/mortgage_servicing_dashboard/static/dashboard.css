@@ -115,6 +115,23 @@ h1, h2, h3, p { overflow-wrap: anywhere; }
 .view-tabs { display: flex; gap: 5px; margin: 24px 0 16px; border-bottom: 1px solid var(--line); }
 .view-tabs button { padding: 10px 13px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); cursor: pointer; }
 .view-tabs button[aria-selected="true"] { border-bottom-color: var(--violet); color: var(--ink); font-weight: 700; }
+.chart-panel { min-width: 0; }
+.evidence-chart-figure { margin: 0; }
+.evidence-chart { width: 100%; min-height: 260px; display: block; overflow: visible; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.evidence-chart-figure figcaption { margin-top: 8px; color: var(--muted); font-size: 10px; }
+.chart-axis { stroke: #a1a1aa; stroke-width: 1; }
+.chart-axis-label { fill: var(--muted); font-size: 7px; }
+.chart-segment { fill: none; stroke: var(--violet); stroke-width: 2.5; }
+.chart-point { fill: #fff; stroke: var(--violet-dark); stroke-width: 3; }
+.chart-series-1 .chart-segment { stroke: #047857; }
+.chart-series-1 .chart-point { stroke: #047857; }
+.chart-series-2 .chart-segment { stroke: #b45309; }
+.chart-series-2 .chart-point { stroke: #b45309; }
+.chart-series-3 .chart-segment { stroke: #be185d; }
+.chart-series-3 .chart-point { stroke: #be185d; }
+.chart-gap path { fill: none; stroke: var(--red); stroke-width: 2; }
+.chart-gap text { fill: var(--red); font-size: 7px; font-weight: 800; }
+.chart-point-link:focus .chart-point, .chart-point-link:focus .chart-gap path { stroke: var(--focus); stroke-width: 5; }
 .observation-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
 .observation-chip { min-height: 96px; padding: 14px; display: grid; align-content: start; gap: 4px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); text-decoration: none; }
 .observation-chip strong { color: var(--violet-dark); font-size: 10px; }
@@ -236,6 +253,10 @@ dialog::backdrop { background: rgb(20 16 45 / 58%); backdrop-filter: blur(4px); 
 .evidence-grid dd { margin: 0; overflow-wrap: anywhere; }
 .evidence-grid dt { color: var(--muted); }
 .dialog-frame code, .dialog-frame a, .dialog-frame dd, .dialog-frame strong, .evidence-heading > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+.evidence-link-list, .derivation-list { margin: 0; padding-left: 20px; }
+.evidence-link-list li, .derivation-list li { margin-top: 8px; }
+.evidence-link-list small, .lineage-source-link { display: block; margin-top: 3px; }
+.evidence-link-list small { color: var(--muted); }
 .source-link { display: inline-flex; margin-top: 15px; padding: 9px 12px; border-radius: 9px; background: var(--violet-dark); color: #fff; text-decoration: none; }
 .noscript { margin: 0; padding: 12px; background: #ede9fe; color: var(--violet-dark); text-align: center; }
 .site-footer { padding: 60px 0 22px; background: #171425; color: #b8b5c5; }
@@ -301,4 +322,4 @@ dialog::backdrop { background: rgb(20 16 45 / 58%); backdrop-filter: blur(4px); 
 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
-@media (forced-colors: active) { .brand-mark, .company-logo, .compare-bar span, .mix-track span { forced-color-adjust: none; } }
+@media (forced-colors: active) { .brand-mark, .company-logo, .compare-bar span, .mix-track span { forced-color-adjust: none; } .chart-segment, .chart-point, .chart-gap path { stroke: CanvasText; } }

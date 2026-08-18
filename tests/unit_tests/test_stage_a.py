@@ -911,7 +911,9 @@ def test_cli_database_commands(  # noqa: PLR0915
         )
     engine.dispose()
     assert main([*repeated_approve, "--reviewer", "different-reviewer"]) == 4
-    assert "review resume failed closed" in json.loads(capsys.readouterr().out)["error"]
+    review_error = json.loads(capsys.readouterr().out)
+    assert review_error["code"] == "review_validation_failed"
+    assert review_error["error"] == "The review decision failed deterministic validation."
     assert (
         main(
             [
@@ -955,7 +957,9 @@ def test_cli_database_commands(  # noqa: PLR0915
         )
         == 4
     )
-    assert "original thread" in json.loads(capsys.readouterr().out)["error"]
+    thread_error = json.loads(capsys.readouterr().out)
+    assert thread_error["code"] == "review_validation_failed"
+    assert thread_error["error"] == "The review decision failed deterministic validation."
     assert (
         main(
             [
@@ -974,9 +978,18 @@ def test_cli_database_commands(  # noqa: PLR0915
     assert json.loads(capsys.readouterr().out)["error"] == "candidate not found"
 
 
-def test_cli_serve_dispatch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_serve_rejects_missing_database_without_dispatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     run = Mock()
     monkeypatch.setattr("mortgage_servicing_dashboard.cli.uvicorn.run", run)
-    database_url = f"sqlite:///{(tmp_path / 'serve.db').as_posix()}"
-    assert main(["serve", "--database-url", database_url, "--port", "8123"]) == 0
-    run.assert_called_once()
+    database_path = tmp_path / "serve.db"
+    database_url = f"sqlite:///{database_path.as_posix()}"
+    assert main(["serve", "--database-url", database_url, "--port", "8123"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert json.loads(captured.err)["code"] == "database_not_found"
+    assert not database_path.exists()
+    run.assert_not_called()

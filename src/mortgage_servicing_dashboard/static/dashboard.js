@@ -47,6 +47,16 @@ function safeLocatorUrl(value) {
   }
 }
 
+function observationJsonUrl(value) {
+  if (typeof value !== "string" || !value) return null;
+  return `/api/v1/observations/${encodeURIComponent(value)}`;
+}
+
+function evidenceLocatorUrl(evidenceId, observationId) {
+  if (typeof evidenceId !== "string" || !evidenceId || typeof observationId !== "string" || !observationId) return null;
+  return `/evidence/${encodeURIComponent(evidenceId)}/observations/${encodeURIComponent(observationId)}#cited-source-locator`;
+}
+
 function locatorTerm(list, label, value, url) {
   const definition = element("dd");
   const safeUrl = safeLocatorUrl(url);
@@ -71,6 +81,7 @@ function section(title) {
 
 function renderEvidence(item) {
   evidenceContent.replaceChildren();
+  evidenceDialog?.setAttribute("aria-busy", "false");
   evidenceStatus.textContent = "Evidence loaded.";
   evidenceStatus.setAttribute("role", "status");
   evidenceTitle.textContent = `${valueOrDash(item.ticker)} · ${valueOrDash(item.metric_name)}`;
@@ -123,6 +134,28 @@ function renderEvidence(item) {
   );
   extraction.append(extractionList);
 
+  const derivation = section("Derivation inputs");
+  const derivationInputs = Array.isArray(item.derivation_inputs) ? item.derivation_inputs : [];
+  if (derivationInputs.length === 0) {
+    derivation.append(element("p", "No derived-observation inputs are recorded.", "no-revisions"));
+  } else {
+    const list = element("ol", null, "derivation-list");
+    derivationInputs.forEach((input) => {
+      const entry = element("li");
+      const url = observationJsonUrl(input.input_observation_id);
+      const label = `${valueOrDash(input.input_role)} — ${valueOrDash(input.input_value)} — ${valueOrDash(input.formula_version)}`;
+      if (url) {
+        const link = element("a", label);
+        link.href = url;
+        entry.append(link);
+      } else {
+        entry.textContent = label;
+      }
+      list.append(entry);
+    });
+    derivation.append(list);
+  }
+
   const source = section("Immutable source evidence");
   const evidence = item.evidence || {};
   const sourceList = element("dl", null, "evidence-grid");
@@ -139,6 +172,42 @@ function renderEvidence(item) {
   const excerpt = element("p", valueOrDash(item.bounded_excerpt || evidence.bounded_excerpt), "evidence-excerpt");
   source.append(excerpt);
 
+  const evidenceLineage = section("Linked evidence");
+  const evidenceLinks = Array.isArray(item.evidence_links) ? item.evidence_links : [];
+  if (evidenceLinks.length === 0) {
+    evidenceLineage.append(element("p", "No linked evidence record is available.", "no-revisions"));
+  } else {
+    const list = element("ul", null, "evidence-link-list");
+    evidenceLinks.forEach((evidenceLink) => {
+      const entry = element("li");
+      const locatorUrl = evidenceLocatorUrl(
+        evidenceLink.evidence_id,
+        item.observation_id || item.id,
+      );
+      const label = `${valueOrDash(evidenceLink.role)} — ${valueOrDash(evidenceLink.evidence_id)}`;
+      if (locatorUrl) {
+        const link = element("a", label, "locator-link");
+        link.href = locatorUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        entry.append(link);
+      } else {
+        entry.append(element("span", label));
+      }
+      entry.append(element("small", valueOrDash(evidenceLink.locator)));
+      const sourceUrl = safeHttpsUrl(evidenceLink.source_url);
+      if (sourceUrl) {
+        const sourceLink = element("a", "Open authoritative source ↗", "lineage-source-link");
+        sourceLink.href = sourceUrl;
+        sourceLink.target = "_blank";
+        sourceLink.rel = "noopener noreferrer";
+        entry.append(sourceLink);
+      }
+      list.append(entry);
+    });
+    evidenceLineage.append(list);
+  }
+
   const revisions = section("Revision history");
   const history = Array.isArray(item.revision_history) ? item.revision_history : [];
   if (history.length === 0) {
@@ -153,8 +222,21 @@ function renderEvidence(item) {
     revisions.append(list);
   }
 
-  evidenceContent.append(heading, values, semantics, extraction, source, revisions);
-  const sourceUrl = safeHttpsUrl(item.source_url || evidence.original_url);
+  evidenceContent.append(
+    heading,
+    values,
+    semantics,
+    extraction,
+    derivation,
+    source,
+    evidenceLineage,
+    revisions,
+  );
+  const sourceUrl = [
+    item.source_url,
+    evidence.original_url,
+    ...evidenceLinks.map((evidenceLink) => evidenceLink.source_url),
+  ].map(safeHttpsUrl).find(Boolean);
   if (sourceUrl) {
     const link = element("a", "Open retained authoritative source in a new tab ↗", "source-link");
     link.href = sourceUrl;
@@ -165,6 +247,7 @@ function renderEvidence(item) {
 }
 
 function renderEvidenceError(message) {
+  evidenceDialog?.setAttribute("aria-busy", "false");
   evidenceStatus.textContent = message;
   evidenceStatus.setAttribute("role", "alert");
   evidenceContent.replaceChildren();
@@ -179,6 +262,12 @@ function renderEvidenceError(message) {
     if (evidenceTrigger) openEvidence(evidenceTrigger);
   });
   wrapper.append(retry);
+  const fallbackUrl = safeLocatorUrl(evidenceTrigger?.href);
+  if (fallbackUrl) {
+    const fallback = element("a", "Open the no-script retained-source view", "source-link");
+    fallback.href = fallbackUrl;
+    wrapper.append(fallback);
+  }
   evidenceContent.append(wrapper);
 }
 
@@ -191,6 +280,7 @@ async function openEvidence(trigger) {
   evidenceStatus.textContent = "Loading complete evidence…";
   evidenceStatus.setAttribute("role", "status");
   evidenceContent.replaceChildren();
+  evidenceDialog.setAttribute("aria-busy", "true");
   if (!evidenceDialog.open) evidenceDialog.showModal();
   if (dialogClose) dialogClose.focus();
 
@@ -269,20 +359,12 @@ function activateTab(activeTab, moveFocus = true) {
 const companyRowsContainer = document.querySelector("#company-rows");
 const companyRows = Array.from(document.querySelectorAll(".company-row"));
 const companySearch = document.querySelector("#company-search");
-const companySort = document.querySelector("#company-sort");
 const companyEmpty = document.querySelector("#company-empty");
 const matchCount = document.querySelector("#match-count");
 
 function refreshCompanyRows() {
   if (!companyRowsContainer) return;
   const query = (companySearch?.value || "").trim().toLocaleLowerCase();
-  const sortKey = companySort?.value || "upb";
-  companyRows.sort((left, right) => {
-    const leftValue = BigInt(left.dataset[`sort${sortKey[0].toUpperCase()}${sortKey.slice(1)}`] || "0");
-    const rightValue = BigInt(right.dataset[`sort${sortKey[0].toUpperCase()}${sortKey.slice(1)}`] || "0");
-    if (leftValue === rightValue) return (left.dataset.search || "").localeCompare(right.dataset.search || "");
-    return leftValue > rightValue ? -1 : 1;
-  });
   let visible = 0;
   companyRows.forEach((row) => {
     const matches = !query || (row.dataset.search || "").includes(query);
@@ -295,7 +377,6 @@ function refreshCompanyRows() {
 }
 
 companySearch?.addEventListener("input", refreshCompanyRows);
-companySort?.addEventListener("change", refreshCompanyRows);
 document.querySelector("#clear-company-search")?.addEventListener("click", () => {
   companySearch.value = "";
   companySearch.focus();

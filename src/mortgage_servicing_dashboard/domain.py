@@ -280,6 +280,8 @@ class ComparisonInput:
     period_end: date | None = None
     scale: str | None = None
     reporting_entity: str | None = None
+    fiscal_calendar_regime: str | None = None
+    accounting_policy_regime: str | None = None
     cross_company_comparison: bool = False
 
 
@@ -346,6 +348,14 @@ def assess_comparability(  # noqa: C901, PLR0912
         and left.reporting_entity != right.reporting_entity
     ):
         hard_mismatches.append("reporting entities differ")
+    if (
+        left.fiscal_calendar_regime is not None or right.fiscal_calendar_regime is not None
+    ) and left.fiscal_calendar_regime != right.fiscal_calendar_regime:
+        hard_mismatches.append("fiscal calendar regimes differ")
+    if (
+        left.accounting_policy_regime is not None or right.accounting_policy_regime is not None
+    ) and left.accounting_policy_regime != right.accounting_policy_regime:
+        hard_mismatches.append("accounting policy regimes differ")
     if left.dimensions != right.dimensions:
         hard_mismatches.append("controlled metric dimensions differ")
     methodology_mismatch = left.methodology != right.methodology

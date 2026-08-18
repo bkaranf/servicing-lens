@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, NoReturn, cast
 
 import yaml
-from sqlalchemy import Engine, Select, func, or_, select
+from sqlalchemy import Engine, Select, and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from mortgage_servicing_dashboard.database import (
@@ -32,6 +32,7 @@ from mortgage_servicing_dashboard.database import (
     FilingDocument,
     FiscalCalendarRegime,
     HumanReviewDecision,
+    IngestionError,
     MetricAlias,
     MetricDefinition,
     MetricDefinitionVersion,
@@ -4464,6 +4465,72 @@ def _as_of_instant(as_of: datetime | date | None) -> datetime:
     return datetime.combine(as_of, time.max, tzinfo=UTC)
 
 
+def _latest_source_assessments(
+    session: Session,
+    *,
+    as_of: datetime,
+) -> tuple[EligibleSourceAssessment, ...]:
+    """Return the latest assessment for every governed issuer/metric cell.
+
+    Pipeline runs may cover different cohorts. Selecting only the globally latest
+    run would discard still-current assessments for every issuer outside that
+    run, so recency is resolved independently for each exact assessed cell.
+    """
+    rows = session.scalars(
+        select(EligibleSourceAssessment)
+        .join(Company, EligibleSourceAssessment.company_id == Company.id)
+        .where(
+            Company.active.is_(True),
+            EligibleSourceAssessment.assessed_at <= as_of,
+        )
+        .order_by(EligibleSourceAssessment.assessed_at, EligibleSourceAssessment.id)
+    ).all()
+    latest: dict[tuple[str, str, str, date], EligibleSourceAssessment] = {}
+    for row in rows:
+        latest[
+            (
+                row.company_id,
+                row.metric_version_id,
+                row.reporting_scope_id,
+                row.period_end,
+            )
+        ] = row
+    return tuple(latest[key] for key in sorted(latest))
+
+
+def _public_pipeline_run_predicate() -> Any:
+    """Limit operational aggregates to active issuers or issuer-neutral runs."""
+    active_company_ids = select(Company.id).where(Company.active.is_(True))
+    inactive_assessments = exists(
+        select(EligibleSourceAssessment.id)
+        .join(Company, EligibleSourceAssessment.company_id == Company.id)
+        .where(
+            EligibleSourceAssessment.pipeline_run_id == PipelineRun.id,
+            Company.active.is_(False),
+        )
+    )
+    inactive_quarantine = exists(
+        select(QuarantineCandidate.id)
+        .join(
+            ReportingEntity,
+            QuarantineCandidate.reporting_entity_id == ReportingEntity.id,
+        )
+        .join(Company, ReportingEntity.company_id == Company.id)
+        .where(
+            QuarantineCandidate.pipeline_run_id == PipelineRun.id,
+            Company.active.is_(False),
+        )
+    )
+    return or_(
+        PipelineRun.requested_company_id.in_(active_company_ids),
+        and_(
+            PipelineRun.requested_company_id.is_(None),
+            ~inactive_assessments,
+            ~inactive_quarantine,
+        ),
+    )
+
+
 class IntelligenceRepository:
     """Bounded read service over published exact observations."""
 
@@ -4519,7 +4586,6 @@ class IntelligenceRepository:
             )
             .distinct()
             .order_by(Company.id)
-            .limit(_MAX_REPOSITORY_RESULTS)
         )
         with Session(self._engine) as session:
             return tuple(session.scalars(statement))
@@ -4573,9 +4639,73 @@ class IntelligenceRepository:
             return current
 
     def evidence(self, evidence_id: str) -> dict[str, object] | None:
-        """Return one immutable evidence identity and retention record."""
+        """Return evidence only when it belongs to at least one active issuer."""
+        instant = _as_of_instant(None)
+        active_observation = exists(
+            select(ObservationEvidence.observation_id)
+            .join(
+                MetricObservation,
+                ObservationEvidence.observation_id == MetricObservation.id,
+            )
+            .join(
+                ReportingEntity,
+                MetricObservation.reporting_entity_id == ReportingEntity.id,
+            )
+            .join(Company, ReportingEntity.company_id == Company.id)
+            .where(
+                ObservationEvidence.evidence_id == SourceEvidence.id,
+                Company.active.is_(True),
+                MetricObservation.knowledge_from <= instant,
+                or_(
+                    MetricObservation.knowledge_to.is_(None),
+                    MetricObservation.knowledge_to > instant,
+                ),
+                MetricObservation.publication_state == PublicationState.PUBLISHED.value,
+                MetricObservation.quality_state == QualityState.VALIDATED.value,
+            )
+        )
+        active_earnings_event = exists(
+            select(EarningsEvent.id)
+            .join(Company, EarningsEvent.company_id == Company.id)
+            .where(
+                EarningsEvent.evidence_id == SourceEvidence.id,
+                Company.active.is_(True),
+            )
+        )
+        active_filing = exists(
+            select(FilingDocument.id)
+            .join(Filing, FilingDocument.filing_id == Filing.id)
+            .join(ReportingEntity, Filing.reporting_entity_id == ReportingEntity.id)
+            .join(Company, ReportingEntity.company_id == Company.id)
+            .where(
+                FilingDocument.source_evidence_id == SourceEvidence.id,
+                Company.active.is_(True),
+            )
+        )
+        active_quarantine = exists(
+            select(QuarantineCandidate.id)
+            .join(
+                ReportingEntity,
+                QuarantineCandidate.reporting_entity_id == ReportingEntity.id,
+            )
+            .join(Company, ReportingEntity.company_id == Company.id)
+            .where(
+                QuarantineCandidate.evidence_id == SourceEvidence.id,
+                Company.active.is_(True),
+            )
+        )
         with Session(self._engine) as session:
-            item = session.get(SourceEvidence, evidence_id)
+            item = session.scalar(
+                select(SourceEvidence).where(
+                    SourceEvidence.id == evidence_id,
+                    or_(
+                        active_observation,
+                        active_earnings_event,
+                        active_filing,
+                        active_quarantine,
+                    ),
+                )
+            )
             if item is None:
                 return None
             return {
@@ -4598,12 +4728,52 @@ class IntelligenceRepository:
                 "last_modified": item.last_modified,
             }
 
+    def evidence_observation_ids(
+        self,
+        evidence_id: str,
+        *,
+        limit: int = 100,
+    ) -> list[str]:
+        """Return bounded reverse links to current observations for active issuers."""
+        if limit < 1 or limit > _MAX_REPOSITORY_RESULTS:
+            msg = f"limit must be 1..{_MAX_REPOSITORY_RESULTS}"
+            raise ValueError(msg)
+        instant = _as_of_instant(None)
+        statement = (
+            select(ObservationEvidence.observation_id)
+            .join(
+                MetricObservation,
+                ObservationEvidence.observation_id == MetricObservation.id,
+            )
+            .join(
+                ReportingEntity,
+                MetricObservation.reporting_entity_id == ReportingEntity.id,
+            )
+            .join(Company, ReportingEntity.company_id == Company.id)
+            .where(
+                ObservationEvidence.evidence_id == evidence_id,
+                Company.active.is_(True),
+                MetricObservation.knowledge_from <= instant,
+                or_(
+                    MetricObservation.knowledge_to.is_(None),
+                    MetricObservation.knowledge_to > instant,
+                ),
+                MetricObservation.publication_state == PublicationState.PUBLISHED.value,
+                MetricObservation.quality_state == QualityState.VALIDATED.value,
+            )
+            .order_by(ObservationEvidence.observation_id)
+            .limit(limit)
+        )
+        with Session(self._engine) as session:
+            return list(session.scalars(statement))
+
     def earnings_events(self) -> list[dict[str, object]]:
         """Return selected-company public earnings disclosure events."""
         statement = (
             select(EarningsEvent, Company, SourceEvidence)
             .join(Company, EarningsEvent.company_id == Company.id)
             .join(SourceEvidence, EarningsEvent.evidence_id == SourceEvidence.id)
+            .where(Company.active.is_(True))
             .order_by(EarningsEvent.event_at, Company.id)
         )
         with Session(self._engine) as session:
@@ -4726,8 +4896,28 @@ class IntelligenceRepository:
         with Session(self._engine) as session:
             row = session.execute(statement).first()
         if row is None:
-            message = "governed issuer has no actual filing for calendar exposure"
-            raise ValueError(message)
+            return {
+                "company_id": company_id,
+                "ticker": ticker,
+                "as_of": as_of.isoformat(),
+                "last_reported_period": None,
+                "next_expected_report_window": {
+                    "expected_period_end": None,
+                    "window_start": None,
+                    "window_end": None,
+                    "is_inferred": False,
+                    "method": "CALENDAR_NOT_CONFIGURED",
+                    "config_version": config_version,
+                    "inference_basis": [
+                        (
+                            "No reviewed issuer-specific calendar or retained actual "
+                            "filing is available; no date is inferred."
+                        )
+                    ],
+                },
+                "freshness_state": "CALENDAR_NOT_CONFIGURED",
+                "next_announced_event": None,
+            }
         filing, document = row
         accepted = _as_utc(filing.acceptance_timestamp)
         if accepted is None:
@@ -4766,76 +4956,109 @@ class IntelligenceRepository:
 
     def freshness(self) -> dict[str, object]:
         """Return evidence, publication, pipeline, and quarantine freshness."""
+        active_records = self.observation_snapshot()
+        published_count = len(active_records)
+        missing_count = sum(
+            record.state == ObservationState.NOT_DISCLOSED.value for record in active_records
+        )
+        knowledge_at = max(
+            (datetime.fromisoformat(record.knowledge_from) for record in active_records),
+            default=None,
+        )
+        active_evidence_ids = {
+            str(link["evidence_id"]) for record in active_records for link in record.evidence_links
+        }
         with Session(self._engine) as session:
-            retrieved_at = session.scalar(select(func.max(SourceEvidence.retrieved_at)))
-            knowledge_at = session.scalar(select(func.max(MetricObservation.knowledge_from)))
-            evidence_count = session.scalar(select(func.count(SourceEvidence.id))) or 0
-            published_count = (
-                session.scalar(
-                    select(func.count(MetricObservation.id)).where(
-                        MetricObservation.publication_state == PublicationState.PUBLISHED.value
-                    )
-                )
-                or 0
-            )
-            missing_count = (
-                session.scalar(
-                    select(func.count(MetricObservation.id)).where(
-                        MetricObservation.observation_state == ObservationState.NOT_DISCLOSED.value,
-                        MetricObservation.publication_state == PublicationState.PUBLISHED.value,
-                    )
-                )
-                or 0
-            )
             quarantine_count = (
                 session.scalar(
-                    select(func.count(QuarantineCandidate.id)).where(
-                        QuarantineCandidate.status.not_in(("REJECTED", "PUBLISHED"))
+                    select(func.count(QuarantineCandidate.id))
+                    .join(
+                        ReportingEntity,
+                        QuarantineCandidate.reporting_entity_id == ReportingEntity.id,
+                    )
+                    .join(Company, ReportingEntity.company_id == Company.id)
+                    .where(
+                        Company.active.is_(True),
+                        QuarantineCandidate.status.not_in(("REJECTED", "PUBLISHED")),
                     )
                 )
                 or 0
             )
             run = session.scalars(
-                select(PipelineRun).order_by(PipelineRun.started_at.desc())
+                select(PipelineRun)
+                .where(_public_pipeline_run_predicate())
+                .order_by(PipelineRun.started_at.desc(), PipelineRun.id.desc())
             ).first()
-            assessment_count = 0
-            source_not_checked_count = 0
-            if run is not None:
-                assessments = session.scalars(
-                    select(EligibleSourceAssessment).where(
-                        EligibleSourceAssessment.pipeline_run_id == run.id
+            assessments = _latest_source_assessments(session, as_of=utc_now())
+            assessment_count = len(assessments)
+            active_evidence_ids.update(
+                evidence_id
+                for assessment in assessments
+                for evidence_id in assessment.checked_evidence_ids
+            )
+            active_evidence_ids.update(
+                session.scalars(
+                    select(EarningsEvent.evidence_id)
+                    .join(Company, EarningsEvent.company_id == Company.id)
+                    .where(Company.active.is_(True))
+                )
+            )
+            active_evidence_ids.update(
+                session.scalars(
+                    select(QuarantineCandidate.evidence_id)
+                    .join(
+                        ReportingEntity,
+                        QuarantineCandidate.reporting_entity_id == ReportingEntity.id,
+                    )
+                    .join(Company, ReportingEntity.company_id == Company.id)
+                    .where(Company.active.is_(True))
+                )
+            )
+            evidence_rows = (
+                session.scalars(
+                    select(SourceEvidence).where(SourceEvidence.id.in_(active_evidence_ids))
+                ).all()
+                if active_evidence_ids
+                else []
+            )
+            evidence_count = len(evidence_rows)
+            retrieved_at = max(
+                (evidence.retrieved_at for evidence in evidence_rows),
+                default=None,
+            )
+            published_cells = set(
+                session.execute(
+                    select(
+                        ReportingEntity.company_id,
+                        MetricObservation.metric_version_id,
+                        MetricObservation.reporting_scope_id,
+                        MetricObservation.period_end,
+                    )
+                    .join(
+                        ReportingEntity,
+                        MetricObservation.reporting_entity_id == ReportingEntity.id,
+                    )
+                    .join(Company, ReportingEntity.company_id == Company.id)
+                    .where(
+                        Company.active.is_(True),
+                        MetricObservation.publication_state == PublicationState.PUBLISHED.value,
+                        MetricObservation.quality_state == QualityState.VALIDATED.value,
+                        MetricObservation.knowledge_to.is_(None),
                     )
                 ).all()
-                assessment_count = len(assessments)
-                published_cells = set(
-                    session.execute(
-                        select(
-                            ReportingEntity.company_id,
-                            MetricObservation.metric_version_id,
-                            MetricObservation.reporting_scope_id,
-                            MetricObservation.period_end,
-                        )
-                        .join(
-                            ReportingEntity,
-                            MetricObservation.reporting_entity_id == ReportingEntity.id,
-                        )
-                        .where(
-                            MetricObservation.publication_state == PublicationState.PUBLISHED.value
-                        )
-                    ).all()
+            )
+            source_not_checked_count = sum(
+                1
+                for item in assessments
+                if item.assessment_status == "SOURCE_NOT_CHECKED"
+                and (
+                    item.company_id,
+                    item.metric_version_id,
+                    item.reporting_scope_id,
+                    item.period_end,
                 )
-                source_not_checked_count = sum(
-                    1
-                    for item in assessments
-                    if item.assessment_status == "SOURCE_NOT_CHECKED"
-                    and (
-                        item.company_id,
-                        item.metric_version_id,
-                        item.reporting_scope_id,
-                        item.period_end,
-                    )
-                    not in published_cells
-                )
+                not in published_cells
+            )
         return {
             "dataset": run.config_version if run is not None else None,
             "retrieved_at": retrieved_at.isoformat() if retrieved_at is not None else None,
@@ -4850,6 +5073,48 @@ class IntelligenceRepository:
             "pipeline_status": run.status if run is not None else "NOT_RUN",
             "terminal_outcomes": run.terminal_outcomes if run is not None else {},
             "calendar": self.calendar(),
+        }
+
+    def quality_counts(self) -> dict[str, int]:
+        """Return active-issuer operational counts for the public quality surface."""
+        visible_run_ids = select(PipelineRun.id).where(_public_pipeline_run_predicate())
+        with Session(self._engine) as session:
+            quarantined = (
+                session.scalar(
+                    select(func.count(QuarantineCandidate.id))
+                    .join(
+                        ReportingEntity,
+                        QuarantineCandidate.reporting_entity_id == ReportingEntity.id,
+                    )
+                    .join(Company, ReportingEntity.company_id == Company.id)
+                    .where(
+                        Company.active.is_(True),
+                        QuarantineCandidate.status.not_in(("REJECTED", "PUBLISHED")),
+                    )
+                )
+                or 0
+            )
+            failed_runs = (
+                session.scalar(
+                    select(func.count(PipelineRun.id)).where(
+                        PipelineRun.id.in_(visible_run_ids),
+                        PipelineRun.status == "FAILED",
+                    )
+                )
+                or 0
+            )
+            ingestion_errors = (
+                session.scalar(
+                    select(func.count(IngestionError.id))
+                    .join(PipelineRun, IngestionError.pipeline_run_id == PipelineRun.id)
+                    .where(PipelineRun.id.in_(visible_run_ids))
+                )
+                or 0
+            )
+        return {
+            "quarantined_candidate_count": int(quarantined),
+            "failed_run_count": int(failed_runs),
+            "ingestion_error_count": int(ingestion_errors),
         }
 
     def _observation_statement(
@@ -4892,6 +5157,7 @@ class IntelligenceRepository:
             )
             .outerjoin(SourceEvidence, selected_evidence.c.evidence_id == SourceEvidence.id)
             .where(
+                Company.active.is_(True),
                 MetricObservation.knowledge_from <= instant,
                 or_(
                     MetricObservation.knowledge_to.is_(None),
@@ -4982,6 +5248,52 @@ class IntelligenceRepository:
         if limit < 1 or limit > _MAX_REPOSITORY_RESULTS or offset < 0:
             msg = f"limit must be 1..{_MAX_REPOSITORY_RESULTS} and offset must be nonnegative"
             raise ValueError(msg)
+        return self._observation_records(
+            as_of=as_of,
+            company_id=company_id,
+            metric_id=metric_id,
+            period_end=period_end,
+            include_missing=include_missing,
+            limit=limit,
+            offset=offset,
+        )
+
+    def observation_snapshot(
+        self,
+        *,
+        as_of: datetime | date | None = None,
+        company_id: str | None = None,
+        metric_id: str | None = None,
+        period_end: date | None = None,
+        include_missing: bool = True,
+    ) -> list[ObservationRecord]:
+        """Return the complete current snapshot for internal aggregate views.
+
+        Public callers remain bounded by :meth:`observations`. Dashboard and
+        coverage composition need the complete governed cohort so a later row is
+        never silently removed merely because an older baseline exceeded the
+        public page size.
+        """
+        return self._observation_records(
+            as_of=as_of,
+            company_id=company_id,
+            metric_id=metric_id,
+            period_end=period_end,
+            include_missing=include_missing,
+        )
+
+    def _observation_records(  # noqa: PLR0913
+        self,
+        *,
+        as_of: datetime | date | None,
+        company_id: str | None,
+        metric_id: str | None,
+        period_end: date | None,
+        include_missing: bool,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[ObservationRecord]:
+        """Materialize either a bounded public page or a complete internal snapshot."""
         statement = self._observation_statement(
             as_of=as_of,
             company_id=company_id,
@@ -4992,7 +5304,10 @@ class IntelligenceRepository:
             statement = statement.where(
                 MetricObservation.observation_state != ObservationState.NOT_DISCLOSED.value
             )
-        statement = statement.offset(offset).limit(limit)
+        if offset:
+            statement = statement.offset(offset)
+        if limit is not None:
+            statement = statement.limit(limit)
         with Session(self._engine) as session:
             records = [self._record(row) for row in session.execute(statement).all()]
         evidence_links = self._evidence_links_by_observation([item.id for item in records])
@@ -5144,10 +5459,17 @@ class IntelligenceRepository:
         )
 
     def latest_period_end(self) -> date | None:
-        """Return the latest published quarter."""
+        """Return the latest current published quarter for an active company."""
         with Session(self._engine) as session:
             return session.scalar(
-                select(func.max(MetricObservation.period_end)).where(
+                select(func.max(MetricObservation.period_end))
+                .join(
+                    ReportingEntity,
+                    MetricObservation.reporting_entity_id == ReportingEntity.id,
+                )
+                .join(Company, ReportingEntity.company_id == Company.id)
+                .where(
+                    Company.active.is_(True),
                     MetricObservation.publication_state == PublicationState.PUBLISHED.value,
                     MetricObservation.quality_state == QualityState.VALIDATED.value,
                     MetricObservation.knowledge_to.is_(None),
@@ -5156,24 +5478,29 @@ class IntelligenceRepository:
 
     def coverage(self, *, as_of: datetime | date | None = None) -> list[dict[str, object]]:
         """Summarize reported, proven missing, and unchecked source coverage."""
-        records = self.observations(as_of=as_of)
+        records = self.observation_snapshot(as_of=as_of)
         grouped: dict[tuple[str, str], dict[str, int]] = {}
         instant = _as_of_instant(as_of)
-        with Session(self._engine) as session:
-            run = session.scalars(
-                select(PipelineRun).order_by(PipelineRun.started_at.desc())
-            ).first()
-            assessments = (
-                session.scalars(
-                    select(EligibleSourceAssessment).where(
-                        EligibleSourceAssessment.pipeline_run_id == run.id,
-                        EligibleSourceAssessment.assessed_at <= instant,
-                    )
-                ).all()
-                if run is not None
-                else []
+        published_cells = {
+            (
+                record.company_id,
+                f"{record.metric_id}:{record.metric_version}",
+                record.reporting_scope_id,
+                date.fromisoformat(record.period_end),
             )
+            for record in records
+        }
+        with Session(self._engine) as session:
+            assessments = _latest_source_assessments(session, as_of=instant)
         for assessment in assessments:
+            assessment_cell = (
+                assessment.company_id,
+                assessment.metric_version_id,
+                assessment.reporting_scope_id,
+                assessment.period_end,
+            )
+            if assessment_cell in published_cells:
+                continue
             counts = grouped.setdefault(
                 (assessment.company_id, assessment.period_end.isoformat()),
                 {"reported": 0, "missing": 0, "source_not_checked": 0},
@@ -5344,6 +5671,8 @@ def _comparison_input(
         # canonical scale and never the issuer's disclosed display factor.
         scale="1" if record.value is not None else record.scale,
         reporting_entity=record.reporting_entity_id,
+        fiscal_calendar_regime=record.fiscal_calendar_regime_id,
+        accounting_policy_regime=record.accounting_policy_regime_id,
         cross_company_comparison=cross_company,
     )
 

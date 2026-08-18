@@ -4,35 +4,45 @@ Servicing Lens is a read-only public-data application for
 comparing selected publicly traded U.S. mortgage servicers. It turns authoritative
 SEC filings and filed earnings materials into reproducible observations with
 complete provenance. Opt-in `edgartools` acquisition, filing-specific SEC XBRL,
-and earnings-calendar adapters extend the closed Stage A recorded-data slice
-without changing its offline default.
+and earnings-calendar adapters extend retained local data without changing the
+network-free default.
 
-The current governed universe remains intentionally narrow:
+The default registered Phase 5 scope is cohort B: five banks and five nonbanks.
+The governed CLI order is stable:
 
-- bank: Truist Financial Corporation (TFC);
-- nonbank: PennyMac Financial Services, Inc. (PFSI);
-- fiscal periods: Q3 2025, Q4 2025, Q1 2026, and Q2 2026; and
+- banks: TFC, WFC, JPM, BAC, and USB;
+- nonbanks: PFSI, RKT, UWMC, RITM, and LDI;
+- bounded filing periods: Q3 2024 through Q2 2026; and
 - a compact configured financial metric subset, populated only where the
   retained sources support it. The catalog may retain immutable historical
   semantic versions, but it has one current definition per metric.
 
-Missing disclosure remains \`NOT_DISCLOSED\`. The application does not estimate a
+The smaller Phase 5 cohort A selector contains TFC, WFC, PFSI, and RKT. The
+legacy retained Stage A and Phase 3 compatibility datasets remain limited to TFC
+and PFSI for Q3 2025 through Q2 2026. Scope labels are deliberate: selecting a
+Phase 5 registry does not claim that every configured metric is disclosed for
+every issuer.
+
+Missing disclosure remains `NOT_DISCLOSED`. The application does not estimate a
 value to complete a comparison.
 
 ## Status
 
-Stage A is closed as a deterministic recorded-data vertical slice, and the
-application now lives in this history-preserving standalone repository. It includes
-versioned configuration, hash-verified retained SEC DOM serializations,
-SQLAlchemy/Alembic persistence,
-a read-only API and dashboard, an explicit deterministic 16-stage ingestion and
-review runtime, and a socket-blocked acceptance suite. The public-core `edgartools`
-adapter is the sole live SEC acquisition boundary. Live access remains opt-in.
-Phase 3 deepens only TFC and PFSI across the same four quarters. Its recorded
-assessment and evidence rows are loaded for the configured metric subset;
-published rows, exact derived rows, historical revisions, and
-`NOT_DISCLOSED` provenance are retained without requiring exhaustive catalog
-coverage. No missing value is estimated or filled.
+The Phase 5 cohort A and cohort B universe registries, live-sync source manifests,
+and financial-field registry are installed with the wheel. Cohort B is the default
+for company discovery, live filing discovery, live ingestion, and sync. Cohort A
+remains an explicit bounded selector. Both use the same public-core `edgartools`
+adapter, deterministic validation, and atomic persistence path.
+
+Large retained filing bytes, bounded replay excerpts, and generated evidence-case
+outputs are not wheel runtime data. They remain checkout-only verification assets.
+The tracked Phase 5 replay can be verified or ingested offline from a checkout, but
+it cannot be replayed from a bare installed wheel. Stage A and Phase 3 remain
+documented compatibility workflows rather than the default registered scope.
+
+The application includes SQLAlchemy/Alembic persistence, a read-only API and
+dashboard, deterministic ingestion and review, exact provenance, and a
+socket-blocked acceptance suite. Live access is always explicit.
 
 This is not production-ready, comprehensive issuer coverage, an industry ranking,
 an audit product, or investment advice.
@@ -79,62 +89,103 @@ authoritative for this product.
 
 ## Installation
 
-Work from this directory and use \`uv\`:
+Work from this directory and use `uv`:
 
-\`\`\`bash
+```bash
 uv sync --locked --group dev
-\`\`\`
+```
 
 The locked install uses released packages only; there are no path or editable
-dependency overrides. Do not install dependencies with \`pip\`.
+dependency overrides. Do not install dependencies with `pip`.
 
 No credential is required for the normal test suite. Explicit live SEC commands
 require `EDGAR_IDENTITY`, held only in the local environment and never committed
 or copied into logs, fixtures, screenshots, reports, or generated artifacts.
 
-## CLI
+## CLI workflows
 
-The Stage A command is \`msi\`:
+The command is `msi`. Readiness and registered-company discovery are local and
+network-free:
 
-\`\`\`bash
+```bash
 uv run msi doctor --json
-uv run msi discover --company TFC
-uv run msi ingest
-uv run msi seed-phase3
-uv run msi ingest --phase3
+uv run msi discover
+uv run msi discover --company JPM
+uv run msi discover --phase5-cohort-a
+```
+
+`doctor` validates both cohort source manifests and their shared financial-field
+mapping version before reporting readiness. It reports readiness only for the
+implemented local, read-only workflows; it does not claim production readiness or
+comprehensive issuer coverage. `discover` lists the declarative cohort B registry
+by default and never contacts the SEC unless `--live` is present.
+
+Live filing discovery and publication require a valid `EDGAR_IDENTITY`. Sync is
+also an explicitly live command: `--dry-run` prevents database writes but still
+queries SEC filings.
+
+```bash
+uv run msi discover --live --company WFC
 uv run msi sync --all --dry-run
-uv run msi calendar
-uv run msi validate
-uv run msi review list
-uv run msi serve
-\`\`\`
+uv run msi sync --company JPM --database-url sqlite:///phase5.db
+uv run msi ingest --live --database-url sqlite:///phase5.db
+uv run msi ingest --live --phase5-cohort-a --database-url sqlite:///phase5-a.db
+```
 
-Phase 3 retained evidence is intentionally not bundled in the wheel. Run
-`seed-phase3` and `ingest --phase3` from a repository checkout, or pass
-`--config-dir` (or set `MSI_CONFIG_DIR`) to a configured external Phase 3
-configuration and evidence root.
+Non-dry live commands require an explicit isolated `--database-url`. They do not
+fall back to the default local database. Missing or invalid identity, company,
+configuration, date, storage, validation, and database failures are returned as
+bounded JSON errors. The CLI never echoes `EDGAR_IDENTITY` or raw filing content.
 
-All listed commands are implemented. Stage A ingest is atomic across the configured
-governed source set; discovery can be filtered by issuer. Review approval and
-rejection reconstruct the deterministic runtime from the candidate's persisted
-run thread, create an audited decision, and run revalidation; they never edit a
-published observation directly.
+Offline retained-data compatibility and governed replay are separate from live
+acquisition:
 
-`msi discover --live` is a dry-run over the public core `edgartools` company, filing,
-attachment, and XBRL interfaces. It accepts an optional issuer filter and never
-opens a database. `msi ingest --live --database-url ...` runs the same adapter and
-deterministic pipeline for TFC then PFSI and requires an explicit isolated database
-URL. Without `EDGAR_IDENTITY` it fails before importing `edgartools`, opening a
-database, or opening a socket. The adapter retains exact filing/document
-provenance, raw XBRL strings and contexts, and content hashes for deterministic
-replay.
-`msi calendar` keeps the last actual filing separate from its conspicuously
-inferred next report window and lists every filing event used in the inference.
+```bash
+uv run msi ingest --stage-a
+uv run msi ingest --phase3
+uv run msi seed-phase3
+uv run python -m scripts.phase5_replay --check
+uv run msi ingest --phase5-cohort-b --database-url sqlite:///phase5-replay.db --runtime-dir .msi
+uv run msi ingest --phase5-cohort-a --database-url sqlite:///phase5-a-replay.db --runtime-dir .msi-a
+```
 
-## Stage A web surface
+Calling `ingest` without a mode still loads Stage A for backward compatibility;
+new automation should say `--stage-a` explicitly. A Phase 5 cohort selector without
+`--live` uses only the governed checkout replay, publishes through the same parser
+and atomic persistence path, requires an explicit isolated database, and retains
+the verified bounded derived fixtures below `--runtime-dir/evidence/edgartools` by
+content SHA-256. Passing that same runtime root to `serve` makes the advertised
+evidence resolvable. Repeating the replay against that database reports
+`UNCHANGED`. A bare wheel contains the Phase 5 registries and live-sync manifests
+needed at runtime, but not replay excerpts or retained evidence bytes; it returns a structured
+`phase5_replay_unavailable` error. Phase 3 retained evidence is also checkout-only.
 
-The FastAPI application provides a versioned read API and server-rendered
-Jinja2/HTMX pages for:
+Validate and inspect a populated local database without seeding it:
+
+```bash
+uv run msi validate --database-url sqlite:///phase5.db
+uv run msi calendar --database-url sqlite:///phase5.db
+uv run msi coverage --database-url sqlite:///phase5.db --limit 50
+uv run msi evidence --database-url sqlite:///phase5.db --evidence-id <evidence-id>
+uv run msi serve --database-url sqlite:///phase5.db --runtime-dir .msi
+```
+
+These read commands require `--database-url` or `MSI_DATABASE_URL` pointing to an
+existing database at the current Alembic revision. They never create the default
+`.msi` directory, initialize a schema, migrate, or seed. `coverage` is paged to at
+most 100 rows. `evidence` returns allow-listed metadata and never emits raw filing
+content or a retained excerpt. `serve --runtime-dir` bounds evidence resolution
+below that runtime root; its API also provides `GET /api/v1/coverage` and
+`GET /api/v1/evidence/{evidence_id}`.
+
+`review` remains the legacy quarantine workflow; approval and rejection reconstruct
+the persisted run, record an audited decision, and revalidate rather than editing an
+observation. `init-db` and `seed` remain Stage A compatibility commands.
+
+## Read-only web surface
+
+The FastAPI application provides a versioned read API and server-rendered Jinja2
+pages enhanced with local vanilla JavaScript for:
 
 - coverage and freshness;
 - company comparison;
@@ -146,13 +197,14 @@ Chart assets are hosted locally and every chart has an accessible table. Every
 page shows data-as-of time and clearly labels reported actual, preliminary,
 pro-forma, announced-impact, derived, and not-disclosed states.
 
-The light Servicing Lens interface adds a searchable company universe, four
-presentation sorts, a comparison bench with three visual slots and two governed
-Stage A issuers, three synchronized KPI selectors, and an event-backed earnings
-brief at `GET /earnings`.
-These components are Jinja templates with progressively enhanced vanilla
-JavaScript; the existing FastAPI routes, repository, evidence views, and public
-read API remain authoritative.
+The light Servicing Lens interface uses stable governed company and metric order,
+a searchable company universe, a comparison bench with three visual slots, three
+synchronized KPI selectors, and an event-backed earnings brief at `GET /earnings`.
+The companies shown come from the populated database: Phase 5 cohort B can supply
+ten, while the legacy Stage A compatibility ingest supplies two. These components
+are server-rendered Jinja templates enhanced by local vanilla JavaScript; the
+existing FastAPI routes, repository, evidence views, and public read API remain
+authoritative.
 
 Presentation-only normalization lives in `presentation.py` and uses exact
 `Decimal` arithmetic. The current governed dataset maps fields as follows:
@@ -213,4 +265,4 @@ uv run msi doctor --json
 The suite blocks sockets, enforces strict typing and at least 90% branch coverage,
 and must also cover migrations, schema contracts, dependencies, secrets,
 generated artifacts, provenance, comparability, forbidden tools, read-only routes,
-and accessibility before Stage A can exit.
+and accessibility before a release is declared ready.
