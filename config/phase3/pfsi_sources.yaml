@@ -18,8 +18,8 @@ reporting_entity_id: pfsi_registrant
 classification: PUBLIC_CORPORATE_DOCUMENT
 retention_policy: IMMUTABLE_CONTENT_ADDRESSED
 
-# Every payload below is an exact SEC HTTP response body acquired through the
-# controlled SecClient. The runtime identifying contact is not retained.
+# Every payload below is retained SEC filing evidence with exact provenance.
+# The runtime identifying contact is not retained.
 sources:
   pfsi_2025q3_earnings:
     company_id: pfsi

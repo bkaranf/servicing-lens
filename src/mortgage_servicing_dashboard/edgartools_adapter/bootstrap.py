@@ -7,6 +7,8 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as distribution_version
 from pathlib import Path
 from types import ModuleType
 
@@ -20,6 +22,7 @@ from mortgage_servicing_dashboard.edgartools_adapter.errors import (
 
 _DEFAULT_LOCAL_DATA_PATH = Path(".msi") / "edgartools" / "data"
 _MAX_REQUESTS_PER_SECOND = 9
+_EXPECTED_EDGARTOOLS_VERSION = "5.48.0"
 _ASCII_CONTROL_LIMIT = 32
 _ASCII_DELETE = 127
 _POSITIVE_INTEGER = re.compile(r"[1-9][0-9]*\Z")
@@ -78,6 +81,22 @@ class EdgarBootstrap:
                 operation="bootstrap",
             )
         self._configure_environment()
+        try:
+            installed_version = distribution_version("edgartools")
+        except PackageNotFoundError as error:
+            message = "edgartools 5.48.0 is required for live SEC access"
+            raise AdapterConfigurationError(
+                message,
+                state=AdapterState.CONFIGURATION_ERROR,
+                operation="bootstrap",
+            ) from error
+        if installed_version != _EXPECTED_EDGARTOOLS_VERSION:
+            message = "installed edgartools version must be exactly 5.48.0"
+            raise AdapterConfigurationError(
+                message,
+                state=AdapterState.CONFIGURATION_ERROR,
+                operation="bootstrap",
+            )
         self._module = importlib.import_module("edgar")
         return self._module
 
@@ -143,10 +162,10 @@ class EdgarBootstrap:
             ) from error
 
         # edgartools 5.48 reads these supported settings at import time.  Keep the
-        # library's absent-rate default (9 rps) and its own retry/cache machinery.
+        # library's own cache and bounded retry machinery; no application retry loop
+        # or alternate host is configured here.
         os.environ["EDGAR_IDENTITY"] = identity
         os.environ["EDGAR_ACCESS_MODE"] = "CRAWL"
         os.environ["EDGAR_LOCAL_DATA_DIR"] = str(data_root)
         os.environ["EDGAR_USE_LOCAL_DATA"] = "1"
-        os.environ["EDGAR_ALLOW_NETWORK_FALLBACK"] = "1"
         os.environ["EDGARTOOLS_STRICT_ERRORS"] = "1"

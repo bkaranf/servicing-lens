@@ -24,9 +24,8 @@ application now lives in this history-preserving standalone repository. It inclu
 versioned configuration, hash-verified retained SEC DOM serializations,
 SQLAlchemy/Alembic persistence,
 a read-only API and dashboard, an explicit deterministic 16-stage ingestion and
-review runtime, and a socket-blocked acceptance suite. The public-core `edgartools` qualification path
-is exposed as `msi sync`; legacy acquisition implementations remain in the tree
-pending bounded cleanup. Live access remains opt-in.
+review runtime, and a socket-blocked acceptance suite. The public-core `edgartools`
+adapter is the sole live SEC acquisition boundary. Live access remains opt-in.
 Phase 3 deepens only TFC and PFSI across the same four quarters. Its complete
 424-cell disclosure assessment publishes 120 reported grid observations, 40
 supporting observations, and 43 exact derived observations; 222 cells remain
@@ -119,12 +118,14 @@ rejection reconstruct the deterministic runtime from the candidate's persisted
 run thread, create an audited decision, and run revalidation; they never edit a
 published observation directly.
 
-`msi sync` uses the public core `edgartools` company, filing, attachment, and XBRL
-interfaces for bounded per-CIK qualification, evidence retention, deterministic
-parsing, reconciliation, and optional atomic publication. Without
-`EDGAR_IDENTITY` it fails before opening a database or socket. The legacy
-`discover --live` and `ingest --live` dispatch paths remain pre-cleanup code; they
-are not the supported acquisition boundary and must not be used for new evidence.
+`msi discover --live` is a dry-run over the public core `edgartools` company, filing,
+attachment, and XBRL interfaces. It accepts an optional issuer filter and never
+opens a database. `msi ingest --live --database-url ...` runs the same adapter and
+deterministic pipeline for TFC then PFSI and requires an explicit isolated database
+URL. Without `EDGAR_IDENTITY` it fails before importing `edgartools`, opening a
+database, or opening a socket. The adapter retains exact filing/document
+provenance, raw XBRL strings and contexts, and content hashes for deterministic
+replay.
 `msi calendar` keeps the last actual filing separate from its conspicuously
 inferred next report window and lists every filing event used in the inference.
 

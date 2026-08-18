@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
@@ -49,9 +48,6 @@ class CalendarCompany:
     ticker: str
     cik: str
     fiscal_quarter_ends: tuple[tuple[int, int], ...]
-    edgar_submissions_url: str
-    investor_relations_events_url: str
-    investor_relations_hosts: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,20 +81,6 @@ class FilingEarningsEvent:
     exhibit_type: str
     filing_url: str
     exhibit_url: str
-    is_inferred: Literal[False] = field(default=False, init=False)
-
-
-@dataclass(frozen=True, slots=True)
-class IssuerIrEvent:
-    """Actual issuer-announced IR earnings event, distinct from an inference."""
-
-    event_id: str
-    company_id: str
-    period_end: date
-    announced_at: datetime
-    event_at: datetime
-    title: str
-    source_url: str
     is_inferred: Literal[False] = field(default=False, init=False)
 
 
@@ -137,7 +119,7 @@ class EarningsCalendarResult:
     last_reported_period: ReportedPeriod
     inferred_window: InferredEarningsWindow
     freshness_state: CalendarFreshnessState
-    next_announced_event: IssuerIrEvent | None
+    next_announced_event: None
 
     @property
     def window_start(self) -> date:
@@ -160,113 +142,6 @@ class EarningsCalendarResult:
         return True
 
 
-class EdgarEarningsEventAdapter:
-    """Parse normalized official EDGAR filing-index 8-K/EX-99 inputs."""
-
-    def parse(
-        self,
-        content: bytes,
-        *,
-        company: CalendarCompany,
-    ) -> tuple[FilingEarningsEvent, ...]:
-        """Return actual earnings releases from an offline EDGAR JSON input.
-
-        Unrelated forms and non-earnings 8-K filings are ignored. A row explicitly
-        marked as an earnings release must contain an official EX-99 document.
-        """
-        root = _json_mapping(content, "EDGAR earnings input")
-        if _normalize_cik(root.get("cik")) != company.cik:
-            message = "EDGAR input CIK does not match the configured company"
-            raise EarningsCalendarError(message)
-        source_url = _sec_url(root.get("source_url"))
-        if source_url != company.edgar_submissions_url:
-            message = "EDGAR input source URL does not match calendar configuration"
-            raise EarningsCalendarError(message)
-        rows = _mapping_rows(root.get("filings"), "filings", allow_empty=True)
-        events: list[FilingEarningsEvent] = []
-        for row in rows:
-            if row.get("form") != "8-K" or row.get("purpose") != "EARNINGS_RELEASE":
-                continue
-            accession = _accession(row.get("accession"))
-            documents = _mapping_rows(row.get("documents"), "documents")
-            exhibits = [
-                item
-                for item in documents
-                if isinstance(item.get("type"), str)
-                and cast("str", item["type"]).startswith("EX-99")
-            ]
-            if len(exhibits) != 1:
-                message = f"earnings filing {accession} must identify exactly one EX-99 exhibit"
-                raise EarningsCalendarError(message)
-            exhibit = exhibits[0]
-            exhibit_type = _text(exhibit.get("type"), "document type")
-            events.append(
-                FilingEarningsEvent(
-                    event_id=f"edgar:{accession}",
-                    company_id=company.company_id,
-                    cik=company.cik,
-                    accession=accession,
-                    period_end=_iso_date(row.get("reported_period_end"), "reported_period_end"),
-                    accepted_at=_aware_datetime(row.get("accepted_at"), "accepted_at"),
-                    form="8-K",
-                    exhibit_type=exhibit_type,
-                    filing_url=_sec_url(row.get("filing_url")),
-                    exhibit_url=_sec_url(exhibit.get("url")),
-                )
-            )
-        _unique_event_ids(tuple(events))
-        return tuple(events)
-
-
-class IssuerIrEventAdapter:
-    """Parse normalized official issuer investor-relations event inputs."""
-
-    def parse(
-        self,
-        content: bytes,
-        *,
-        company: CalendarCompany,
-    ) -> tuple[IssuerIrEvent, ...]:
-        """Return issuer-announced earnings events from an offline JSON input."""
-        root = _json_mapping(content, "issuer IR input")
-        if root.get("company_id") != company.company_id:
-            message = "issuer IR input company does not match calendar configuration"
-            raise EarningsCalendarError(message)
-        source_url = _issuer_url(
-            root.get("source_url"),
-            allowed_hosts=company.investor_relations_hosts,
-        )
-        if source_url != company.investor_relations_events_url:
-            message = "issuer IR input source URL does not match calendar configuration"
-            raise EarningsCalendarError(message)
-        rows = _mapping_rows(root.get("events"), "events", allow_empty=True)
-        events: list[IssuerIrEvent] = []
-        for row in rows:
-            if row.get("kind") not in {"EARNINGS_CALL", "EARNINGS_RELEASE"}:
-                continue
-            announced_at = _aware_datetime(row.get("announced_at"), "announced_at")
-            event_at = _aware_datetime(row.get("event_at"), "event_at")
-            if announced_at > event_at:
-                message = "issuer earnings event cannot be announced after it occurs"
-                raise EarningsCalendarError(message)
-            events.append(
-                IssuerIrEvent(
-                    event_id=_text(row.get("event_id"), "event_id"),
-                    company_id=company.company_id,
-                    period_end=_iso_date(row.get("period_end"), "period_end"),
-                    announced_at=announced_at,
-                    event_at=event_at,
-                    title=_text(row.get("title"), "title"),
-                    source_url=_issuer_url(
-                        row.get("source_url"),
-                        allowed_hosts=company.investor_relations_hosts,
-                    ),
-                )
-            )
-        _unique_event_ids(tuple(events))
-        return tuple(events)
-
-
 class EarningsCalendar:
     """Build deterministic calendar state from actual public event inputs."""
 
@@ -280,12 +155,10 @@ class EarningsCalendar:
         company_id: str,
         as_of: datetime,
         filing_events: tuple[FilingEarningsEvent, ...],
-        issuer_events: tuple[IssuerIrEvent, ...] = (),
     ) -> EarningsCalendarResult:
         """Build actual and inferred state as known at a timezone-aware instant.
 
-        Only SEC filing events influence the inferred window. Issuer IR events are
-        exposed as actual announcements but cannot move or narrow that window.
+        Only SEC filing events influence the inferred window.
         """
         if as_of.tzinfo is None or as_of.utcoffset() is None:
             message = "calendar as_of must be timezone-aware"
@@ -339,12 +212,6 @@ class EarningsCalendar:
             freshness = CalendarFreshnessState.WITHIN_EXPECTED_WINDOW
         else:
             freshness = CalendarFreshnessState.AWAITING_EXPECTED_FILING
-        next_announced_event = _next_ir_event(
-            issuer_events,
-            company_id=company_id,
-            expected_period_end=expected_period_end,
-            as_of=as_of,
-        )
         return EarningsCalendarResult(
             company_id=company_id,
             as_of=as_of,
@@ -358,54 +225,8 @@ class EarningsCalendar:
             ),
             inferred_window=inferred_window,
             freshness_state=freshness,
-            next_announced_event=next_announced_event,
+            next_announced_event=None,
         )
-
-
-def build_earnings_calendar_from_files(
-    *,
-    config_path: Path,
-    company_id: str,
-    edgar_input_path: Path,
-    as_of: datetime,
-    issuer_ir_input_path: Path | None = None,
-) -> EarningsCalendarResult:
-    """Build one integration-ready calendar result from deterministic files.
-
-    Args:
-        config_path: Versioned earnings-calendar YAML path.
-        company_id: Stable configured company ID.
-        edgar_input_path: Retained normalized EDGAR filing-index JSON bytes.
-        as_of: Timezone-aware knowledge cutoff.
-        issuer_ir_input_path: Optional retained normalized issuer IR JSON bytes.
-
-    Returns:
-        Actual last reported period, separately typed inferred window, and freshness.
-
-    Raises:
-        EarningsCalendarError: If any configured or retained input cannot be read or
-            deterministically resolved.
-    """
-    config = load_earnings_calendar_config(config_path)
-    company = config.company(company_id)
-    try:
-        filing_content = edgar_input_path.read_bytes()
-        issuer_content = issuer_ir_input_path.read_bytes() if issuer_ir_input_path else None
-    except OSError as error:
-        message = "earnings calendar input file could not be read"
-        raise EarningsCalendarError(message) from error
-    filing_events = EdgarEarningsEventAdapter().parse(filing_content, company=company)
-    issuer_events = (
-        IssuerIrEventAdapter().parse(issuer_content, company=company)
-        if issuer_content is not None
-        else ()
-    )
-    return EarningsCalendar(config).build(
-        company_id=company_id,
-        as_of=as_of,
-        filing_events=filing_events,
-        issuer_events=issuer_events,
-    )
 
 
 def build_earnings_calendar_from_official_config(
@@ -433,12 +254,6 @@ def build_earnings_calendar_from_official_config(
     events: list[FilingEarningsEvent] = []
     for row in rows:
         accession = _accession(row.get("accession"))
-        accession_digits = accession.replace("-", "")
-        filing_url = (
-            "https://www.sec.gov/Archives/edgar/data/"
-            f"{int(company.cik)}/{accession_digits}/"
-            f"{accession}-index.html"
-        )
         events.append(
             FilingEarningsEvent(
                 event_id=f"edgar:{accession}",
@@ -449,7 +264,7 @@ def build_earnings_calendar_from_official_config(
                 accepted_at=_aware_datetime(row.get("accepted_at"), "accepted_at"),
                 form="8-K",
                 exhibit_type=_text(row.get("exhibit_type"), "exhibit_type"),
-                filing_url=_sec_url(filing_url),
+                filing_url=_sec_url(row.get("filing_url")),
                 exhibit_url=_sec_url(row.get("exhibit_url")),
             )
         )
@@ -505,18 +320,11 @@ def _calendar_company(row: dict[str, Any]) -> CalendarCompany:
     if len(quarter_ends) != _FISCAL_QUARTERS or len(set(quarter_ends)) != _FISCAL_QUARTERS:
         message = "calendar company must define four unique fiscal quarter ends"
         raise EarningsCalendarError(message)
-    hosts = _string_rows(row.get("investor_relations_hosts"), "investor_relations_hosts")
     return CalendarCompany(
         company_id=_text(row.get("company_id"), "company_id"),
         ticker=_text(row.get("ticker"), "ticker").upper(),
         cik=_normalize_cik(row.get("cik")),
         fiscal_quarter_ends=quarter_ends,
-        edgar_submissions_url=_sec_url(row.get("edgar_submissions_url")),
-        investor_relations_events_url=_issuer_url(
-            row.get("investor_relations_events_url"),
-            allowed_hosts=hosts,
-        ),
-        investor_relations_hosts=hosts,
     )
 
 
@@ -537,38 +345,11 @@ def _next_period_end(last_period_end: date, quarter_ends: tuple[tuple[int, int],
     return min(item for item in candidates if item > last_period_end)
 
 
-def _next_ir_event(
-    events: tuple[IssuerIrEvent, ...],
-    *,
-    company_id: str,
-    expected_period_end: date,
-    as_of: datetime,
-) -> IssuerIrEvent | None:
-    matches = [
-        event
-        for event in events
-        if event.company_id == company_id
-        and event.period_end == expected_period_end
-        and event.announced_at <= as_of
-        and event.event_at >= as_of
-    ]
-    return min(matches, key=lambda item: (item.event_at, item.event_id), default=None)
-
-
-def _unique_event_ids(events: tuple[FilingEarningsEvent | IssuerIrEvent, ...]) -> None:
+def _unique_event_ids(events: tuple[FilingEarningsEvent, ...]) -> None:
     ids = [item.event_id for item in events]
     if len(ids) != len(set(ids)):
         message = "earnings event input contains duplicate event IDs"
         raise EarningsCalendarError(message)
-
-
-def _json_mapping(content: bytes, label: str) -> dict[str, Any]:
-    try:
-        payload = json.loads(content.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        message = f"{label} is not valid UTF-8 JSON"
-        raise EarningsCalendarError(message) from error
-    return _mapping(payload, label)
 
 
 def _mapping(value: object, label: str) -> dict[str, Any]:
@@ -670,14 +451,5 @@ def _sec_url(value: object) -> str:
     parsed = urlparse(text)
     if parsed.scheme != "https" or parsed.hostname not in {"www.sec.gov", "data.sec.gov"}:
         message = "earnings filing URL must use an official SEC HTTPS host"
-        raise EarningsCalendarError(message)
-    return text
-
-
-def _issuer_url(value: object, *, allowed_hosts: tuple[str, ...]) -> str:
-    text = _text(value, "issuer IR URL")
-    parsed = urlparse(text)
-    if parsed.scheme != "https" or parsed.hostname not in allowed_hosts:
-        message = "issuer event URL must use a configured official IR HTTPS host"
         raise EarningsCalendarError(message)
     return text

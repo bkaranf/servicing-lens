@@ -1,11 +1,7 @@
 """Thin, deterministic boundary around the public ``edgartools`` package."""
 
 from mortgage_servicing_dashboard.edgartools_adapter.adapter import EdgarToolsAdapter
-from mortgage_servicing_dashboard.edgartools_adapter.backend import (
-    EdgarToolsBackend,
-    FilingDateFilter,
-    PublicEdgarToolsBackend,
-)
+from mortgage_servicing_dashboard.edgartools_adapter.backend import FilingDateFilter
 from mortgage_servicing_dashboard.edgartools_adapter.bootstrap import (
     EdgarBootstrap,
     EdgarBootstrapConfig,
@@ -77,13 +73,11 @@ __all__ = [
     "EdgarBootstrapConfig",
     "EdgarToolsAdapter",
     "EdgarToolsAdapterError",
-    "EdgarToolsBackend",
     "Filing",
     "FilingDateFilter",
     "FilingStructure",
     "LinkbaseArc",
     "PresentationArc",
-    "PublicEdgarToolsBackend",
     "RawMetadata",
     "RetainedContent",
     "ViewerIssueClassification",

@@ -7,7 +7,8 @@ import math
 import re
 from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, date, datetime
-from typing import Any, Protocol, TypeAlias
+from typing import Any, TypeAlias, cast
+from urllib.parse import unquote, urlsplit
 
 from mortgage_servicing_dashboard.edgartools_adapter.bootstrap import EdgarBootstrap
 from mortgage_servicing_dashboard.edgartools_adapter.dto import (
@@ -47,9 +48,18 @@ from mortgage_servicing_dashboard.edgartools_adapter.errors import (
 
 _ACCESSION_LENGTH = 20
 _ASCII_CONTROL_LIMIT = 32
+_ASCII_DELETE = 127
 _CIK_LENGTH = 10
 _DATE_RANGE_PARTS = 2
+_MAX_CONTENT_BYTES = 25_000_000
+_MAX_METADATA_TEXT = 16_384
+_MAX_URL_LENGTH = 2_048
+_MAX_DOCUMENT_LENGTH = 255
+_FILING_HOMEPAGE_PATH_PARTS = 2
+_FILING_DOCUMENT_PATH_PARTS = 3
+_OFFICIAL_SEC_HOST = "www.sec.gov"
 _TICKER_PATTERN = re.compile(r"[A-Z][A-Z0-9.-]{0,14}\Z")
+_DOCUMENT_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,254}\Z")
 
 FilingDateFilter: TypeAlias = date | tuple[date, date] | None
 
@@ -59,72 +69,8 @@ def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class EdgarToolsBackend(Protocol):
-    """Injectable acquisition seam; test doubles need no identity or network."""
-
-    def resolve_company(self, cik_or_ticker: str) -> Company:
-        """Resolve an exact CIK or ticker and return the stable SEC CIK."""
-        ...
-
-    def list_filings(
-        self,
-        cik: str,
-        *,
-        forms: tuple[str, ...] = (),
-        filing_date: FilingDateFilter = None,
-        include_amendments: bool = True,
-    ) -> tuple[Filing, ...]:
-        """Return explicitly filtered filing metadata for one exact CIK."""
-        ...
-
-    def get_filing(self, accession_number: str, *, expected_cik: str | None = None) -> Filing:
-        """Return exactly one filing by its validated accession number."""
-        ...
-
-    def list_attachments(
-        self,
-        accession_number: str,
-        *,
-        expected_cik: str | None = None,
-    ) -> tuple[Attachment, ...]:
-        """Enumerate primary documents, attachments, and exhibits."""
-        ...
-
-    def acquire_attachment(
-        self,
-        accession_number: str,
-        document: str,
-        *,
-        expected_cik: str | None = None,
-    ) -> AttachmentAcquisition:
-        """Acquire one exact attachment through edgartools."""
-        ...
-
-    def get_filing_xbrl(
-        self,
-        accession_number: str,
-        *,
-        expected_cik: str | None = None,
-    ) -> XbrlFiling | None:
-        """Return filing-specific raw XBRL, or ``None`` when genuinely absent."""
-        ...
-
-    def get_company_facts(self, cik: str) -> CompanyFactsDiscovery | None:
-        """Return Company Facts for discovery only, or genuine absence."""
-        ...
-
-    def get_filing_structure(
-        self,
-        accession_number: str,
-        *,
-        expected_cik: str | None = None,
-    ) -> FilingStructure | None:
-        """Return validation-only filing structure, or genuine XBRL absence."""
-        ...
-
-
-class PublicEdgarToolsBackend:
-    """Production backend using only public edgartools entry points."""
+class _EdgarToolsMapping:
+    """Concrete mapping implementation hidden behind the one public adapter."""
 
     def __init__(
         self,
@@ -257,7 +203,12 @@ class PublicEdgarToolsBackend:
             expected_cik=cik,
             operation="list_attachments",
         )
-        filing = _map_filing(library_filing, accession=accession, expected_cik=cik)
+        filing = _map_filing(
+            library_filing,
+            accession=accession,
+            expected_cik=cik,
+            operation="list_attachments",
+        )
         try:
             library_attachments = library_filing.attachments
             primary_documents = _primary_document_names(library_attachments)
@@ -292,7 +243,12 @@ class PublicEdgarToolsBackend:
             expected_cik=cik,
             operation="acquire_attachment",
         )
-        filing = _map_filing(library_filing, accession=accession, expected_cik=cik)
+        filing = _map_filing(
+            library_filing,
+            accession=accession,
+            expected_cik=cik,
+            operation="acquire_attachment",
+        )
         try:
             library_attachments = library_filing.attachments
             primary_documents = _primary_document_names(library_attachments)
@@ -354,7 +310,12 @@ class PublicEdgarToolsBackend:
             expected_cik=cik,
             operation="get_filing_xbrl",
         )
-        filing = _map_filing(library_filing, accession=accession, expected_cik=cik)
+        filing = _map_filing(
+            library_filing,
+            accession=accession,
+            expected_cik=cik,
+            operation="get_filing_xbrl",
+        )
         try:
             library_xbrl = library_filing.xbrl()
         except EdgarToolsAdapterError:
@@ -626,14 +587,31 @@ def _format_filing_date_filter(value: FilingDateFilter) -> str | tuple[str, str]
     return start.isoformat(), end.isoformat()
 
 
-def _validate_document(value: str) -> str:
+def _validate_document(value: object) -> str:
+    if not isinstance(value, str):
+        message = "document must be one exact attachment filename"
+        raise AdapterValidationError(
+            message,
+            state=AdapterState.INVALID_REQUEST,
+            operation="acquire_attachment",
+        )
+    decoded = value
+    for _ in range(3):
+        decoded = unquote(decoded)
     if (
-        not isinstance(value, str)
-        or not value
+        not value
+        or len(value) > _MAX_DOCUMENT_LENGTH
         or value != value.strip()
-        or "/" in value
-        or "\\" in value
-        or any(ord(character) < _ASCII_CONTROL_LIMIT for character in value)
+        or not value.isascii()
+        or not _DOCUMENT_PATTERN.fullmatch(value)
+        or "/" in decoded
+        or "\\" in decoded
+        or "?" in decoded
+        or "#" in decoded
+        or any(
+            ord(character) < _ASCII_CONTROL_LIMIT or ord(character) == _ASCII_DELETE
+            for character in decoded
+        )
     ):
         message = "document must be one exact attachment filename"
         raise AdapterValidationError(
@@ -642,6 +620,160 @@ def _validate_document(value: str) -> str:
             operation="acquire_attachment",
         )
     return value
+
+
+def _parse_official_sec_url(value: object, *, operation: str) -> tuple[str, ...]:
+    """Parse one exact HTTPS SEC Archives URL into bounded path components."""
+    if not isinstance(value, str) or not value or len(value) > _MAX_URL_LENGTH:
+        message = "edgartools returned an invalid SEC source URL"
+        raise AdapterParsingError(
+            message,
+            state=AdapterState.PARSING_ERROR,
+            operation=operation,
+        )
+    if any(
+        ord(character) < _ASCII_CONTROL_LIMIT or ord(character) == _ASCII_DELETE
+        for character in value
+    ):
+        message = "edgartools returned an invalid SEC source URL"
+        raise AdapterParsingError(
+            message,
+            state=AdapterState.PARSING_ERROR,
+            operation=operation,
+        )
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as error:
+        message = "edgartools returned an invalid SEC source URL"
+        raise AdapterParsingError(
+            message,
+            state=AdapterState.PARSING_ERROR,
+            operation=operation,
+        ) from error
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != _OFFICIAL_SEC_HOST
+        or port is not None
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        message = "SEC source URL must be an official HTTPS Archives URL"
+        raise AdapterSelectionError(
+            message,
+            state=AdapterState.SELECTION_MISMATCH,
+            operation=operation,
+        )
+    decoded_path = parsed.path
+    for _ in range(3):
+        decoded_path = unquote(decoded_path)
+    if (
+        decoded_path != parsed.path
+        or "\\" in decoded_path
+        or any(
+            ord(character) < _ASCII_CONTROL_LIMIT or ord(character) == _ASCII_DELETE
+            for character in decoded_path
+        )
+    ):
+        message = "SEC source URL contains an encoded or control path character"
+        raise AdapterSelectionError(
+            message,
+            state=AdapterState.SELECTION_MISMATCH,
+            operation=operation,
+        )
+    prefix = "/Archives/edgar/data/"
+    if not decoded_path.startswith(prefix):
+        message = "SEC source URL must resolve below /Archives/edgar/data/"
+        raise AdapterSelectionError(
+            message,
+            state=AdapterState.SELECTION_MISMATCH,
+            operation=operation,
+        )
+    parts = decoded_path[len(prefix) :].split("/")
+    if (
+        len(parts) not in {_FILING_HOMEPAGE_PATH_PARTS, _FILING_DOCUMENT_PATH_PARTS}
+        or any(not part.isascii() for part in parts)
+        or not parts[0].isdigit()
+        or any(not part or part in {".", ".."} for part in parts[1:])
+    ):
+        message = "SEC source URL has an invalid Archives locator"
+        raise AdapterSelectionError(
+            message,
+            state=AdapterState.SELECTION_MISMATCH,
+            operation=operation,
+        )
+    return tuple(parts)
+
+
+def _validate_official_sec_url(
+    value: object,
+    *,
+    accession: str,
+    expected_cik: str | None = None,
+    document: str | None,
+    operation: str,
+) -> str:
+    """Require one canonical HTTPS SEC Archives locator for returned metadata."""
+    parts = _parse_official_sec_url(
+        value,
+        operation=operation,
+    )
+    cik_directory = parts[0]
+    if expected_cik is not None and validate_cik(cik_directory) != validate_cik(expected_cik):
+        message = "SEC source URL CIK does not match the exact filing"
+        raise AdapterSelectionError(
+            message,
+            state=AdapterState.SELECTION_MISMATCH,
+            operation=operation,
+        )
+    if len(parts) == _FILING_HOMEPAGE_PATH_PARTS:
+        filename = parts[1]
+        if document is not None or filename != f"{accession}-index.html":
+            message = "SEC filing homepage does not match the exact accession"
+            raise AdapterSelectionError(
+                message,
+                state=AdapterState.SELECTION_MISMATCH,
+                operation=operation,
+            )
+        return cast("str", value)
+
+    accession_directory, filename = parts[1:]
+    if accession_directory != accession.replace("-", ""):
+        message = "SEC source URL accession does not match the exact filing"
+        raise AdapterSelectionError(
+            message,
+            state=AdapterState.SELECTION_MISMATCH,
+            operation=operation,
+        )
+    if "/" in filename or "\\" in filename:
+        message = "SEC source URL has an invalid document path"
+        raise AdapterSelectionError(
+            message,
+            state=AdapterState.SELECTION_MISMATCH,
+            operation=operation,
+        )
+    if document is not None and filename != document:
+        message = "SEC source URL document does not match the exact attachment"
+        raise AdapterSelectionError(
+            message,
+            state=AdapterState.SELECTION_MISMATCH,
+            operation=operation,
+        )
+    return cast("str", value)
+
+
+def _bounded_size(value: object, *, field: str, operation: str) -> int | None:
+    result = _optional_nonnegative_int(value, field=field, operation=operation)
+    if result is not None and result > _MAX_CONTENT_BYTES:
+        message = f"edgartools returned an overlong {field}"
+        raise AdapterParsingError(
+            message,
+            state=AdapterState.PARSING_ERROR,
+            operation=operation,
+        )
+    return result
 
 
 def _get_from_company_metadata(
@@ -699,6 +831,27 @@ def _map_filing(
         )
 
     form = _required_text(getattr(value, "form", None), field="form", operation=operation)
+    primary_document = _validate_document(
+        _required_text(
+            getattr(value, "primary_document", None),
+            field="primary_document",
+            operation=operation,
+        )
+    )
+    homepage_url = _validate_official_sec_url(
+        getattr(value, "homepage_url", None),
+        accession=accession,
+        expected_cik=returned_cik,
+        document=None,
+        operation=operation,
+    )
+    text_url = _validate_official_sec_url(
+        getattr(value, "text_url", None),
+        accession=accession,
+        expected_cik=returned_cik,
+        document=f"{accession.replace('-', '')}.txt",
+        operation=operation,
+    )
     return Filing(
         cik=returned_cik,
         accession_number=returned_accession,
@@ -723,10 +876,7 @@ def _map_filing(
             field="report_date",
             operation=operation,
         ),
-        primary_document=_optional_text(
-            getattr(value, "primary_document", None),
-            operation=operation,
-        ),
+        primary_document=primary_document,
         amendment=form.endswith("/A"),
         is_xbrl=_optional_bool(
             getattr(value, "is_xbrl", None),
@@ -738,21 +888,13 @@ def _map_filing(
             field="is_inline_xbrl",
             operation=operation,
         ),
-        size=_optional_nonnegative_int(
+        size=_bounded_size(
             getattr(value, "size", None),
             field="size",
             operation=operation,
         ),
-        homepage_url=_required_text(
-            getattr(value, "homepage_url", None),
-            field="homepage_url",
-            operation=operation,
-        ),
-        text_url=_required_text(
-            getattr(value, "text_url", None),
-            field="text_url",
-            operation=operation,
-        ),
+        homepage_url=homepage_url,
+        text_url=text_url,
     )
 
 
@@ -798,10 +940,12 @@ def _map_attachment(
     primary_documents: frozenset[str],
     operation: str,
 ) -> Attachment:
-    document = _required_text(
-        getattr(value, "document", None),
-        field="attachment document",
-        operation=operation,
+    document = _validate_document(
+        _required_text(
+            getattr(value, "document", None),
+            field="attachment document",
+            operation=operation,
+        )
     )
     sequence = _text_or_empty(
         getattr(value, "sequence_number", None),
@@ -818,9 +962,11 @@ def _map_attachment(
         field="attachment type",
         operation=operation,
     )
-    source_url = _required_text(
+    source_url = _validate_official_sec_url(
         getattr(value, "url", None),
-        field="attachment URL",
+        accession=filing.accession_number,
+        expected_cik=filing.cik,
+        document=document,
         operation=operation,
     )
     try:
@@ -846,7 +992,7 @@ def _map_attachment(
         sequence=sequence,
         description=description,
         attachment_type=attachment_type,
-        size=_optional_nonnegative_int(
+        size=_bounded_size(
             getattr(value, "size", None),
             field="attachment size",
             operation=operation,
@@ -873,6 +1019,13 @@ def _map_acquired_content(
         capture_method = "edgartools_attachment_text_utf8"
     else:
         message = "edgartools returned neither bytes nor text for the attachment"
+        raise AdapterParsingError(
+            message,
+            state=AdapterState.PARSING_ERROR,
+            operation="acquire_attachment",
+        )
+    if len(content) > _MAX_CONTENT_BYTES:
+        message = "edgartools returned attachment content over the configured byte bound"
         raise AdapterParsingError(
             message,
             state=AdapterState.PARSING_ERROR,
@@ -963,10 +1116,11 @@ def _map_xbrl_filing(value: Any, *, filing: Filing, library_filing: Any) -> Xbrl
         field="primary XBRL source document",
         operation=operation,
     )
-    source_url_value = getattr(library_filing, "filing_url", None)
-    source_url = _required_text(
-        source_url_value,
-        field="primary XBRL source URL",
+    source_url = _validate_official_sec_url(
+        getattr(library_filing, "filing_url", None),
+        accession=filing.accession_number,
+        expected_cik=filing.cik,
+        document=source_document,
         operation=operation,
     )
     return XbrlFiling(
@@ -2027,6 +2181,13 @@ def _optional_scalar_text(value: object, *, field: str, operation: str) -> str |
     if value is None or value == "":
         return None
     if isinstance(value, str):
+        if len(value) > _MAX_METADATA_TEXT:
+            message = f"edgartools returned an overlong {field}"
+            raise AdapterParsingError(
+                message,
+                state=AdapterState.PARSING_ERROR,
+                operation=operation,
+            )
         return value
     if isinstance(value, int) and not isinstance(value, bool):
         return str(value)
@@ -2052,7 +2213,7 @@ def _map_text_sequence(value: object, *, field: str, operation: str) -> tuple[st
 
 
 def _required_text(value: object, *, field: str, operation: str = "get_filing") -> str:
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value or len(value) > _MAX_METADATA_TEXT:
         message = f"edgartools returned an invalid {field}"
         raise AdapterParsingError(
             message,
@@ -2066,21 +2227,15 @@ def _text_or_empty(value: object, *, field: str, operation: str) -> str:
     if value is None:
         return ""
     if isinstance(value, str):
+        if len(value) > _MAX_METADATA_TEXT:
+            message = f"edgartools returned an overlong {field}"
+            raise AdapterParsingError(
+                message,
+                state=AdapterState.PARSING_ERROR,
+                operation=operation,
+            )
         return value
     message = f"edgartools returned an invalid {field}"
-    raise AdapterParsingError(
-        message,
-        state=AdapterState.PARSING_ERROR,
-        operation=operation,
-    )
-
-
-def _optional_text(value: object, *, operation: str = "get_filing") -> str:
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value
-    message = "edgartools returned an invalid primary_document"
     raise AdapterParsingError(
         message,
         state=AdapterState.PARSING_ERROR,

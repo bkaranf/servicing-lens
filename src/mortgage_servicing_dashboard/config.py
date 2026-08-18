@@ -9,29 +9,28 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _MINIMUM_SEC_IDENTITY_LENGTH = 8
-_EDGAR_TOOLS_BASE_URL = "https://api.edgar.tools/v1/"
+_ASCII_CONTROL_LIMIT = 32
+_ASCII_DELETE = 127
 
 
-def validate_sec_user_agent(value: str) -> str:
-    """Validate and normalize the identifying SEC HTTP User-Agent.
-
-    Args:
-        value: Application and contact identity sent to official SEC hosts.
-
-    Returns:
-        The stripped identity string.
-
-    Raises:
-        ValueError: If the value lacks the established application/contact shape.
-    """
+def validate_edgar_identity(value: str) -> str:
+    """Validate the sole live SEC identity without returning it in diagnostics."""
     normalized = value.strip()
+    local, separator, domain = normalized.rpartition(" ")
     if (
-        "@" not in normalized
-        or len(normalized) < _MINIMUM_SEC_IDENTITY_LENGTH
-        or "\r" in normalized
-        or "\n" in normalized
+        len(normalized) < _MINIMUM_SEC_IDENTITY_LENGTH
+        or not separator
+        or not local.strip()
+        or "@" not in domain
+        or domain.startswith("@")
+        or domain.endswith("@")
+        or "." not in domain.rsplit("@", maxsplit=1)[-1]
+        or any(
+            ord(character) < _ASCII_CONTROL_LIMIT or ord(character) == _ASCII_DELETE
+            for character in normalized
+        )
     ):
-        msg = "SEC User-Agent must identify an application and contact email"
+        msg = "EDGAR_IDENTITY must contain an application name and contact email"
         raise ValueError(msg)
     return normalized
 
@@ -67,20 +66,13 @@ class AppSettings(BaseSettings):
 
     environment: EnvironmentName = EnvironmentName.DEVELOPMENT
     log_level: LogLevel = LogLevel.INFO
-    sec_user_agent: str | None = Field(default=None, repr=False)
     edgar_identity: SecretStr | None = Field(
         default=None,
         validation_alias="EDGAR_IDENTITY",
         repr=False,
     )
-    edgar_api_key: SecretStr | None = Field(
-        default=None,
-        validation_alias="EDGAR_API_KEY",
-        repr=False,
-    )
-    edgar_api_base_url: str = _EDGAR_TOOLS_BASE_URL
 
-    @field_validator("sec_user_agent", "edgar_identity", "edgar_api_key", mode="before")
+    @field_validator("edgar_identity", mode="before")
     @classmethod
     def normalize_optional_string(cls, value: Any) -> Any:
         """Treat an empty optional string environment variable as unconfigured.
@@ -95,37 +87,14 @@ class AppSettings(BaseSettings):
             return None
         return value
 
-    @field_validator("edgar_api_base_url")
+    @field_validator("edgar_identity")
     @classmethod
-    def require_canonical_edgar_tools_base_url(cls, value: str) -> str:
-        """Reject alternate provider hosts or paths.
-
-        Args:
-            value: Configured EdgarTools REST base URL.
-
-        Returns:
-            The one accepted hosted API base URL.
-
-        Raises:
-            ValueError: If an alternate host, scheme, or path is configured.
-        """
-        if value != _EDGAR_TOOLS_BASE_URL:
-            msg = f"EdgarTools base URL must be {_EDGAR_TOOLS_BASE_URL}"
-            raise ValueError(msg)
+    def require_identifying_edgar_identity(cls, value: SecretStr | None) -> SecretStr | None:
+        """Reject malformed identity before constructing a live adapter or database."""
+        if value is None:
+            return None
+        validate_edgar_identity(value.get_secret_value())
         return value
-
-    @field_validator("sec_user_agent")
-    @classmethod
-    def require_identifying_sec_user_agent(cls, value: str | None) -> str | None:
-        """Apply the controlled SEC client's established identity rule.
-
-        Args:
-            value: Normalized optional User-Agent setting.
-
-        Returns:
-            A validated identity or `None` while live acquisition is disabled.
-        """
-        return None if value is None else validate_sec_user_agent(value)
 
     def safe_summary(self) -> dict[str, str | int | bool]:
         """Return only values approved for CLI output and logs.
@@ -136,25 +105,8 @@ class AppSettings(BaseSettings):
         return {
             "environment": self.environment.value,
             "log_level": self.log_level.value,
-            "sec_user_agent_configured": self.sec_user_agent is not None,
             "edgar_identity_configured": self.edgar_identity is not None,
-            "edgar_api_key_configured": self.edgar_api_key is not None,
-            "edgar_api_base_url": self.edgar_api_base_url,
         }
-
-    def require_edgar_api_key(self) -> SecretStr:
-        """Return the configured EdgarTools secret or fail closed.
-
-        Returns:
-            The secret-bearing API key wrapper.
-
-        Raises:
-            ValueError: If `EDGAR_API_KEY` was not configured.
-        """
-        if self.edgar_api_key is None:
-            msg = "EDGAR_API_KEY is required for live EdgarTools access"
-            raise ValueError(msg)
-        return self.edgar_api_key
 
     def require_edgar_identity(self) -> SecretStr:
         """Return the configured open-source edgartools identity or fail closed.
@@ -169,17 +121,3 @@ class AppSettings(BaseSettings):
             msg = "EDGAR_IDENTITY is required for live SEC access through edgartools"
             raise ValueError(msg)
         return self.edgar_identity
-
-    def require_sec_user_agent(self) -> str:
-        """Return the configured identity or fail closed for an explicit live run.
-
-        Returns:
-            The validated SEC application/contact identity.
-
-        Raises:
-            ValueError: If `MSD_SEC_USER_AGENT` was not configured.
-        """
-        if self.sec_user_agent is None:
-            msg = "MSD_SEC_USER_AGENT is required for live SEC access"
-            raise ValueError(msg)
-        return self.sec_user_agent

@@ -24,6 +24,7 @@ from mortgage_servicing_dashboard.edgar_tools_pipeline import (
     GoldenManifest,
     ValidatedFiling,
 )
+from mortgage_servicing_dashboard.edgartools_adapter.adapter import EdgarToolsAdapter
 from mortgage_servicing_dashboard.edgartools_adapter.dto import (
     AcquiredContent,
     Attachment,
@@ -226,7 +227,7 @@ def manifest_and_payloads() -> tuple[dict[str, object], dict[str, bytes]]:
     return manifest, payloads
 
 
-class _Adapter:
+class _Adapter(EdgarToolsAdapter):
     def __init__(
         self,
         manifest: Mapping[str, object],

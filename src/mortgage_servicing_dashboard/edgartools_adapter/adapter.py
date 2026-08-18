@@ -8,9 +8,8 @@ from datetime import datetime
 from pathlib import Path
 
 from mortgage_servicing_dashboard.edgartools_adapter.backend import (
-    EdgarToolsBackend,
     FilingDateFilter,
-    PublicEdgarToolsBackend,
+    _EdgarToolsMapping,
 )
 from mortgage_servicing_dashboard.edgartools_adapter.bootstrap import (
     EdgarBootstrap,
@@ -42,7 +41,7 @@ class EdgarToolsAdapter:
 
     def __init__(
         self,
-        backend: EdgarToolsBackend,
+        backend: _EdgarToolsMapping,
         *,
         evidence_store: EvidenceStore | None = None,
     ) -> None:
@@ -59,7 +58,7 @@ class EdgarToolsAdapter:
         clock: Callable[[], datetime] | None = None,
     ) -> EdgarToolsAdapter:
         """Build the lazy production boundary from secret-bearing bootstrap config."""
-        backend = PublicEdgarToolsBackend(EdgarBootstrap(config), clock=clock)
+        backend = _EdgarToolsMapping(EdgarBootstrap(config), clock=clock)
         store = (
             evidence_store
             if evidence_store is not None

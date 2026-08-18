@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, cast
 from unittest.mock import Mock
 
-import httpx
 import pytest
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -59,7 +58,6 @@ from mortgage_servicing_dashboard.repository import (
     load_stage_a_configuration,
     seed_stage_a,
 )
-from mortgage_servicing_dashboard.sources import PublicSourceError, SecClient
 
 
 class _RecordingRuntimeServices:
@@ -701,53 +699,6 @@ def test_runtime_revalidates_before_publication(
     assert resumed["terminal_status"] == "COMPLETED"
     assert events == ["revalidate", "publish"]
     engine.dispose()
-
-
-def test_sec_client_success_cache_retries_and_boundaries(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="User-Agent"):
-        SecClient(user_agent="bad", cache_directory=tmp_path)
-    with pytest.raises(ValueError, match="positive"):
-        SecClient(
-            user_agent="Research research@example.test",
-            cache_directory=tmp_path,
-            minimum_interval_seconds=-1,
-        )
-
-    calls = 0
-
-    def success(_request: httpx.Request) -> httpx.Response:
-        nonlocal calls
-        calls += 1
-        return httpx.Response(200, content=b"public filing", headers={"content-type": "text/html"})
-
-    with SecClient(
-        user_agent="Research research@example.test",
-        cache_directory=tmp_path / "cache",
-        minimum_interval_seconds=0,
-        transport=httpx.MockTransport(success),
-    ) as client:
-        with pytest.raises(ValueError, match="official"):
-            client.acquire("https://example.test/file")
-        first = client.acquire("https://www.sec.gov/Archives/file.htm")
-        second = client.acquire("https://www.sec.gov/Archives/file.htm")
-    assert calls == 1
-    assert first.sha256 == second.sha256
-    assert first.media_type == "text/html"
-    assert second.media_type == "text/html"
-
-    def failure(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(503, request=request)
-
-    client = SecClient(
-        user_agent="Research research@example.test",
-        cache_directory=tmp_path / "failure",
-        minimum_interval_seconds=0,
-        max_attempts=1,
-        transport=httpx.MockTransport(failure),
-    )
-    with pytest.raises(PublicSourceError, match="bounded retries"):
-        client.acquire("https://data.sec.gov/submissions/CIK.json")
-    client.close()
 
 
 def test_cli_database_commands(  # noqa: PLR0915

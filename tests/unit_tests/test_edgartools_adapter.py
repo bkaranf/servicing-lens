@@ -15,9 +15,8 @@ from pydantic import SecretStr
 
 from mortgage_servicing_dashboard.edgartools_adapter.adapter import EdgarToolsAdapter
 from mortgage_servicing_dashboard.edgartools_adapter.backend import (
-    EdgarToolsBackend,
     FilingDateFilter,
-    PublicEdgarToolsBackend,
+    _EdgarToolsMapping,
     validate_accession,
     validate_cik,
 )
@@ -76,7 +75,6 @@ _BOOTSTRAP_ENVIRONMENT = (
     "EDGAR_ACCESS_MODE",
     "EDGAR_LOCAL_DATA_DIR",
     "EDGAR_USE_LOCAL_DATA",
-    "EDGAR_ALLOW_NETWORK_FALLBACK",
     "EDGARTOOLS_STRICT_ERRORS",
     "EDGAR_RATE_LIMIT_PER_SEC",
     "EDGAR_BASE_URL",
@@ -159,7 +157,7 @@ def _bootstrap(tmp_path: Path, *, identity: str = _IDENTITY) -> EdgarBootstrap:
 def _acquired_content(
     payload: bytes,
     *,
-    source_url: str = "https://www.sec.gov/Archives/example/tfc-20260630.htm",
+    source_url: str = "https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/tfc-20260630.htm",
 ) -> AcquiredContent:
     return AcquiredContent(
         cik=_CIK,
@@ -190,7 +188,6 @@ def test_bootstrap_configures_crawl_and_local_storage_before_one_lazy_import(
         assert "EDGAR_RATE_LIMIT_PER_SEC" not in os.environ
         assert os.environ["EDGAR_IDENTITY"] == _IDENTITY
         assert os.environ["EDGAR_USE_LOCAL_DATA"] == "1"
-        assert os.environ["EDGAR_ALLOW_NETWORK_FALLBACK"] == "1"
         assert os.environ["EDGARTOOLS_STRICT_ERRORS"] == "1"
         expected_data = (tmp_path / ".msi" / "edgartools" / "data").resolve()
         assert Path(os.environ["EDGAR_LOCAL_DATA_DIR"]) == expected_data
@@ -203,6 +200,27 @@ def test_bootstrap_configures_crawl_and_local_storage_before_one_lazy_import(
     assert bootstrap.load() is imported
     assert bootstrap.load() is imported
     assert calls == ["edgar"]
+
+
+def test_bootstrap_rejects_unexpected_edgartools_version_before_import(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _clear_bootstrap_state(monkeypatch)
+    monkeypatch.setattr(
+        "mortgage_servicing_dashboard.edgartools_adapter.bootstrap.distribution_version",
+        lambda _: "5.47.0",
+    )
+    monkeypatch.setattr(
+        importlib,
+        "import_module",
+        lambda _: pytest.fail("edgartools import must not follow a version mismatch"),
+    )
+
+    with pytest.raises(AdapterConfigurationError, match=r"exactly 5\.48\.0") as captured:
+        _bootstrap(tmp_path).load()
+
+    assert captured.value.operation == "bootstrap"
 
 
 @pytest.mark.parametrize("rate", ["1", "4", "9"])
@@ -486,8 +504,8 @@ def _library_filing() -> _LibraryFiling:
         is_xbrl=True,
         is_inline_xbrl=True,
         size=12_345_678,
-        homepage_url="https://www.sec.gov/Archives/example-index.html",
-        text_url="https://www.sec.gov/Archives/example.txt",
+        homepage_url="https://www.sec.gov/Archives/edgar/data/92230/0000092230-26-000100-index.html",
+        text_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/000009223026000100.txt",
     )
 
 
@@ -505,8 +523,8 @@ def _expected_filing() -> Filing:
         is_xbrl=True,
         is_inline_xbrl=True,
         size=12_345_678,
-        homepage_url="https://www.sec.gov/Archives/example-index.html",
-        text_url="https://www.sec.gov/Archives/example.txt",
+        homepage_url="https://www.sec.gov/Archives/edgar/data/92230/0000092230-26-000100-index.html",
+        text_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/000009223026000100.txt",
     )
 
 
@@ -581,9 +599,9 @@ class _FakeBootstrap:
         return self.module
 
 
-def _public_backend(module: ModuleType) -> tuple[PublicEdgarToolsBackend, _FakeBootstrap]:
+def _public_backend(module: ModuleType) -> tuple[_EdgarToolsMapping, _FakeBootstrap]:
     bootstrap = _FakeBootstrap(module)
-    backend = PublicEdgarToolsBackend(cast("EdgarBootstrap", bootstrap))
+    backend = _EdgarToolsMapping(cast("EdgarBootstrap", bootstrap))
     return backend, bootstrap
 
 
@@ -859,7 +877,7 @@ def test_xbrl_preserves_raw_fact_context_unit_dimensions_and_decimals_without_fl
         cik=_CIK,
         accession_number=_ACCESSION,
         source_document="tfc-20260630.htm",
-        source_url="https://www.sec.gov/Archives/example/tfc-20260630.htm",
+        source_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/duplicate.htm",
         facts=(fact,),
         contexts=(context,),
         units=(unit,),
@@ -1009,7 +1027,7 @@ def test_duplicate_retention_is_idempotent_with_stable_hash_and_location(tmp_pat
     first_content = _acquired_content(payload)
     second_content = _acquired_content(
         payload,
-        source_url="https://www.sec.gov/Archives/example/duplicate.htm",
+        source_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/duplicate.htm",
     )
     store = GeneralEvidenceStore(tmp_path / "evidence")
 
@@ -1054,7 +1072,7 @@ def _attachment() -> Attachment:
         description="Quarterly earnings release",
         attachment_type="EX-99.1",
         size=321,
-        source_url="https://www.sec.gov/Archives/example/earnings-release.htm",
+        source_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/earnings-release.htm",
         is_primary=False,
         is_binary=False,
     )
@@ -1064,7 +1082,7 @@ def _attachment_acquisition() -> AttachmentAcquisition:
     content = dataclasses.replace(
         _acquired_content(b"<html>reported filing text</html>"),
         document="earnings-release.htm",
-        source_url="https://www.sec.gov/Archives/example/earnings-release.htm",
+        source_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/earnings-release.htm",
     )
     return AttachmentAcquisition(
         attachment=_attachment(),
@@ -1078,7 +1096,7 @@ def _empty_xbrl_filing() -> XbrlFiling:
         cik=_CIK,
         accession_number=_ACCESSION,
         source_document="tfc-20260630.htm",
-        source_url="https://www.sec.gov/Archives/example/tfc-20260630.htm",
+        source_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/tfc-20260630.htm",
         facts=(),
         contexts=(),
         units=(),
@@ -1194,7 +1212,7 @@ class _RecordingEvidenceStore:
 
 def test_facade_delegates_every_read_operation_with_exact_typed_selectors() -> None:
     backend = _RecordingBackend()
-    adapter = EdgarToolsAdapter(cast("EdgarToolsBackend", backend))
+    adapter = EdgarToolsAdapter(cast("Any", backend))
     filing_dates = (date(2026, 1, 1), date(2026, 8, 13))
 
     assert adapter.company("TFC").cik == _CIK
@@ -1226,7 +1244,7 @@ def test_facade_delegates_every_read_operation_with_exact_typed_selectors() -> N
 
 def test_facade_acquisition_skips_retention_only_when_explicitly_requested() -> None:
     backend = _RecordingBackend()
-    adapter = EdgarToolsAdapter(cast("EdgarToolsBackend", backend))
+    adapter = EdgarToolsAdapter(cast("Any", backend))
 
     result = adapter.acquire_attachment(
         _ACCESSION,
@@ -1243,7 +1261,7 @@ def test_facade_acquisition_retains_successful_content_once() -> None:
     backend = _RecordingBackend()
     store = _RecordingEvidenceStore()
     adapter = EdgarToolsAdapter(
-        cast("EdgarToolsBackend", backend),
+        cast("Any", backend),
         evidence_store=store,
     )
 
@@ -1259,7 +1277,7 @@ def test_facade_acquisition_retains_successful_content_once() -> None:
 
 
 def test_facade_rejects_default_retention_without_an_evidence_store() -> None:
-    adapter = EdgarToolsAdapter(cast("EdgarToolsBackend", _RecordingBackend()))
+    adapter = EdgarToolsAdapter(cast("Any", _RecordingBackend()))
 
     with pytest.raises(AdapterConfigurationError) as captured:
         adapter.acquire_attachment(_ACCESSION, "earnings-release.htm")
@@ -1333,7 +1351,9 @@ class _LibraryFilingBundle:
         self._attachments = attachments
         self._xbrl = xbrl
         self._viewer = viewer
-        self.filing_url = "https://www.sec.gov/Archives/example/tfc-20260630.htm"
+        self.filing_url = (
+            "https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/tfc-20260630.htm"
+        )
 
     @property
     def attachments(self) -> object | None:
@@ -1434,10 +1454,10 @@ def _capability_backend(
     filing: object | BaseException | None,
     *,
     clock: Any | None = None,
-) -> tuple[PublicEdgarToolsBackend, _CapabilityEdgarModule]:
+) -> tuple[_EdgarToolsMapping, _CapabilityEdgarModule]:
     module = _CapabilityEdgarModule(company, filing)
     bootstrap = _FakeBootstrap(module)
-    backend = PublicEdgarToolsBackend(
+    backend = _EdgarToolsMapping(
         cast("EdgarBootstrap", bootstrap),
         clock=clock,
     )
@@ -1501,7 +1521,7 @@ def _library_attachments() -> tuple[
         document="tfc-20260630.htm",
         document_type="10-Q",
         size=123,
-        url="https://www.sec.gov/Archives/example/tfc-20260630.htm",
+        url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/tfc-20260630.htm",
         binary=False,
         payload="<html>quarterly filing</html>",
     )
@@ -1511,7 +1531,7 @@ def _library_attachments() -> tuple[
         document="earnings-release.pdf",
         document_type="EX-99.1",
         size=456,
-        url="https://www.sec.gov/Archives/example/earnings-release.pdf",
+        url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/earnings-release.pdf",
         binary=True,
         payload=b"%PDF reduced synthetic fixture",
     )
@@ -2188,7 +2208,7 @@ def test_acquire_attachment_rejects_invalid_content_or_naive_clock(
         document="filing.htm",
         document_type="10-Q",
         size=10,
-        url="https://www.sec.gov/Archives/example/filing.htm",
+        url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/filing.htm",
         binary=False,
         payload=cast("Any", payload),
     )
@@ -2222,7 +2242,7 @@ def test_acquire_attachment_maps_library_failures_at_each_fetch_stage(stage: str
             document="filing.htm",
             document_type="10-Q",
             size=10,
-            url="https://www.sec.gov/Archives/example/filing.htm",
+            url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/filing.htm",
             binary=False,
             payload=TransportError("secret download detail"),
         )
@@ -2697,7 +2717,6 @@ def test_filing_mapping_accepts_documented_optional_library_metadata(
         filing_date=datetime(2026, 8, 6, 23, 59, tzinfo=UTC),
         acceptance_datetime=acceptance,
         report_date="",
-        primary_document=None,
         is_xbrl=0,
         is_inline_xbrl="",
         size="",
@@ -2710,7 +2729,7 @@ def test_filing_mapping_accepts_documented_optional_library_metadata(
     assert result.filing_date == date(2026, 8, 6)
     assert result.acceptance_timestamp == (None if acceptance is None else _ACCEPTANCE_TIMESTAMP)
     assert result.report_period is None
-    assert result.primary_document == ""
+    assert result.primary_document == "tfc-20260630.htm"
     assert result.is_xbrl is False
     assert result.is_inline_xbrl is False
     assert result.size is None
@@ -2741,6 +2760,115 @@ def test_filing_mapping_rejects_malformed_typed_metadata(
         backend.get_filing(_ACCESSION, expected_cik=_CIK)
 
     assert captured.value.operation == "get_filing"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        (
+            "homepage_url",
+            "http://www.sec.gov/Archives/edgar/data/92230/000009223026000100/tfc-20260630.htm",
+        ),
+        (
+            "text_url",
+            "https://example.test/Archives/edgar/data/92230/000009223026000100/filing.txt",
+        ),
+        (
+            "homepage_url",
+            "https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/nested/filing.htm",
+        ),
+        (
+            "text_url",
+            "https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/filing.txt?raw=1",
+        ),
+        (
+            "text_url",
+            "https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/wrong.txt",
+        ),
+        (
+            "text_url",
+            "https://www.sec.gov:443/Archives/edgar/data/92230/000009223026000100/000009223026000100.txt",
+        ),
+        (
+            "text_url",
+            "https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/réport.txt",
+        ),
+        (
+            "homepage_url",
+            "https://www.sec.gov/Archives/edgar/data/1745916/000009223026000100/filing.htm",
+        ),
+    ],
+)
+def test_filing_mapping_requires_exact_official_archives_urls(
+    field: str,
+    value: str,
+) -> None:
+    returned = dataclasses.replace(_library_filing(), **{field: value})
+    backend, _ = _public_backend(_FakeEdgarModule(returned))
+
+    with pytest.raises(AdapterSelectionError) as captured:
+        backend.get_filing(_ACCESSION, expected_cik=_CIK)
+
+    assert captured.value.operation == "get_filing"
+
+
+def test_filing_mapping_accepts_agent_accession_prefix_for_pfsi_cik() -> None:
+    accession = "0001104659-26-090486"
+    returned = dataclasses.replace(
+        _library_filing(),
+        cik="1745916",
+        accession_number=accession,
+        company="PennyMac Financial Services, Inc.",
+        primary_document="pfsi-20260630x10q.htm",
+        homepage_url=(
+            "https://www.sec.gov/Archives/edgar/data/1745916/0001104659-26-090486-index.html"
+        ),
+        text_url=(
+            "https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/"
+            "000110465926090486.txt"
+        ),
+    )
+    backend, _ = _public_backend(_FakeEdgarModule(returned))
+
+    result = backend.get_filing(accession, expected_cik="0001745916")
+
+    assert result.cik == "0001745916"
+    assert result.accession_number == accession
+
+
+def test_attachment_mapping_rejects_filename_and_metadata_size_bounds() -> None:
+    _, primary, _ = _library_attachments()
+    primary.document = "../escape.htm"
+    filing = _LibraryFilingBundle(
+        attachments=_LibraryAttachments((primary,), primary_documents=(primary,))
+    )
+    backend, _ = _capability_backend(_CapabilityCompany(filings=(filing,)), filing)
+
+    with pytest.raises(AdapterValidationError):
+        backend.list_attachments(_ACCESSION, expected_cik=_CIK)
+
+    _, primary, _ = _library_attachments()
+    primary.size = 25_000_001
+    filing = _LibraryFilingBundle(
+        attachments=_LibraryAttachments((primary,), primary_documents=(primary,))
+    )
+    backend, _ = _capability_backend(_CapabilityCompany(filings=(filing,)), filing)
+
+    with pytest.raises(AdapterParsingError):
+        backend.list_attachments(_ACCESSION, expected_cik=_CIK)
+
+    _, primary, _ = _library_attachments()
+    primary.url = (
+        "https://www.sec.gov/Archives/edgar/data/92230/"
+        "000009223026000100/0000092230-26-000100-index.html"
+    )
+    filing = _LibraryFilingBundle(
+        attachments=_LibraryAttachments((primary,), primary_documents=(primary,))
+    )
+    backend, _ = _capability_backend(_CapabilityCompany(filings=(filing,)), filing)
+
+    with pytest.raises(AdapterSelectionError, match="document does not match"):
+        backend.list_attachments(_ACCESSION, expected_cik=_CIK)
 
 
 class _NoMetadataFilingsCompany(_CapabilityCompany):
@@ -2785,7 +2913,7 @@ def test_list_attachments_maps_library_failure_and_preserves_local_mapping_error
         document=None,
         document_type="10-Q",
         size=10,
-        url="https://www.sec.gov/Archives/example/filing.htm",
+        url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/filing.htm",
         is_binary=lambda: False,
     )
     attachments = _LibraryAttachments((cast("Any", malformed),), primary_documents=())
@@ -2851,7 +2979,7 @@ def test_attachment_acquisition_uses_safe_unknown_media_defaults_and_aware_clock
         document=document,
         document_type="",
         size=0,
-        url=f"https://www.sec.gov/Archives/example/{document}",
+        url=f"https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/{document}",
         binary=cast("bool", binary),
         payload=payload,
     )

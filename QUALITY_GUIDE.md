@@ -65,9 +65,10 @@ Fixture coverage includes:
 - FFIEC/FR Y-9C/NIC-style regulatory records; and
 - amendment, corporate-action, and name-change scenarios.
 
-No unit/default test opens a socket. An opt-in live test uses explicit markers,
-bounded source access, no committed secret, and cannot be a prerequisite for the
-normal gate.
+No unit/default test opens a socket. Exactly one sequential opt-in live test may
+exercise the public `edgartools` adapter against one governed TFC filing followed
+by one governed PFSI filing; it uses temporary roots, never prints identity, and
+cannot be a prerequisite for the normal gate.
 
 ## Financial correctness and provenance
 

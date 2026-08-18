@@ -27,7 +27,6 @@ def test_doctor_json_contains_only_safe_readiness_data(
     monkeypatch.setenv("PROVIDER_API_KEY", secret)
     identity = "Servicing Lens synthetic-contact@example.test"
     monkeypatch.setenv("EDGAR_IDENTITY", identity)
-    monkeypatch.setenv("EDGAR_API_KEY", "synthetic-edgar-tools-test-key")
 
     exit_code = main(["doctor", "--json"])
     captured = capsys.readouterr()
@@ -37,8 +36,6 @@ def test_doctor_json_contains_only_safe_readiness_data(
     assert captured.err == ""
     assert payload["capabilities"]["status"] == "ready"
     assert payload["configuration"]["edgar_identity_configured"] is True
-    assert "edgar_api_key_configured" not in payload["configuration"]
-    assert "edgar_api_base_url" not in payload["configuration"]
     assert "SYNTHETIC_TEST_KEY" not in captured.out
     assert identity not in captured.out
     assert secret not in captured.out
@@ -85,6 +82,31 @@ def test_sync_requires_identity_and_valid_since(
     monkeypatch.setenv("EDGAR_IDENTITY", "Synthetic Operator operator@example.test")
     assert main(["sync", "--company", "TFC", "--since", "invalid"]) == 2
     assert "Invalid isoformat" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [["discover", "--live"], ["ingest", "--live", "--database-url", "sqlite:///blocked.db"]],
+)
+def test_live_aliases_require_identity_before_adapter_or_database(
+    arguments: list[str],
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("EDGAR_IDENTITY", raising=False)
+    monkeypatch.setattr(
+        "mortgage_servicing_dashboard.cli.EdgarToolsAdapter.from_config",
+        lambda *_args, **_kwargs: pytest.fail("adapter construction must follow identity"),
+    )
+    monkeypatch.setattr(
+        "mortgage_servicing_dashboard.cli.create_database_engine",
+        lambda *_args, **_kwargs: pytest.fail("database construction must follow identity"),
+    )
+
+    assert main(arguments) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "EDGAR_IDENTITY" in captured.err
 
 
 class _StubPipeline:
@@ -135,7 +157,16 @@ class _StubPipeline:
         return tuple(item.summary for item in prepared)
 
 
-def test_sync_all_has_safe_bounded_output_and_nonzero_blocker_exit(
+@pytest.mark.parametrize(
+    ("arguments", "mode"),
+    [
+        (["sync", "--all", "--dry-run"], "sync"),
+        (["discover", "--live"], "discover-live"),
+    ],
+)
+def test_public_discovery_commands_have_safe_bounded_ordered_output(
+    arguments: list[str],
+    mode: str,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -161,11 +192,12 @@ def test_sync_all_has_safe_bounded_output_and_nonzero_blocker_exit(
     )
 
     _StubPipeline.state = EdgarToolsSyncState.DISCOVERED
-    assert main(["sync", "--all", "--dry-run", "--runtime-dir", str(tmp_path)]) == 0
+    assert main([*arguments, "--runtime-dir", str(tmp_path)]) == 0
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
     assert captured.err == ""
     assert payload["provider"] == "PUBLIC_EDGARTOOLS"
+    assert payload["mode"] == mode
     assert [item.ticker for item in _StubPipeline.companies] == ["TFC", "PFSI"]
     assert _StubPipeline.options == [
         {"since": None, "dry_run": True, "known_accessions": frozenset()},
@@ -176,11 +208,10 @@ def test_sync_all_has_safe_bounded_output_and_nonzero_blocker_exit(
     assert identity not in captured.out
     assert _StubPipeline.persistences[-1] is None
 
-    _StubPipeline.state = EdgarToolsSyncState.PARSER_UNQUALIFIED
-    assert main(["sync", "--company", "TFC", "--dry-run"]) == 1
-    assert json.loads(capsys.readouterr().out)["results"][0]["terminal_state"] == (
-        "PARSER_UNQUALIFIED"
-    )
+    if arguments[0] == "sync":
+        _StubPipeline.state = EdgarToolsSyncState.MISMATCH
+        assert main(["sync", "--company", "TFC", "--dry-run"]) == 1
+        assert json.loads(capsys.readouterr().out)["results"][0]["terminal_state"] == ("MISMATCH")
 
 
 def test_sync_reports_safe_retention_failure(
@@ -213,7 +244,13 @@ def test_live_sync_requires_explicit_isolated_database_url(
     assert "explicit isolated --database-url" in captured.err
 
 
-def test_live_sync_all_loads_known_accessions_then_prepares_both_before_one_commit(
+@pytest.mark.parametrize(
+    ("arguments", "mode"),
+    [(["sync", "--all"], "sync"), (["ingest", "--live"], "ingest-live")],
+)
+def test_public_ingestion_commands_prepare_tfc_then_pfsi_before_one_commit(
+    arguments: list[str],
+    mode: str,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -251,7 +288,7 @@ def test_live_sync_all_loads_known_accessions_then_prepares_both_before_one_comm
     _StubPipeline.state = EdgarToolsSyncState.VALIDATED
     database_url = f"sqlite:///{(tmp_path / 'isolated.db').as_posix()}"
 
-    assert main(["sync", "--all", "--database-url", database_url]) == 0
+    assert main([*arguments, "--database-url", database_url]) == 0
 
     assert _StubPipeline.options == [
         {
@@ -268,7 +305,9 @@ def test_live_sync_all_loads_known_accessions_then_prepares_both_before_one_comm
     assert _StubPipeline.events == ["prepare:tfc", "prepare:pfsi", "persist"]
     assert len(_StubPipeline.committed_batches) == 1
     assert engine.disposed is True
-    assert json.loads(capsys.readouterr().out)["provider"] == "PUBLIC_EDGARTOOLS"
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["provider"] == "PUBLIC_EDGARTOOLS"
+    assert payload["mode"] == mode
 
 
 def test_validate_empty_database_never_invokes_legacy_seed(

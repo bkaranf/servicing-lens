@@ -17,10 +17,10 @@ from enum import StrEnum
 from importlib.metadata import version as distribution_version
 from typing import Protocol, TypeAlias, cast
 
+from mortgage_servicing_dashboard.edgartools_adapter.adapter import EdgarToolsAdapter
 from mortgage_servicing_dashboard.edgartools_adapter.dto import (
     Attachment,
     AttachmentAcquisition,
-    Company,
     Filing,
     RetainedContent,
 )
@@ -55,15 +55,6 @@ class EdgarToolsSyncState(StrEnum):
     QUARANTINED = "QUARANTINED"
     FAILED = "FAILED"
 
-    # Retained compatibility names for callers migrating from the hosted coordinator.
-    PARSER_UNQUALIFIED = "PARSER_UNQUALIFIED"
-    AUTHENTICATION_BLOCKED = "AUTHENTICATION_BLOCKED"
-    TIER_BLOCKED = "TIER_BLOCKED"
-    QUOTA_BLOCKED = "QUOTA_BLOCKED"
-    RATE_LIMITED = "RATE_LIMITED"
-    SOURCE_NOT_AVAILABLE_VIA_PROVIDER = "SOURCE_NOT_AVAILABLE_VIA_PROVIDER"
-    PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
-
 
 @dataclass(frozen=True, slots=True)
 class EdgarToolsCompany:
@@ -72,45 +63,6 @@ class EdgarToolsCompany:
     company_id: str
     ticker: str
     cik: str
-
-
-class EdgarToolsAdapterProtocol(Protocol):
-    """Small subset of :class:`EdgarToolsAdapter` used by this coordinator."""
-
-    def company(self, cik_or_ticker: str) -> Company:
-        """Resolve an exact company identity."""
-        ...
-
-    def filings(
-        self,
-        cik: str,
-        *,
-        forms: tuple[str, ...] = (),
-        filing_date: date | tuple[date, date] | None = None,
-        include_amendments: bool = True,
-    ) -> tuple[Filing, ...]:
-        """List explicitly filtered filings."""
-        ...
-
-    def attachments(
-        self,
-        accession: str,
-        *,
-        expected_cik: str | None = None,
-    ) -> tuple[Attachment, ...]:
-        """List filing attachments without acquiring content."""
-        ...
-
-    def acquire_attachment(
-        self,
-        accession: str,
-        document: str,
-        *,
-        expected_cik: str | None = None,
-        retain: bool = True,
-    ) -> AttachmentAcquisition:
-        """Acquire and retain one exact attachment."""
-        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -477,7 +429,7 @@ class EdgarToolsSyncPipeline:
     def __init__(
         self,
         *,
-        adapter: EdgarToolsAdapterProtocol,
+        adapter: EdgarToolsAdapter,
         registry: FinancialFieldRegistry,
         golden_manifest: Mapping[str, object] | GoldenManifest,
         persistence: AtomicPersistence | PersistenceCallback | None = None,

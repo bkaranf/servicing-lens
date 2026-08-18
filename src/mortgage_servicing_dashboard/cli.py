@@ -39,9 +39,7 @@ from mortgage_servicing_dashboard.edgartools_adapter.errors import EdgarToolsAda
 from mortgage_servicing_dashboard.edgartools_adapter.retention import GeneralEvidenceStore
 from mortgage_servicing_dashboard.financial_discovery import FinancialFieldRegistry
 from mortgage_servicing_dashboard.ingestion import (
-    discover_live_sec_filings,
     run_cli_review_resume,
-    run_live_sec_ingestion,
 )
 from mortgage_servicing_dashboard.repository import (
     AtomicEdgarToolsRepository,
@@ -52,7 +50,6 @@ from mortgage_servicing_dashboard.repository import (
     seed_phase3,
     seed_stage_a,
 )
-from mortgage_servicing_dashboard.sources import PublicSourceError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -84,7 +81,8 @@ def build_parser() -> argparse.ArgumentParser:
     discover = subparsers.add_parser("discover", help="List configured authoritative sources.")
     discover.add_argument("--company", choices=("TFC", "PFSI"))
     discover.add_argument("--config-dir", type=Path)
-    discover.add_argument("--live", action="store_true", help="Query official SEC submissions.")
+    discover.add_argument("--live", action="store_true", help="Query official SEC filings.")
+    discover.add_argument("--runtime-dir", type=Path, default=Path(".msi"))
     for command in ("ingest", "validate"):
         child = subparsers.add_parser(command, help=f"{command} retained governed evidence.")
         child.add_argument("--database-url")
@@ -100,6 +98,7 @@ def build_parser() -> argparse.ArgumentParser:
                 action="store_true",
                 help="Publish the governed retained Phase 3 dataset without network access.",
             )
+            child.add_argument("--runtime-dir", type=Path, default=Path(".msi"))
     sync = subparsers.add_parser(
         "sync",
         help="Validate selected filing evidence through the public edgartools library.",
@@ -132,8 +131,6 @@ def doctor_payload(settings: AppSettings) -> dict[str, Any]:
     """Build a deterministic, allow-listed readiness payload."""
     information = StaticCapabilities()
     configuration = settings.safe_summary()
-    configuration.pop("edgar_api_key_configured", None)
-    configuration.pop("edgar_api_base_url", None)
     return {
         "application": "public-mortgage-servicing-intelligence",
         "stage": "phase_3_metric_deepening",
@@ -165,114 +162,64 @@ def _database_url(explicit: str | None) -> str:
     return explicit or os.environ.get("MSI_DATABASE_URL") or default_database_url()
 
 
-def _live_sec_identity(settings: AppSettings) -> tuple[int, str | None]:
-    try:
-        return 0, settings.require_sec_user_agent()
-    except ValueError as error:
-        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
-        return 2, None
-
-
-def _discover_live(args: argparse.Namespace, settings: AppSettings) -> int:
-    exit_code, user_agent = _live_sec_identity(settings)
-    if user_agent is None:
-        return exit_code
-    try:
-        filings = discover_live_sec_filings(
-            user_agent=user_agent,
-            company=args.company,
-            config_dir=args.config_dir,
-        )
-    except (PublicSourceError, ValueError) as error:
-        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
-        return 1
-    print(
-        json.dumps(
-            {
-                "mode": "live",
-                "filings": [filing.as_payload() for filing in filings],
-            },
-            indent=2,
-            sort_keys=True,
-        )
+def _edgar_companies() -> tuple[EdgarToolsCompany, ...]:
+    """Return the governed companies in the required deterministic order."""
+    return (
+        EdgarToolsCompany("tfc", "TFC", "0000092230"),
+        EdgarToolsCompany("pfsi", "PFSI", "0001745916"),
     )
-    return 0
 
 
-def _ingest_live(args: argparse.Namespace, settings: AppSettings) -> int:
-    exit_code, user_agent = _live_sec_identity(settings)
-    if user_agent is None:
-        return exit_code
-    try:
-        acquisitions = run_live_sec_ingestion(
-            user_agent=user_agent,
-            config_dir=args.config_dir,
-        )
-    except (PublicSourceError, ValueError) as error:
-        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
-        return 1
-    engine = create_database_engine(_database_url(args.database_url))
-    try:
-        from mortgage_servicing_dashboard.repository import (  # noqa: PLC0415
-            ingest_live_sec_acquisitions,
-        )
-
-        inserted = ingest_live_sec_acquisitions(
-            engine,
-            acquisitions,
-            config_dir=args.config_dir,
-        )
-    except (PublicSourceError, ValueError) as error:
-        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
-        return 1
-    finally:
-        engine.dispose()
-    print(
-        json.dumps(
-            {
-                "database": "ready",
-                "mode": "live",
-                "acquired": len(acquisitions),
-                "evidence": [item.as_payload() for item in acquisitions],
-                "inserted": inserted,
-            },
-            sort_keys=True,
-        )
-    )
-    return 0
+def _selected_edgar_companies(company: str | None) -> tuple[EdgarToolsCompany, ...]:
+    companies = _edgar_companies()
+    if company is None:
+        return companies
+    selected = tuple(item for item in companies if item.ticker == company)
+    if len(selected) != 1:
+        message = "company must be one of the governed issuers"
+        raise ValueError(message)
+    return selected
 
 
-def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
-    """Run bounded public-edgartools validation and optional atomic publication."""
+def _run_public_edgartools(  # noqa: PLR0913
+    *,
+    settings: AppSettings,
+    selected: tuple[EdgarToolsCompany, ...],
+    dry_run: bool,
+    database_url: str | None,
+    config_dir: Path | None,
+    runtime_dir: Path,
+    since: date | None = None,
+    require_explicit_database: bool = False,
+) -> tuple[int, tuple[Any, ...]]:
+    """Run one shared public-adapter preparation/persistence path."""
     try:
         identity = settings.require_edgar_identity()
-        since = date.fromisoformat(args.since) if args.since else None
     except ValueError as error:
         print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
-        return 2
-    database_url = args.database_url or os.environ.get("MSI_DATABASE_URL")
-    if not args.dry_run and not database_url:
+        return 2, ()
+
+    if not dry_run and (require_explicit_database and not database_url):
         print(
             json.dumps(
-                {"error": "non-dry sync requires an explicit isolated --database-url"},
+                {"error": "live ingest requires an explicit isolated --database-url"},
                 sort_keys=True,
             ),
             file=sys.stderr,
         )
-        return 2
-    companies = (
-        EdgarToolsCompany("tfc", "TFC", "0000092230"),
-        EdgarToolsCompany("pfsi", "PFSI", "0001745916"),
-    )
-    selected = (
-        companies
-        if args.all_companies
-        else tuple(company for company in companies if company.ticker == args.company)
-    )
+        return 2, ()
+    if not selected:
+        print(json.dumps({"error": "no governed issuer selected"}, sort_keys=True), file=sys.stderr)
+        return 2, ()
+    if not dry_run and database_url is None:
+        message = "non-dry public-edgartools runs require a database URL"
+        print(json.dumps({"error": message}, sort_keys=True), file=sys.stderr)
+        return 1, ()
+
     repository_root = Path.cwd().resolve()
-    config_root = config_directory(args.config_dir)
+    config_root = config_directory(config_dir)
     manifest_path = config_root / "golden-sources.v1.yaml"
-    if args.config_dir is None and not manifest_path.is_file():
+    if config_dir is None and not manifest_path.is_file():
         manifest_path = (
             repository_root / "tests" / "fixtures" / "edgartools" / "golden-sources.v1.yaml"
         )
@@ -284,13 +231,13 @@ def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
         adapter = EdgarToolsAdapter.from_config(
             bootstrap,
             evidence_store=GeneralEvidenceStore(
-                (args.runtime_dir / "evidence" / "edgartools").resolve()
+                (runtime_dir / "evidence" / "edgartools").resolve()
             ),
         )
         persistence = None
         known_accessions: dict[str, frozenset[str]] = {}
-        if not args.dry_run:
-            engine = create_database_engine(str(database_url))
+        if not dry_run:
+            engine = create_database_engine(cast("str", database_url))
             persistence = AtomicEdgarToolsRepository(engine)
             known_accessions = {
                 company.company_id: persistence.known_accessions(company.company_id)
@@ -306,40 +253,117 @@ def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
             pipeline.prepare_company(
                 company,
                 since=since,
-                dry_run=args.dry_run,
+                dry_run=dry_run,
                 known_accessions=known_accessions.get(company.company_id, frozenset()),
             )
             for company in selected
         )
         summaries = (
             tuple(item.summary for item in prepared)
-            if args.dry_run
+            if dry_run
             else pipeline.persist_prepared_batch(prepared)
         )
     except (EdgarToolsAdapterError, OSError, TypeError, ValueError, yaml.YAMLError) as error:
         print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
-        return 1
+        return 1, ()
     finally:
         if engine is not None:
             engine.dispose()
+    return 0, summaries
+
+
+def _print_public_edgartools_results(
+    summaries: tuple[Any, ...],
+    *,
+    mode: str,
+) -> None:
     print(
         json.dumps(
             {
                 "provider": "PUBLIC_EDGARTOOLS",
+                "mode": mode,
                 "results": [summary.as_payload() for summary in summaries],
             },
             indent=2,
             sort_keys=True,
         )
     )
-    successful_states = {
-        EdgarToolsSyncState.VALIDATED,
-        EdgarToolsSyncState.PUBLISHED,
-        EdgarToolsSyncState.LINKED,
-        EdgarToolsSyncState.UNCHANGED,
-        EdgarToolsSyncState.DISCOVERED,
-    }
-    return 0 if all(summary.terminal_state in successful_states for summary in summaries) else 1
+
+
+def _discover_live(args: argparse.Namespace, settings: AppSettings) -> int:
+    try:
+        selected = _selected_edgar_companies(args.company)
+    except ValueError as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 2
+    exit_code, summaries = _run_public_edgartools(
+        settings=settings,
+        selected=selected,
+        dry_run=True,
+        database_url=None,
+        config_dir=args.config_dir,
+        runtime_dir=args.runtime_dir,
+    )
+    if exit_code == 0:
+        _print_public_edgartools_results(summaries, mode="discover-live")
+    return exit_code
+
+
+def _ingest_live(args: argparse.Namespace, settings: AppSettings) -> int:
+    exit_code, summaries = _run_public_edgartools(
+        settings=settings,
+        selected=_edgar_companies(),
+        dry_run=False,
+        database_url=args.database_url,
+        config_dir=args.config_dir,
+        runtime_dir=args.runtime_dir,
+        require_explicit_database=True,
+    )
+    if exit_code == 0:
+        _print_public_edgartools_results(summaries, mode="ingest-live")
+    return exit_code
+
+
+def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
+    """Run bounded public-edgartools validation and optional atomic publication."""
+    try:
+        since = date.fromisoformat(args.since) if args.since else None
+        selected = (
+            _edgar_companies() if args.all_companies else _selected_edgar_companies(args.company)
+        )
+    except ValueError as error:
+        print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
+        return 2
+    database_url = args.database_url or os.environ.get("MSI_DATABASE_URL")
+    if not args.dry_run and not database_url:
+        print(
+            json.dumps(
+                {"error": "non-dry sync requires an explicit isolated --database-url"},
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+        )
+        return 2
+    exit_code, summaries = _run_public_edgartools(
+        settings=settings,
+        selected=selected,
+        dry_run=args.dry_run,
+        database_url=database_url,
+        config_dir=args.config_dir,
+        runtime_dir=args.runtime_dir,
+        since=since,
+    )
+    if exit_code == 0:
+        _print_public_edgartools_results(summaries, mode="sync")
+        successful_states = {
+            EdgarToolsSyncState.VALIDATED,
+            EdgarToolsSyncState.PUBLISHED,
+            EdgarToolsSyncState.LINKED,
+            EdgarToolsSyncState.UNCHANGED,
+            EdgarToolsSyncState.DISCOVERED,
+        }
+        return 0 if all(summary.terminal_state in successful_states for summary in summaries) else 1
+    return exit_code
 
 
 def _load_golden_manifest(path: Path) -> dict[str, object]:

@@ -28,12 +28,13 @@ only eligible product sources. Hosted `api.edgar.tools`, custom SEC HTTP clients
 web scraping, FFIEC, FR Y-9C, agency data, issuer websites, and paid data are not
 eligible acquisition paths or publication sources.
 
-Supported live access occurs only through `msi sync` and requires a validated
-`EDGAR_IDENTITY` held outside source control. One centralized acquisition lane
-serves all workers, remains below nine SEC requests per second in aggregate,
-reuses cached responses, and applies bounded retries and backoff. Missing or
-invalid identity, blocked SEC access, repeated rate limiting, or a gap in the
-public `edgartools` APIs stops acquisition without a fallback provider.
+Supported live access occurs only through the public-edgartools paths exposed by
+`msi discover --live`, `msi ingest --live`, and `msi sync`, and requires a
+validated `EDGAR_IDENTITY` held outside source control. One centralized
+acquisition lane serves all workers, remains below nine SEC requests per second
+in aggregate, reuses cached responses, and applies bounded retries and backoff.
+Missing or invalid identity, blocked SEC access, repeated rate limiting, or a gap
+in the public `edgartools` APIs stops acquisition without a fallback provider.
 
 Retain accession, CIK, form, filing date, report period, document name, SEC URL,
 locator, retrieval time, `edgartools` version, byte length, and SHA-256 where
