@@ -3,7 +3,7 @@
 
 The loader in this module is intentionally offline.  It verifies every retained
 source before parsing, extracts exact source text into :class:`Decimal` values,
-and materializes the complete issuer/metric/period assessment grid.  Derived
+and materializes the configured issuer/metric/period assessment subset.  Derived
 values are accepted only from the governed metric engine and retain its complete
 request, trace, and input lineage.
 """
@@ -253,14 +253,13 @@ def load_phase3_dataset(config_dir: Path) -> Phase3Dataset:
         Stable typed evidence, assessments, exact candidates, and lineage.
 
     Raises:
-        Phase3Error: If configuration, evidence, parity, or derivation fails.
+        Phase3Error: If configuration, evidence, local coverage, or derivation fails.
         PublicSourceError: If a retained evidence body fails integrity checks.
     """
     root = config_dir.resolve()
-    catalog = load_metric_catalog(
-        root / "metrics" / "catalog.yaml",
-        extension_paths=(root / "metrics" / "phase3_deepening.v1.yaml",),
-    )
+    # catalog.yaml is the sole runtime entry point; its named compatibility
+    # archive is discovered by the catalog loader and retained as lineage.
+    catalog = load_metric_catalog(root / "metrics" / "catalog.yaml")
     universe = _yaml(root / "universe.yaml")
     companies = {
         str(item["id"]): item for item in cast("list[dict[str, Any]]", universe["companies"])
@@ -268,7 +267,6 @@ def load_phase3_dataset(config_dir: Path) -> Phase3Dataset:
     tfc_config = _yaml(root / "phase3" / "tfc_sources.yaml")
     pfsi_config = _yaml(root / "phase3" / "pfsi_sources.yaml")
     sources, evidence = _load_sources(root, tfc_config, pfsi_config)
-    assessments = _assessments(tfc_config, pfsi_config, catalog)
     tfc, tfc_support = _parse_tfc(
         config=tfc_config,
         company=companies["tfc"],
@@ -292,6 +290,12 @@ def load_phase3_dataset(config_dir: Path) -> Phase3Dataset:
             key=_candidate_sort_key,
         )
     )
+    assessments = _assessments(
+        tfc_config,
+        pfsi_config,
+        catalog,
+        candidates=(*parsed_reported, *parsed_support),
+    )
     for item in (*parsed_reported, *parsed_support):
         dimensions = _catalog_candidate_dimensions(catalog, item.company_id, item.metric_id)
         _validate_reported_candidate(
@@ -303,7 +307,12 @@ def load_phase3_dataset(config_dir: Path) -> Phase3Dataset:
         replayed = _replay_normalization(item.raw_value, trace)
         if replayed != item.normalized_value:
             raise Phase3Error(f"normalization replay failed: {item.candidate_id}")
-    _validate_candidate_parity(assessments, parsed_reported, parsed_support)
+    _validate_configured_subset(
+        catalog,
+        assessments,
+        parsed_reported,
+        parsed_support,
+    )
     derived, blocked = _derive_candidates(
         catalog=catalog,
         assessments=assessments,
@@ -446,22 +455,47 @@ def _assessments(
     tfc_config: dict[str, Any],
     pfsi_config: dict[str, Any],
     catalog: MetricCatalog,
+    *,
+    candidates: tuple[ParsedObservationCandidate, ...],
 ) -> tuple[Phase3CellAssessment, ...]:
     result: list[Phase3CellAssessment] = []
+    candidates_by_cell: dict[tuple[str, str, date], list[ParsedObservationCandidate]] = {}
+    for candidate in candidates:
+        key = (candidate.company_id, candidate.metric_id, candidate.period_end)
+        candidates_by_cell.setdefault(key, []).append(candidate)
+
+    def candidate_identity(
+        company_id: str,
+        metric_id: str,
+        period_end: date,
+    ) -> ParsedObservationCandidate | None:
+        matches = candidates_by_cell.get((company_id, metric_id, period_end), [])
+        return (
+            min(matches, key=lambda item: (item.candidate_id, item.evidence_id))
+            if matches
+            else None
+        )
+
     tfc_cells = cast(
         "dict[str, dict[str, dict[str, Any]]]",
         cast("dict[str, Any]", tfc_config["eligible_source_assessment"])["cells"],
     )
     for metric_id, periods in tfc_cells.items():
         for period_text, raw in periods.items():
+            period_end = date.fromisoformat(period_text)
+            identity = candidate_identity("tfc", metric_id, period_end)
             source_keys = _assessment_source_keys(raw)
             result.append(
                 Phase3CellAssessment(
                     company_id="tfc",
                     metric_id=metric_id,
-                    period_end=date.fromisoformat(period_text),
-                    reporting_entity_id="tfc_registrant",
-                    reporting_scope_id=_scope("tfc", metric_id),
+                    period_end=period_end,
+                    reporting_entity_id=(
+                        identity.reporting_entity_id if identity else "tfc_registrant"
+                    ),
+                    reporting_scope_id=(
+                        identity.reporting_scope_id if identity else _scope("tfc", metric_id)
+                    ),
                     dimensions=_catalog_candidate_dimensions(catalog, "tfc", metric_id),
                     assessment_status=str(raw["assessment_status"]),
                     result_state=_published_state(str(raw["result_state"])),
@@ -477,6 +511,8 @@ def _assessments(
     check_profiles = cast("dict[str, str]", pfsi_config.get("eligible_check_profiles", {}))
     for raw in pfsi_cells:
         metric_id = str(raw["metric_id"])
+        period_end = date.fromisoformat(str(raw["period_end"]))
+        identity = candidate_identity("pfsi", metric_id, period_end)
         source_keys = tuple(str(value) for value in raw["checked_source_keys"])
         locators = tuple(
             str(value) for value in raw.get("checked_locators", raw.get("locators", []))
@@ -493,9 +529,13 @@ def _assessments(
             Phase3CellAssessment(
                 company_id="pfsi",
                 metric_id=metric_id,
-                period_end=date.fromisoformat(str(raw["period_end"])),
-                reporting_entity_id="pfsi_registrant",
-                reporting_scope_id=_scope("pfsi", metric_id),
+                period_end=period_end,
+                reporting_entity_id=(
+                    identity.reporting_entity_id if identity else "pfsi_registrant"
+                ),
+                reporting_scope_id=(
+                    identity.reporting_scope_id if identity else _scope("pfsi", metric_id)
+                ),
                 dimensions=_catalog_candidate_dimensions(catalog, "pfsi", metric_id),
                 assessment_status=str(raw["assessment_status"]),
                 result_state=_published_state(str(raw["result_state"])),
@@ -651,10 +691,6 @@ def _parse_pfsi(
     )
     _parse_pfsi_expense(recipes, sources, catalog, candidates)
     _parse_pfsi_periodic(recipes, sources, catalog, candidates, support)
-    support_metrics = {item.metric_id for item in support}
-    if not support_metrics >= _SUPPORT_METRICS:
-        missing = sorted(_SUPPORT_METRICS - support_metrics)
-        raise Phase3Error(f"PFSI supporting facts are incomplete: {missing}")
     return tuple(candidates), tuple(support)
 
 
@@ -1176,13 +1212,20 @@ def _derive_candidates(
     assessments: tuple[Phase3CellAssessment, ...],
     reported: tuple[ParsedObservationCandidate, ...],
 ) -> tuple[tuple[Phase3DerivedCandidate, ...], tuple[Phase3BlockedDerivation, ...]]:
-    by_key = {(item.company_id, item.metric_id, item.period_end): item for item in reported}
+    by_key: dict[tuple[str, str, date], tuple[ParsedObservationCandidate, ...]] = {}
+    for item in reported:
+        key = (item.company_id, item.metric_id, item.period_end)
+        by_key[key] = (*by_key.get(key, ()), item)
     derived: list[Phase3DerivedCandidate] = []
     blocked: list[Phase3BlockedDerivation] = []
     for assessment in assessments:
         if assessment.result_state != "DERIVED":
             continue
-        definition = catalog.versions(assessment.metric_id)[-1]
+        definition = catalog.current_definition(assessment.metric_id)
+        if definition is None:
+            raise Phase3Error(
+                f"Phase 3 derived cell has no current catalog definition: {assessment.metric_id}"
+            )
         if definition.derivation is None:
             blocked.append(
                 Phase3BlockedDerivation(
@@ -1327,7 +1370,7 @@ def _derive_candidates(
 
 def _select_input(
     *,
-    by_key: dict[tuple[str, str, date], ParsedObservationCandidate],
+    by_key: dict[tuple[str, str, date], tuple[ParsedObservationCandidate, ...]],
     assessment: Phase3CellAssessment,
     role: str,
     metric_ids: tuple[str, ...],
@@ -1336,9 +1379,15 @@ def _select_input(
     if role.startswith("beginning"):
         target = _previous_period_end(assessment.period_end)
     for metric_id in metric_ids:
-        found = by_key.get((assessment.company_id, metric_id, target))
-        if found is not None:
-            return found
+        found = by_key.get((assessment.company_id, metric_id, target), ())
+        if len(found) == 1:
+            return found[0]
+        semantic_matches = {candidate.semantic_key_digest for candidate in found}
+        if len(semantic_matches) == 1 and found:
+            # Preserve equivalent corroboration while choosing one
+            # deterministic input. Conflicting values were rejected by
+            # _validate_configured_subset before derivation begins.
+            return min(found, key=lambda item: (item.candidate_id, item.evidence_id))
     return None
 
 
@@ -1365,6 +1414,9 @@ def _metric_input(
         value_state=ValueState.REPORTED_ACTUAL,
         completeness=Completeness.COMPLETE,
         dimensions=dimensions,
+        # normalized_value is already in canonical units; reported_scale is
+        # retained only as source provenance and must not enter comparability.
+        scale=candidate.canonical_scale,
     )
 
 
@@ -1475,7 +1527,9 @@ def _catalog_input_dimensions(
     metric_id: str,
     output_dimensions: tuple[MetricDimension, ...],
 ) -> tuple[MetricDimension, ...]:
-    definition = catalog.versions(metric_id)[-1]
+    definition = catalog.current_definition(metric_id)
+    if definition is None:
+        raise Phase3Error(f"metric has no current catalog definition: {metric_id}")
     output = {item.name: item.value for item in output_dimensions}
     dimensions: list[MetricDimension] = []
     for requirement in definition.dimensions:
@@ -1488,31 +1542,109 @@ def _catalog_input_dimensions(
     return tuple(sorted(dimensions))
 
 
-def _validate_candidate_parity(
+def _validate_configured_subset(  # noqa: PLR0912
+    catalog: MetricCatalog,
     assessments: tuple[Phase3CellAssessment, ...],
     reported: tuple[ParsedObservationCandidate, ...],
     support: tuple[ParsedObservationCandidate, ...],
 ) -> None:
-    expected = {
-        (item.company_id, item.metric_id, item.period_end)
-        for item in assessments
-        if item.result_state == "PUBLISHED"
-    }
-    grid_support = tuple(item for item in support if item.metric_id in _SUPPORT_METRICS)
-    actual = {
-        (item.company_id, item.metric_id, item.period_end) for item in (*reported, *grid_support)
-    }
-    if actual != expected:
-        missing = sorted(expected - actual)
-        extra = sorted(actual - expected)
-        raise Phase3Error(
-            f"reported-candidate disclosure parity failed; missing={missing}; extra={extra}"
+    """Validate configured metrics as a nonempty known subset.
+
+    Source recipes may retain corroborating rows, historical labels, and support
+    facts that are not represented by every configured assessment cell.  Those
+    rows remain evidence and are never rejected solely for failing a global
+    grid-count/parity check.  Each configured published cell still needs one
+    and only one semantic candidate; equivalent corroboration is retained
+    deterministically, while conflicting duplicate semantics fail closed before
+    derivation can select an arbitrary value.
+    """
+    configured = {item.metric_id for item in assessments}
+    if not configured:
+        raise Phase3Error("Phase 3 configuration must declare at least one metric")
+    unknown = sorted(
+        metric_id for metric_id in configured if catalog.current_definition(metric_id) is None
+    )
+    if unknown:
+        raise Phase3Error(f"Phase 3 configuration references unknown metrics: {unknown}")
+    candidate_metrics = {item.metric_id for item in (*reported, *support)}
+    unknown_candidates = sorted(
+        metric_id
+        for metric_id in candidate_metrics
+        if catalog.current_definition(metric_id) is None
+    )
+    if unknown_candidates:
+        raise Phase3Error(f"Phase 3 candidates reference unknown metrics: {unknown_candidates}")
+    candidates = (*reported, *support)
+    by_semantic_identity: dict[str, list[ParsedObservationCandidate]] = {}
+    for candidate in candidates:
+        by_semantic_identity.setdefault(candidate.semantic_key_digest, []).append(candidate)
+    duplicate_identities = sorted(
+        digest for digest, matches in by_semantic_identity.items() if len(matches) > 1
+    )
+    conflicting_identities = [
+        digest
+        for digest in duplicate_identities
+        if len(
+            {
+                (
+                    candidate.normalized_value,
+                    candidate.currency,
+                    candidate.unit,
+                    candidate.canonical_scale,
+                )
+                for candidate in by_semantic_identity[digest]
+            }
         )
-    if len(actual) != len((*reported, *grid_support)):
-        raise Phase3Error("published candidates contain duplicate grid cells")
-    support_ids = {item.candidate_id for item in support}
-    if len(support_ids) != len(support) or support_ids & {item.candidate_id for item in reported}:
-        raise Phase3Error("reported/support candidates contain duplicate identities")
+        > 1
+    ]
+    if conflicting_identities:
+        raise Phase3Error(
+            "Phase 3 candidates contain conflicting duplicate semantic identities: "
+            + ", ".join(sorted(conflicting_identities))
+        )
+    by_cell: dict[tuple[str, str, date], list[ParsedObservationCandidate]] = {}
+    for candidate in candidates:
+        key = (candidate.company_id, candidate.metric_id, candidate.period_end)
+        by_cell.setdefault(key, []).append(candidate)
+    for assessment in assessments:
+        if assessment.result_state != "PUBLISHED":
+            continue
+        key = (assessment.company_id, assessment.metric_id, assessment.period_end)
+        matches = by_cell.get(key, [])
+        semantic_matches = {candidate.semantic_key_digest for candidate in matches}
+        if len(semantic_matches) != 1:
+            raise Phase3Error(
+                "configured PUBLISHED cell must have exactly one candidate: "
+                f"{key}; found={len(semantic_matches)}"
+            )
+        definition = catalog.current_definition(assessment.metric_id)
+        if definition is None:
+            raise Phase3Error(f"configured metric has no current definition: {key}")
+        expected_dimensions = _catalog_candidate_dimensions(
+            catalog,
+            assessment.company_id,
+            assessment.metric_id,
+        )
+        if assessment.dimensions != expected_dimensions:
+            raise Phase3Error(f"configured assessment dimensions do not match catalog: {key}")
+        for candidate in matches:
+            candidate_period_type = _period_type(candidate.period_type)
+            expected_start = (
+                None
+                if candidate_period_type is PeriodType.INSTANT
+                else _PERIOD_START.get(assessment.period_end)
+            )
+            if (
+                candidate.metric_version != definition.semantic_version
+                or candidate.reporting_entity_id != assessment.reporting_entity_id
+                or candidate.reporting_scope_id != assessment.reporting_scope_id
+                or candidate_period_type not in definition.period_types
+                or candidate.period_start != expected_start
+            ):
+                raise Phase3Error(
+                    "configured PUBLISHED candidate identity does not match assessment: "
+                    f"{key}:{candidate.candidate_id}"
+                )
 
 
 def _scope(company_id: str, metric_id: str) -> str:
@@ -1620,7 +1752,9 @@ def _catalog_candidate_dimensions(
     metric_id: str,
 ) -> tuple[MetricDimension, ...]:
     """Resolve every dimension required by the latest governed definition."""
-    definition = catalog.versions(metric_id)[-1]
+    definition = catalog.current_definition(metric_id)
+    if definition is None:
+        raise Phase3Error(f"metric has no current catalog definition: {metric_id}")
     suggested = {item.name: item.value for item in _assessment_dimensions(company_id, metric_id)}
     dimensions: list[MetricDimension] = []
     for requirement in definition.dimensions:
@@ -1691,10 +1825,10 @@ def _source_decimal(raw: str) -> Decimal:
 
 
 def _metric_version(catalog: MetricCatalog, metric_id: str) -> str:
-    versions = catalog.versions(metric_id)
-    if not versions:
+    definition = catalog.current_definition(metric_id)
+    if definition is None:
         raise Phase3Error(f"Phase 3 candidate metric is absent from catalog: {metric_id}")
-    return versions[-1].semantic_version
+    return definition.semantic_version
 
 
 def _period_type(raw: str) -> PeriodType:

@@ -175,9 +175,20 @@ class ParsedObservationCandidate:
     parser_version: str
 
     @property
+    def canonical_scale(self) -> str:
+        """Return the scale of ``normalized_value`` rather than source display scale.
+
+        ``reported_scale`` records how the issuer printed a value (for example,
+        millions).  The stored Decimal has already been normalized to canonical
+        units, so strict comparisons and metric-engine inputs use scale ``1``.
+        """
+        return "1"
+
+    @property
     def semantic_key_digest(self) -> str:
         """Return a stable semantic identity independent of acquisition time."""
         identity = {
+            "metric_id": self.metric_id,
             "metric_version": self.metric_version,
             "reporting_entity_id": self.reporting_entity_id,
             "reporting_scope_id": self.reporting_scope_id,
@@ -188,6 +199,7 @@ class ParsedObservationCandidate:
             "methodology": self.methodology,
             "currency": self.currency,
             "unit": self.unit,
+            "scale": self.canonical_scale,
         }
         encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
         return hashlib.sha256(encoded).hexdigest()
@@ -261,6 +273,14 @@ class ComparisonInput:
     observation_state: ObservationState
     portfolio_population: str
     dimensions: tuple[tuple[str, str], ...] = ()
+    # The legacy fields above remain accepted for archived callers. New
+    # repository comparisons populate the complete identity below.
+    period_kind: str | None = None
+    period_start: date | None = None
+    period_end: date | None = None
+    scale: str | None = None
+    reporting_entity: str | None = None
+    cross_company_comparison: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,7 +291,7 @@ class ComparisonResult:
     reasons: tuple[str, ...]
 
 
-def assess_comparability(  # noqa: C901
+def assess_comparability(  # noqa: C901, PLR0912
     left: ComparisonInput,
     right: ComparisonInput,
 ) -> ComparisonResult:
@@ -296,16 +316,47 @@ def assess_comparability(  # noqa: C901
         hard_mismatches.append("currency or unit differs")
     if left.portfolio_population != right.portfolio_population:
         hard_mismatches.append("portfolio populations differ")
-    if left.reporting_scope != right.reporting_scope:
+    cross_company = left.cross_company_comparison and right.cross_company_comparison
+    if left.reporting_scope != right.reporting_scope and (
+        not cross_company or left.portfolio_population != right.portfolio_population
+    ):
         hard_mismatches.append("reporting scopes differ")
+    strict_period_identity = any(
+        value is not None
+        for value in (
+            left.period_kind,
+            right.period_kind,
+            left.period_start,
+            right.period_start,
+            left.period_end,
+            right.period_end,
+        )
+    )
+    if strict_period_identity and (
+        left.period_kind != right.period_kind
+        or left.period_start != right.period_start
+        or left.period_end != right.period_end
+    ):
+        hard_mismatches.append("period identity differs")
+    if (left.scale is not None or right.scale is not None) and left.scale != right.scale:
+        hard_mismatches.append("scales differ")
+    if (
+        not cross_company
+        and (left.reporting_entity is not None or right.reporting_entity is not None)
+        and left.reporting_entity != right.reporting_entity
+    ):
+        hard_mismatches.append("reporting entities differ")
     if left.dimensions != right.dimensions:
         hard_mismatches.append("controlled metric dimensions differ")
+    methodology_mismatch = left.methodology != right.methodology
+    if methodology_mismatch and strict_period_identity:
+        hard_mismatches.append("methodologies differ")
     if hard_mismatches:
         return ComparisonResult(ComparabilityStatus.NOT_COMPARABLE, tuple(hard_mismatches))
     caveats: list[str] = []
-    if left.period_days != right.period_days:
+    if not strict_period_identity and left.period_days != right.period_days:
         caveats.append("period lengths differ")
-    if left.methodology != right.methodology:
+    if methodology_mismatch:
         caveats.append("methodologies differ")
     if left.observation_state != right.observation_state:
         caveats.append("observation states differ")

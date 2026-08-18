@@ -6,10 +6,12 @@ The catalog defines canonical meanings; it does not assert that TFC or PFSI
 discloses every metric. An unsupported cell is \`NOT_DISCLOSED\`, never zero,
 estimated, or populated from a “closest” metric.
 
-Each definition below is semantic version \`1.0.0\`, effective 2025-07-01 until
-superseded. A change to meaning, scope, formula, timing, or publication evidence
-creates a new immutable version. Display-only wording can change without altering
-semantics only when the decision record explains why.
+Definitions are immutable semantic versions, effective 2025-07-01 until
+superseded. The runtime catalog exposes exactly one current definition per
+metric; older versions remain available as historical lineage for observations
+that reference them. A change to meaning, scope, formula, timing, or publication
+evidence creates a new immutable version. Display-only wording can change
+without altering semantics only when the decision record explains why.
 
 Every machine-readable definition contains:
 
@@ -50,13 +52,15 @@ source discovery and retain the issuer wording in observation evidence.
 - Cross-company comparison follows the pairwise comparability policy. Matching
   canonical IDs alone is insufficient.
 
-## Phase 3 extension
+## Canonical runtime catalog and historical lineage
 
-`config/metrics/phase3_deepening.v1.yaml` composes with, and does not mutate,
-the base catalog. It versions the richer delinquency methodology dimensions,
+`config/metrics/catalog.yaml` is the sole declarative and runtime entry point.
+Its compact schema contains the base meanings, rich methodology dimensions,
 annualized cost and fee calculations, MSR fair-value economics, investor mix,
-and TFC SEC-versus-regulatory reconciliation rules. The machine-readable
-extension is authoritative for its exact definitions and formula versions.
+and TFC SEC-versus-regulatory reconciliation rules. The composed typed catalog
+marks the newest semantic version for each metric `CURRENT` and all older
+versions `HISTORICAL`, preserving active observation lineage without creating
+competing canonical definitions.
 
 Every Phase 3 derivation requires exact `PUBLISHED` and `VALIDATED` observation
 revisions for all numerators, denominators, components, and averaging anchors.
@@ -132,9 +136,10 @@ and market/assumption changes as signed effects. Raw issuer signs remain evidenc
 ## Stage A publication profile
 
 The configuration identifies which of these definitions has a verified extraction
-path for TFC and PFSI in Q3 2025 through Q2 2026. Stage A must display at least
-five useful metrics across the selected coverage, but the catalog does not promise
-that every metric appears for both issuers.
+path for TFC and PFSI in Q3 2025 through Q2 2026. Stage A requires a nonempty
+known configured subset; it does not require every catalog metric or a fixed
+global completeness count. An unsupported configured cell remains
+`NOT_DISCLOSED` with its checked-source provenance.
 
 Default cross-company portfolio comparisons prefer
 \`servicing_for_others_upb\` and \`owned_msr_upb\` when both issuers disclose

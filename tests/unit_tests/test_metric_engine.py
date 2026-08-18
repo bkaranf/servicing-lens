@@ -20,6 +20,7 @@ from mortgage_servicing_dashboard.metric_engine import (
     Completeness,
     DecisionDisposition,
     DecisionReason,
+    DefinitionLifecycle,
     DerivationDecision,
     DerivationRequest,
     DimensionRequirement,
@@ -47,7 +48,6 @@ from mortgage_servicing_dashboard.metric_engine import (
 
 _ROOT = Path(__file__).resolve().parents[2]
 _BASE_CATALOG = _ROOT / "config" / "metrics" / "catalog.yaml"
-_PHASE3_CATALOG = _ROOT / "config" / "metrics" / "phase3_deepening.v1.yaml"
 _QUARTER_START = date(2026, 4, 1)
 _QUARTER_END = date(2026, 6, 30)
 _BEGINNING = date(2026, 3, 31)
@@ -56,10 +56,7 @@ _MSR_DIMENSIONS = (MetricDimension("msr_population", "owned_msr"),)
 
 
 def _catalog() -> MetricCatalog:
-    return load_metric_catalog(
-        _BASE_CATALOG,
-        extension_paths=(_PHASE3_CATALOG,),
-    )
+    return load_metric_catalog(_BASE_CATALOG)
 
 
 def _input(  # noqa: PLR0913
@@ -81,6 +78,7 @@ def _input(  # noqa: PLR0913
     value_state: ValueState = ValueState.REPORTED_ACTUAL,
     completeness: Completeness = Completeness.COMPLETE,
     formula_version: str | None = None,
+    scale: str = "1",
 ) -> MetricInput:
     return MetricInput(
         observation_id=observation_id,
@@ -100,6 +98,7 @@ def _input(  # noqa: PLR0913
         completeness=completeness,
         dimensions=dimensions,
         formula_version=formula_version,
+        scale=scale,
     )
 
 
@@ -180,7 +179,7 @@ def test_default_test_session_blocks_network_sockets() -> None:
         socket.socket()
 
 
-def test_catalog_composes_base_and_phase3_and_has_all_requested_metrics() -> None:
+def test_catalog_is_unified_and_has_all_requested_metrics() -> None:
     catalog = _catalog()
     requested = {
         "msr_hedging_result",
@@ -197,12 +196,23 @@ def test_catalog_composes_base_and_phase3_and_has_all_requested_metrics() -> Non
     }
 
     assert catalog.base_version == "1.0.0"
-    assert catalog.extension_versions == ("phase3-metric-deepening-1.0.0",)
+    assert not (_BASE_CATALOG.parent / "phase3_deepening.v1.yaml").exists()
     assert requested <= {definition.metric_id for definition in catalog.definitions}
     assert {item.semantic_version for item in catalog.versions("cost_to_service_per_loan")} == {
         "1.0.0",
         "2.0.0",
     }
+    current_definition = catalog.current_definition("cost_to_service_per_loan")
+    assert current_definition is not None
+    assert current_definition.lifecycle is DefinitionLifecycle.CURRENT
+    assert (
+        catalog.historical_versions("cost_to_service_per_loan")[0].lifecycle
+        is DefinitionLifecycle.HISTORICAL
+    )
+    assert all(
+        sum(item.is_current for item in catalog.versions(metric_id)) == 1
+        for metric_id in {item.metric_id for item in catalog.definitions}
+    )
     assert catalog_invariant_violations(catalog) == ()
     validate_catalog_invariants(catalog)
 
@@ -403,23 +413,6 @@ def test_general_sum_and_ratio_formulas_are_exact_and_lineaged() -> None:
     assert rate.result is not None
     assert rate.result.value == Decimal("0.0250000000")
     assert zero.reasons == (DecisionReason.DENOMINATOR_NOT_POSITIVE,)
-
-
-def test_catalog_rejects_mismatched_extension_base_version(tmp_path: Path) -> None:
-    extension = tmp_path / "bad.yaml"
-    extension.write_text(
-        """schema_version: "1"
-extension_version: "test"
-requires_base_catalog_version: "9.9.9"
-dimension_taxonomies: []
-metric_versions: []
-cross_source_rules: []
-""",
-        encoding="utf-8",
-    )
-
-    with pytest.raises(MetricEngineError, match="requires base catalog"):
-        load_metric_catalog(_BASE_CATALOG, extension_paths=(extension,))
 
 
 def test_full_catalog_invariant_helper_reports_all_fail_closed_categories() -> None:
@@ -890,6 +883,16 @@ def test_comparability_requires_exact_methodology_dimensions_and_formula_version
     assert comparable == ComparabilityDecision(comparable=True, reasons=())
     assert changed.comparable is False
     assert changed.reasons == (DecisionReason.INPUT_FORMULA_VERSION_MISSING,)
+
+
+def test_comparability_and_derivation_require_canonical_scale_identity() -> None:
+    left = _input("obs:left", "owned_msr_upb", "100", scale="1")
+    with pytest.raises(MetricEngineError, match="canonical scale"):
+        replace(left, observation_id="obs:right", scale="millions")
+
+    request = _msr_request("msr_fair_value_multiple_of_related_upb")
+    with pytest.raises(MetricEngineError, match="canonical scale"):
+        replace(request, scale="millions")
 
 
 def _tfc_cross_source_pair(

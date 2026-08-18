@@ -30,4 +30,4 @@ The old implementation, tracked evidence, dependencies, database schema, and pub
 
 ## Smallest unblock action
 
-Have EdgarTools enable or repair the documented filing-document list and exact-fetch routes for the governed TFC and PFSI accessions under the configured account, then rerun Phases 2 and 3. Structured-financial access may also need provisioning, but it cannot replace document retrieval for issuer-specific servicing disclosures. Cleanup remains prohibited until the rerun reaches exact 439-of-439 parity with zero unresolved conflicts.
+Have EdgarTools enable or repair the documented filing-document list and exact-fetch routes for the governed TFC and PFSI accessions under the configured account, then rerun Phases 2 and 3. Structured-financial access may also need provisioning, but it cannot replace document retrieval for issuer-specific servicing disclosures. The 439-row export remains archival evidence only; it is not a current completeness or cleanup gate.

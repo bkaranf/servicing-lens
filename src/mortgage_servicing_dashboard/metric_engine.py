@@ -10,7 +10,7 @@ database dependency and never selects a preferred value after a conflict.
 from __future__ import annotations
 
 from collections.abc import Hashable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import (
     ROUND_HALF_EVEN,
@@ -52,6 +52,13 @@ EnumT = TypeVar("EnumT", bound=StrEnum)
 
 class MetricEngineError(ValueError):
     """Raised when catalog bytes or engine construction violate invariants."""
+
+
+class DefinitionLifecycle(StrEnum):
+    """Lifecycle of one immutable semantic metric definition."""
+
+    CURRENT = "CURRENT"
+    HISTORICAL = "HISTORICAL"
 
 
 class MetricUnit(StrEnum):
@@ -210,6 +217,7 @@ class DecisionReason(StrEnum):
     INPUT_VALUE_NONFINITE = "INPUT_VALUE_NONFINITE"
     INPUT_METRIC_MISMATCH = "INPUT_METRIC_MISMATCH"
     INPUT_UNIT_MISMATCH = "INPUT_UNIT_MISMATCH"
+    INPUT_SCALE_MISMATCH = "INPUT_SCALE_MISMATCH"
     INPUT_PERIOD_MISMATCH = "INPUT_PERIOD_MISMATCH"
     INPUT_ISSUER_MISMATCH = "INPUT_ISSUER_MISMATCH"
     INPUT_ENTITY_MISMATCH = "INPUT_ENTITY_MISMATCH"
@@ -223,6 +231,7 @@ class DecisionReason(StrEnum):
     DENOMINATOR_NOT_POSITIVE = "DENOMINATOR_NOT_POSITIVE"
     OUTPUT_VALIDATION_FAILED = "OUTPUT_VALIDATION_FAILED"
     UNIT_MISMATCH = "UNIT_MISMATCH"
+    SCALE_MISMATCH = "SCALE_MISMATCH"
     PERIOD_MISMATCH = "PERIOD_MISMATCH"
     METHODOLOGY_MISMATCH = "METHODOLOGY_MISMATCH"
     DIMENSION_MISSING = "DIMENSION_MISSING"
@@ -258,6 +267,8 @@ class CatalogViolationCode(StrEnum):
     EMPTY_SCOPE_PAIR = "EMPTY_SCOPE_PAIR"
     DUPLICATE_SCOPE_PAIR = "DUPLICATE_SCOPE_PAIR"
     SAME_SCOPE_PAIR = "SAME_SCOPE_PAIR"
+    DUPLICATE_CURRENT_DEFINITION = "DUPLICATE_CURRENT_DEFINITION"
+    MISSING_CURRENT_DEFINITION = "MISSING_CURRENT_DEFINITION"
 
 
 @dataclass(frozen=True, order=True, slots=True)
@@ -359,11 +370,17 @@ class MetricDefinition:
     reconciliation_rules: tuple[str, ...]
     quantization: QuantizationRule
     derivation: DerivationDefinition | None
+    lifecycle: DefinitionLifecycle = DefinitionLifecycle.CURRENT
 
     @property
     def key(self) -> tuple[str, str]:
         """Return the catalog's stable versioned key."""
         return self.metric_id, self.semantic_version
+
+    @property
+    def is_current(self) -> bool:
+        """Return whether this immutable version is the current canonical one."""
+        return self.lifecycle is DefinitionLifecycle.CURRENT
 
 
 @dataclass(frozen=True, slots=True)
@@ -400,10 +417,9 @@ class CatalogViolation:
 
 @dataclass(frozen=True, slots=True)
 class MetricCatalog:
-    """Composed base catalog and one or more strict Phase 3 extensions."""
+    """One canonical metric view with immutable version history."""
 
     base_version: str
-    extension_versions: tuple[str, ...]
     definitions: tuple[MetricDefinition, ...]
     dimension_taxonomies: tuple[DimensionTaxonomy, ...]
     cross_source_rules: tuple[CrossSourceRule, ...]
@@ -420,13 +436,24 @@ class MetricCatalog:
         )
 
     def versions(self, metric_id: str) -> tuple[MetricDefinition, ...]:
-        """Return all definitions for a metric in semantic-version order."""
+        """Return all immutable definitions in semantic-version order."""
         return tuple(
             sorted(
                 (item for item in self.definitions if item.metric_id == metric_id),
-                key=lambda item: item.semantic_version,
+                key=lambda item: _semantic_version_key(item.semantic_version),
             )
         )
+
+    def current_definition(self, metric_id: str) -> MetricDefinition | None:
+        """Return the one current canonical definition for a metric."""
+        return next(
+            (item for item in self.definitions if item.metric_id == metric_id and item.is_current),
+            None,
+        )
+
+    def historical_versions(self, metric_id: str) -> tuple[MetricDefinition, ...]:
+        """Return immutable historical versions retained for observation lineage."""
+        return tuple(item for item in self.versions(metric_id) if not item.is_current)
 
     def cross_source_rule(self, rule_id: str) -> CrossSourceRule | None:
         """Return one cross-source rule by stable identifier."""
@@ -454,11 +481,14 @@ class MetricInput:
     completeness: Completeness
     dimensions: tuple[MetricDimension, ...] = ()
     formula_version: str | None = None
+    scale: str = "1"
 
     def __post_init__(self) -> None:
         """Enforce types and unambiguous local context structure."""
         if self.value is not None:
             _require_decimal(self.value, "input value")
+        if self.scale != "1":
+            raise MetricEngineError("metric inputs must use canonical scale '1'")
         if self.period_type is PeriodType.INSTANT and self.period_start is not None:
             raise MetricEngineError("instant input cannot have a period start")
         if self.period_type is not PeriodType.INSTANT and (
@@ -517,11 +547,14 @@ class DerivationRequest:
     inputs: tuple[tuple[str, MetricInput], ...]
     averaging: AveragingParameters | None = None
     annualization: AnnualizationParameters | None = None
+    scale: str = "1"
 
     def __post_init__(self) -> None:
         """Require ordered output periods and deterministic dimension order."""
         if not self.derived_observation_id.strip():
             raise MetricEngineError("derived observation ID must not be blank")
+        if self.scale != "1":
+            raise MetricEngineError("derived outputs must use canonical scale '1'")
         if self.period_type is PeriodType.INSTANT and self.period_start is not None:
             raise MetricEngineError("instant output cannot have a period start")
         if self.period_type is not PeriodType.INSTANT and (
@@ -579,6 +612,7 @@ class DerivedMetricResult:
     dimensions: tuple[MetricDimension, ...]
     trace: CalculationTrace
     lineage: tuple[DerivedObservationLineage, ...]
+    scale: str = "1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -631,40 +665,18 @@ class CrossSourceReconciliationDecision:
 
 def load_metric_catalog(
     base_path: Path,
-    *,
-    extension_paths: Sequence[Path] = (),
 ) -> MetricCatalog:
-    """Load, compose, and fully validate a base catalog and strict extensions."""
+    """Load the sole declarative catalog and retain immutable version history."""
     base = _load_yaml_mapping(base_path)
     base_version = _text(base, "catalog_version", context=str(base_path))
     definitions = list(_parse_base_definitions(base))
-    taxonomies: list[DimensionTaxonomy] = []
-    rules: list[CrossSourceRule] = []
-    extension_versions: list[str] = []
-    for extension_path in extension_paths:
-        extension = _load_yaml_mapping(extension_path)
-        schema_version = _text(extension, "schema_version", context=str(extension_path))
-        if schema_version != "1":
-            raise MetricEngineError(f"unsupported metric extension schema: {schema_version}")
-        required_base = _text(
-            extension,
-            "requires_base_catalog_version",
-            context=str(extension_path),
-        )
-        if required_base != base_version:
-            raise MetricEngineError(
-                f"extension requires base catalog {required_base}, loaded {base_version}"
-            )
-        extension_versions.append(
-            _text(extension, "extension_version", context=str(extension_path))
-        )
-        taxonomies.extend(_parse_taxonomies(extension))
-        definitions.extend(_parse_extension_definitions(extension))
-        rules.extend(_parse_cross_source_rules(extension))
+    definitions.extend(_parse_versioned_definitions(base))
+    taxonomies = list(_parse_taxonomies(base))
+    rules = list(_parse_cross_source_rules(base))
+    resolved_definitions = _assign_definition_lifecycle(tuple(definitions))
     catalog = MetricCatalog(
         base_version=base_version,
-        extension_versions=tuple(extension_versions),
-        definitions=tuple(definitions),
+        definitions=resolved_definitions,
         dimension_taxonomies=tuple(taxonomies),
         cross_source_rules=tuple(rules),
     )
@@ -679,6 +691,24 @@ def catalog_invariant_violations(catalog: MetricCatalog) -> tuple[CatalogViolati
     metric_ids = {item.metric_id for item in catalog.definitions}
     taxonomy_ids = [item.taxonomy_id for item in catalog.dimension_taxonomies]
     taxonomies = {item.taxonomy_id: item for item in catalog.dimension_taxonomies}
+    for metric_id in sorted(metric_ids):
+        current = [
+            item for item in catalog.definitions if item.metric_id == metric_id and item.is_current
+        ]
+        if len(current) > 1:
+            violations.append(
+                CatalogViolation(
+                    CatalogViolationCode.DUPLICATE_CURRENT_DEFINITION,
+                    metric_id,
+                )
+            )
+        elif not current:
+            violations.append(
+                CatalogViolation(
+                    CatalogViolationCode.MISSING_CURRENT_DEFINITION,
+                    metric_id,
+                )
+            )
     for duplicate_definition_key in _duplicates(definition_keys):
         violations.append(
             CatalogViolation(
@@ -902,6 +932,8 @@ def assess_metric_comparability(
             reasons.append(DecisionReason.INPUT_VALUE_NONFINITE)
     if left.unit is not right.unit:
         reasons.append(DecisionReason.UNIT_MISMATCH)
+    if left.scale != right.scale:
+        reasons.append(DecisionReason.SCALE_MISMATCH)
     if (
         left.period_type is not right.period_type
         or left.period_start != right.period_start
@@ -1002,6 +1034,7 @@ def derive_metric(request: DerivationRequest, catalog: MetricCatalog) -> Derivat
         dimensions=request.dimensions,
         trace=trace,
         lineage=lineage,
+        scale=request.scale,
     )
     return DerivationDecision(DecisionDisposition.VALIDATED, (), result)
 
@@ -1097,6 +1130,7 @@ def _parse_base_definitions(root: YamlMapping) -> tuple[MetricDefinition, ...]:
                     RoundingMethod.ROUND_HALF_EVEN,
                 ),
                 derivation=None,
+                lifecycle=_definition_lifecycle(metric),
             )
         )
     return tuple(parsed)
@@ -1108,13 +1142,13 @@ def _parse_taxonomies(root: YamlMapping) -> tuple[DimensionTaxonomy, ...]:
             taxonomy_id=_text(item, "id", context="dimension taxonomy"),
             values=_text_sequence(item, "values"),
         )
-        for item in _mapping_sequence(root, "dimension_taxonomies", context="extension")
+        for item in _mapping_sequence(root, "dimension_taxonomies", context="catalog")
     )
 
 
-def _parse_extension_definitions(root: YamlMapping) -> tuple[MetricDefinition, ...]:
+def _parse_versioned_definitions(root: YamlMapping) -> tuple[MetricDefinition, ...]:
     parsed: list[MetricDefinition] = []
-    for metric in _mapping_sequence(root, "metric_versions", context="extension"):
+    for metric in _mapping_sequence(root, "metric_versions", context="catalog"):
         unit = _enum(MetricUnit, _text(metric, "unit", context="metric version"))
         quantization_raw = _mapping(metric, "quantization", context="metric version")
         comparison_raw = _mapping(metric, "comparability", context="metric version")
@@ -1172,9 +1206,51 @@ def _parse_extension_definitions(root: YamlMapping) -> tuple[MetricDefinition, .
                     if derivation_raw is None
                     else _parse_derivation(_as_mapping(derivation_raw, "derivation"))
                 ),
+                lifecycle=_definition_lifecycle(metric),
             )
         )
     return tuple(parsed)
+
+
+def _definition_lifecycle(raw: YamlMapping) -> DefinitionLifecycle:
+    """Read optional lifecycle metadata without making it a semantic field."""
+    value = raw.get("lifecycle", DefinitionLifecycle.CURRENT.value)
+    if not isinstance(value, str):
+        raise MetricEngineError("metric definition lifecycle must be a string")
+    return _enum(DefinitionLifecycle, value)
+
+
+def _semantic_version_key(value: str) -> tuple[object, ...]:
+    """Sort semantic versions numerically while failing closed on odd labels."""
+    pieces = value.split(".")
+    result: list[object] = []
+    for piece in pieces:
+        result.append((0, int(piece)) if piece.isdigit() else (1, piece))
+    return tuple(result)
+
+
+def _assign_definition_lifecycle(
+    definitions: tuple[MetricDefinition, ...],
+) -> tuple[MetricDefinition, ...]:
+    """Mark the newest version current and retain all prior versions historically."""
+    by_metric: dict[str, list[MetricDefinition]] = {}
+    for definition in definitions:
+        by_metric.setdefault(definition.metric_id, []).append(definition)
+    current_by_metric: dict[str, tuple[str, str]] = {}
+    for metric_id, versions in by_metric.items():
+        newest = max(versions, key=lambda item: _semantic_version_key(item.semantic_version))
+        current_by_metric[metric_id] = newest.key
+    return tuple(
+        replace(
+            definition,
+            lifecycle=(
+                DefinitionLifecycle.CURRENT
+                if definition.key == current_by_metric[definition.metric_id]
+                else DefinitionLifecycle.HISTORICAL
+            ),
+        )
+        for definition in definitions
+    )
 
 
 def _parse_derivation(raw: YamlMapping) -> DerivationDefinition:
@@ -1238,7 +1314,7 @@ def _parse_cross_source_rules(root: YamlMapping) -> tuple[CrossSourceRule, ...]:
                 _text(raw, "mismatch_disposition", context="cross-source rule"),
             ),
         )
-        for raw in _mapping_sequence(root, "cross_source_rules", context="extension")
+        for raw in _mapping_sequence(root, "cross_source_rules", context="catalog")
     )
 
 
@@ -1289,6 +1365,8 @@ def _validate_derivation_inputs(
             reasons.append(DecisionReason.INPUT_METRIC_MISMATCH)
         if observation.unit is not requirement.unit:
             reasons.append(DecisionReason.INPUT_UNIT_MISMATCH)
+        if observation.scale != request.scale:
+            reasons.append(DecisionReason.INPUT_SCALE_MISMATCH)
         if observation.issuer_id != request.issuer_id:
             reasons.append(DecisionReason.INPUT_ISSUER_MISMATCH)
         if observation.reporting_entity_id != request.reporting_entity_id:
@@ -1577,6 +1655,7 @@ def _cross_source_semantics_match(
         and sec.metric_id == regulatory.metric_id == rule.metric_id
         and sec.metric_version == regulatory.metric_version
         and sec.unit is regulatory.unit is rule.unit
+        and sec.scale == regulatory.scale
         and sec.period_type is regulatory.period_type
         and sec.period_type in rule.period_types
         and sec.period_start == regulatory.period_start

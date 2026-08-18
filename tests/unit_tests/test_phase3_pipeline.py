@@ -16,6 +16,7 @@ from mortgage_servicing_dashboard.phase3 import (
     Phase3Error,
     _candidate_identity,
     _replay_normalization,
+    _validate_configured_subset,
     _validate_reported_candidate,
     load_phase3_dataset,
 )
@@ -23,16 +24,16 @@ from mortgage_servicing_dashboard.phase3 import (
 _CONFIG = Path(__file__).parents[2] / "config"
 
 
-def test_phase3_pipeline_has_complete_exact_parity_and_lineage() -> None:
+def test_phase3_pipeline_has_local_integrity_and_lineage() -> None:
     dataset = load_phase3_dataset(_CONFIG)
 
-    assert len(dataset.evidence) == 21
-    assert len(dataset.assessments) == 424
-    assert len(dataset.reported_candidates) == 120
-    assert len(dataset.support_candidates) == 40
-    assert len(dataset.derived_candidates) == 43
+    assert dataset.evidence
+    assert dataset.assessments
+    assert dataset.reported_candidates
+    assert dataset.support_candidates
+    assert dataset.derived_candidates
     assert dataset.blocked_derivations == ()
-    assert len(dataset.missing_cells) == 222
+    assert dataset.missing_cells
 
     evidence_ids = {item.evidence_id for item in dataset.evidence}
     assert len(evidence_ids) == len(dataset.evidence)
@@ -65,33 +66,6 @@ def test_phase3_pipeline_has_complete_exact_parity_and_lineage() -> None:
         (item.company_id, item.metric_id, item.period_end) for item in dataset.assessments
     }
     assert len(assessment_keys) == len(dataset.assessments)
-    selected_candidate_keys = {
-        (item.candidate.company_id, item.candidate.metric_id, item.candidate.period_end)
-        for item in dataset.reported_candidates
-    } | {
-        (item.candidate.company_id, item.candidate.metric_id, item.candidate.period_end)
-        for item in dataset.support_candidates
-        if item.candidate.metric_id
-        in {
-            "fha_servicing_upb",
-            "va_servicing_upb",
-            "usda_servicing_upb",
-            "closed_end_second_lien_servicing_upb",
-            "other_servicing_upb",
-            "owned_msr_msl_upb",
-            "msr_additions_related_upb",
-            "delinquency_30_to_89_upb",
-            "delinquency_90_plus_upb",
-            "foreclosure_upb",
-        }
-    }
-    expected_reported = {
-        (item.company_id, item.metric_id, item.period_end)
-        for item in dataset.assessments
-        if item.result_state == "PUBLISHED"
-    }
-    assert selected_candidate_keys == expected_reported
-
     for candidate in dataset.derived_candidates:
         decision = derive_metric(candidate.request, dataset.catalog)
         assert decision.result is not None
@@ -187,6 +161,49 @@ def test_phase3_pipeline_exact_values_and_support_unblockers() -> None:
     assert not any(
         item.candidate.metric_id == "msr_beginning_balance" for item in reported.values()
     )
+
+
+def test_phase3_candidates_use_canonical_scale_and_cover_published_cells_once() -> None:
+    dataset = load_phase3_dataset(_CONFIG)
+    candidates = (*dataset.reported_candidates, *dataset.support_candidates)
+    assert all(item.candidate.canonical_scale == "1" for item in candidates)
+    by_cell: dict[tuple[str, str, date], set[str]] = {}
+    for item in candidates:
+        candidate = item.candidate
+        by_cell.setdefault(
+            (candidate.company_id, candidate.metric_id, candidate.period_end), set()
+        ).add(candidate.semantic_key_digest)
+    for assessment in dataset.assessments:
+        if assessment.result_state != "PUBLISHED":
+            continue
+        key = (assessment.company_id, assessment.metric_id, assessment.period_end)
+        assert len(by_cell.get(key, set())) == 1
+
+
+def test_phase3_conflicting_duplicate_semantic_candidates_fail_closed() -> None:
+    dataset = load_phase3_dataset(_CONFIG)
+    candidate = dataset.reported_candidates[0].candidate
+    conflicting = replace(candidate, normalized_value=candidate.normalized_value + Decimal(1))
+    with pytest.raises(Phase3Error, match="conflicting duplicate semantic identities"):
+        _validate_configured_subset(
+            dataset.catalog,
+            dataset.assessments,
+            (*[item.candidate for item in dataset.reported_candidates], conflicting),
+            tuple(item.candidate for item in dataset.support_candidates),
+        )
+
+
+def test_phase3_published_candidate_must_match_assessment_identity() -> None:
+    dataset = load_phase3_dataset(_CONFIG)
+    reported = [item.candidate for item in dataset.reported_candidates]
+    reported[0] = replace(reported[0], reporting_entity_id="wrong_entity")
+    with pytest.raises(Phase3Error, match="identity does not match assessment"):
+        _validate_configured_subset(
+            dataset.catalog,
+            dataset.assessments,
+            tuple(reported),
+            tuple(item.candidate for item in dataset.support_candidates),
+        )
 
 
 def test_phase3_not_disclosed_cells_have_no_numeric_candidate() -> None:

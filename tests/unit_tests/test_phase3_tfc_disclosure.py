@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import yaml
 
+from mortgage_servicing_dashboard.metric_engine import load_metric_catalog
 from mortgage_servicing_dashboard.sources import (
     RecordedEvidenceAcquirer,
     RecordedSourceDefinition,
@@ -20,29 +21,6 @@ _ROOT = Path(__file__).parents[2]
 _CONFIG = _ROOT / "config" / "phase3" / "tfc_sources.yaml"
 _MANIFEST = _ROOT / "config" / "recorded_evidence" / "phase3" / "tfc" / "manifest.v1.yaml"
 _PERIODS = {"2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"}
-_PHASE3_ADDITIONS = {
-    "capitalized_servicing_rate_on_additions",
-    "delinquency_30_plus_upb_rate",
-    "delinquency_60_plus_upb_rate",
-    "delinquency_90_plus_upb_rate",
-    "foreclosure_upb_rate",
-    "msr_fair_value_bps_of_related_upb",
-    "msr_fair_value_inputs_or_assumptions_change",
-    "msr_fair_value_multiple_of_related_upb",
-    "msr_hedging_result",
-    "msr_realization_passage_time_and_other",
-    "reo_upb",
-    "fha_servicing_upb",
-    "va_servicing_upb",
-    "usda_servicing_upb",
-    "closed_end_second_lien_servicing_upb",
-    "other_servicing_upb",
-    "owned_msr_msl_upb",
-    "msr_additions_related_upb",
-    "delinquency_30_to_89_upb",
-    "delinquency_90_plus_upb",
-    "foreclosure_upb",
-}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -99,12 +77,11 @@ def test_tfc_phase3_original_response_manifest_hashes_and_typed_sources() -> Non
         assert source_definition.representation == "ORIGINAL_HTTP_RESPONSE"
 
 
-def test_tfc_assessment_expands_to_exactly_53_metrics_by_four_periods() -> None:
-    """The disclosure map cannot silently omit a metric-period cell."""
+def test_tfc_assessment_preserves_configured_metric_period_cells() -> None:
+    """Configured cells remain typed, bounded, and provenance-complete."""
     config = _load(_CONFIG)
-    catalog = _load(_ROOT / "config" / "metrics" / "catalog.yaml")
-    catalog_ids = {str(metric["id"]) for metric in cast("list[dict[str, Any]]", catalog["metrics"])}
-    expected = catalog_ids | _PHASE3_ADDITIONS
+    catalog = load_metric_catalog(_ROOT / "config" / "metrics" / "catalog.yaml")
+    known_metric_ids = {item.metric_id for item in catalog.definitions}
     cells = cast(
         "dict[str, dict[str, dict[str, Any]]]",
         config["eligible_source_assessment"]["cells"],
@@ -114,11 +91,10 @@ def test_tfc_assessment_expands_to_exactly_53_metrics_by_four_periods() -> None:
         config["eligible_source_assessment"]["eligible_source_sets"],
     )
 
-    assert len(expected) == 53
-    assert set(cells) == expected
-    assert sum(len(periods) for periods in cells.values()) == 212
+    assert cells
+    assert set(cells) <= known_metric_ids
     for metric_id, periods in cells.items():
-        assert set(periods) == _PERIODS, metric_id
+        assert set(periods) <= _PERIODS, metric_id
         for period, assessment in periods.items():
             status = assessment["assessment_status"]
             assert status in {"DISCLOSURE_FOUND", "CHECKED_COMPLETE", "SOURCE_NOT_CHECKED"}

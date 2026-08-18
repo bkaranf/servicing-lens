@@ -12,7 +12,9 @@ The current governed universe remains intentionally narrow:
 - bank: Truist Financial Corporation (TFC);
 - nonbank: PennyMac Financial Services, Inc. (PFSI);
 - fiscal periods: Q3 2025, Q4 2025, Q1 2026, and Q2 2026; and
-- 53 Phase 3 metric IDs, populated only where the retained sources support them.
+- a compact configured financial metric subset, populated only where the
+  retained sources support it. The catalog may retain immutable historical
+  semantic versions, but it has one current definition per metric.
 
 Missing disclosure remains \`NOT_DISCLOSED\`. The application does not estimate a
 value to complete a comparison.
@@ -26,11 +28,11 @@ SQLAlchemy/Alembic persistence,
 a read-only API and dashboard, an explicit deterministic 16-stage ingestion and
 review runtime, and a socket-blocked acceptance suite. The public-core `edgartools`
 adapter is the sole live SEC acquisition boundary. Live access remains opt-in.
-Phase 3 deepens only TFC and PFSI across the same four quarters. Its complete
-424-cell disclosure assessment publishes 120 reported grid observations, 40
-supporting observations, and 43 exact derived observations; 222 cells remain
-`NOT_DISCLOSED` after their complete eligible source sets were checked. No
-missing value is estimated or filled.
+Phase 3 deepens only TFC and PFSI across the same four quarters. Its recorded
+assessment and evidence rows are loaded for the configured metric subset;
+published rows, exact derived rows, historical revisions, and
+`NOT_DISCLOSED` provenance are retained without requiring exhaustive catalog
+coverage. No missing value is estimated or filled.
 
 This is not production-ready, comprehensive issuer coverage, an industry ranking,
 an audit product, or investment advice.
@@ -109,10 +111,10 @@ uv run msi serve
 
 Phase 3 retained evidence is intentionally not bundled in the wheel. Run
 `seed-phase3` and `ingest --phase3` from a repository checkout, or pass
-`--config-dir` (or set `MSI_CONFIG_DIR`) to a complete external Phase 3
+`--config-dir` (or set `MSI_CONFIG_DIR`) to a configured external Phase 3
 configuration and evidence root.
 
-All listed commands are implemented. Stage A ingest is atomic across the complete
+All listed commands are implemented. Stage A ingest is atomic across the configured
 governed source set; discovery can be filtered by issuer. Review approval and
 rejection reconstruct the deterministic runtime from the candidate's persisted
 run thread, create an audited decision, and run revalidation; they never edit a

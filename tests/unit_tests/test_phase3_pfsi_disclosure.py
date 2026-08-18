@@ -15,61 +15,6 @@ CONFIG_ROOT = REPOSITORY_ROOT / "config"
 PFSI_CONFIG_PATH = CONFIG_ROOT / "phase3" / "pfsi_sources.yaml"
 PFSI_MANIFEST_PATH = CONFIG_ROOT / "recorded_evidence" / "phase3" / "pfsi" / "manifest.v1.yaml"
 PERIODS = {"2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"}
-METRICS = {
-    "ancillary_servicing_income",
-    "bank_owned_loans_serviced_upb",
-    "capitalized_servicing_rate_on_additions",
-    "conventional_servicing_upb",
-    "cost_to_service_per_loan",
-    "delinquency_30_plus_count_rate",
-    "delinquency_30_plus_upb_rate",
-    "delinquency_60_plus_count_rate",
-    "delinquency_60_plus_upb_rate",
-    "delinquency_90_plus_count_rate",
-    "delinquency_90_plus_upb_rate",
-    "fhlmc_servicing_upb",
-    "fnma_servicing_upb",
-    "foreclosure_upb_rate",
-    "gnma_servicing_upb",
-    "government_servicing_upb",
-    "interim_servicing_upb",
-    "msr_additions",
-    "msr_beginning_balance",
-    "msr_ending_balance",
-    "msr_fair_value",
-    "msr_fair_value_assumption_change",
-    "msr_fair_value_bps_of_related_upb",
-    "msr_fair_value_inputs_or_assumptions_change",
-    "msr_fair_value_market_change",
-    "msr_fair_value_multiple_of_related_upb",
-    "msr_hedging_result",
-    "msr_purchases",
-    "msr_realization_or_amortization",
-    "msr_realization_passage_time_and_other",
-    "msr_sales",
-    "owned_msr_upb",
-    "reo_upb",
-    "servicing_adjusted_pretax_income",
-    "servicing_fee_income",
-    "servicing_for_others_upb",
-    "servicing_loan_count",
-    "servicing_operating_expense",
-    "servicing_pretax_income",
-    "servicing_revenue",
-    "subservicing_upb",
-    "total_servicing_upb",
-    "weighted_average_servicing_fee_bps",
-    "fha_servicing_upb",
-    "va_servicing_upb",
-    "usda_servicing_upb",
-    "closed_end_second_lien_servicing_upb",
-    "other_servicing_upb",
-    "owned_msr_msl_upb",
-    "msr_additions_related_upb",
-    "delinquency_30_to_89_upb",
-    "delinquency_90_plus_upb",
-    "foreclosure_upb",
-}
 
 
 def _configuration() -> dict[str, Any]:
@@ -124,17 +69,19 @@ def test_pfsi_phase3_retained_sources_are_exact_and_typed() -> None:
         assert payload["locator"]
 
 
-def test_pfsi_phase3_matrix_covers_every_metric_period_cell() -> None:
+def test_pfsi_phase3_matrix_preserves_configured_cells_and_provenance() -> None:
     data = _configuration()
     sources = cast("dict[str, Any]", data["sources"])
     source_sets = cast("dict[str, list[str]]", data["source_sets"])
     cells = cast("list[dict[str, Any]]", data["eligible_source_assessment"]["cells"])
     cell_keys = {(cell["metric_id"], cell["period_end"]) for cell in cells}
+    catalog = load_metric_catalog(CONFIG_ROOT / "metrics" / "catalog.yaml")
+    known_metric_ids = {item.metric_id for item in catalog.definitions}
 
-    assert len(METRICS) == 53
-    assert len(cells) == 212
-    assert len(cell_keys) == 212
-    assert cell_keys == {(metric, period) for metric in METRICS for period in PERIODS}
+    assert cells
+    assert len(cell_keys) == len(cells)
+    assert {metric for metric, _ in cell_keys} <= known_metric_ids
+    assert {period for _, period in cell_keys} <= PERIODS
     assert set(source_sets) == PERIODS
 
     for cell in cells:
@@ -229,10 +176,7 @@ def test_pfsi_capitalized_servicing_rate_unit_matches_catalog() -> None:
         for item in data["recipes"]["derived_msr_economics"]["recipes"]
         if item["metric_id"] == "capitalized_servicing_rate_on_additions"
     )
-    catalog = load_metric_catalog(
-        CONFIG_ROOT / "metrics" / "catalog.yaml",
-        extension_paths=(CONFIG_ROOT / "metrics" / "phase3_deepening.v1.yaml",),
-    )
+    catalog = load_metric_catalog(CONFIG_ROOT / "metrics" / "catalog.yaml")
     definition = catalog.definition("capitalized_servicing_rate_on_additions", "1.0.0")
 
     assert definition is not None

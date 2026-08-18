@@ -1,5 +1,11 @@
 catalog_version: "1.0.0"
 effective_period: "2025-07-01/open"
+# Sole runtime entry point. All supported current and historical semantic
+# definitions, taxonomies, and reconciliation rules live in this declarative
+# catalog; the newest semantic version is current and prior versions are
+# historical lineage.
+catalog_role: canonical_runtime
+definition_lifecycle_policy: newest_semantic_version_current_prior_historical
 defaults: &defaults
   semantic_version: "1.0.0"
   grain: "reporting entity, reporting scope, fiscal period"
@@ -49,3 +55,625 @@ metrics:
   - {id: gnma_servicing_upb, category: portfolio_quality, business_meaning: "UPB of Ginnie Mae servicing in the disclosed scope.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
   - {id: fnma_servicing_upb, category: portfolio_quality, business_meaning: "UPB of Fannie Mae servicing in the disclosed scope.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
   - {id: fhlmc_servicing_upb, category: portfolio_quality, business_meaning: "UPB of Freddie Mac servicing in the disclosed scope.", unit: USD, scale: millions, period_semantics: instant, <<: *defaults}
+dimension_taxonomies:
+  - id: portfolio_population
+    values: [servicing_for_others, owned_msr, owned_msr_and_msl, total_servicing, subservicing, interim_servicing, issuer_disclosed]
+  - id: delinquency_measure_basis
+    values: [count, upb]
+  - id: delinquency_threshold
+    values: [30_to_89, 30_plus, 60_plus, 90_plus, foreclosure]
+  - id: delinquency_denominator
+    values: [loan_count, unpaid_principal_balance]
+  - id: delinquency_foreclosure_treatment
+    values: [included, excluded, separately_reported]
+  - id: delinquency_bankruptcy_treatment
+    values: [included, excluded, source_defined]
+  - id: delinquency_forbearance_treatment
+    values: [included, excluded, source_defined]
+  - id: portfolio_mix_category
+    values: [government, conventional, gnma, fnma, fhlmc, other]
+  - id: portfolio_mix_basis
+    values: [upb, count]
+  - id: portfolio_mix_overlap
+    values: [mutually_exclusive, overlapping, source_defined]
+  - id: msr_population
+    values: [owned_msr, fair_value_class, issuer_disclosed]
+  - id: servicing_component
+    values: [fha, va, usda, closed_end_second_lien, other]
+
+metric_versions:
+  - metric_id: cost_to_service_per_loan
+    semantic_version: "2.0.0"
+    category: servicing_economics
+    definition: "Servicing operating expense annualized on an explicit actual-day basis and divided by the arithmetic average of compatible beginning and ending serviced-loan counts for the same duration."
+    unit: USD_per_loan
+    scale: "1"
+    period_types: [duration]
+    methodologies: [DETERMINISTIC_DERIVED, ISSUER_REPORTED]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability:
+      methodology_policy: EXACT
+      dimensions: [portfolio_population]
+    reconciliation_rules: [FORMULA_REPRODUCES_INPUTS, NO_ENDING_BALANCE_SHORTCUT, ANNUALIZATION_TRACE_REQUIRED]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: ANNUALIZED_EXPENSE_PER_AVERAGE_LOAN
+      formula_version: "1.0.0"
+      averaging: ARITHMETIC_BEGIN_END
+      annualization: ACTUAL_DAYS
+      inputs:
+        - {role: expense, metric_ids: [servicing_operating_expense], unit: USD, period_relation: SAME_DURATION}
+        - {role: beginning_loan_count, metric_ids: [servicing_loan_count], unit: count, period_relation: BEGINNING_INSTANT, allowed_scope_pairs: [[pfsi_total_servicing_portfolio, pfsi_servicing_segment]]}
+        - {role: ending_loan_count, metric_ids: [servicing_loan_count], unit: count, period_relation: ENDING_INSTANT, allowed_scope_pairs: [[pfsi_total_servicing_portfolio, pfsi_servicing_segment]]}
+
+  - metric_id: weighted_average_servicing_fee_bps
+    semantic_version: "2.0.0"
+    category: servicing_economics
+    definition: "Eligible servicing fee income annualized on an explicit actual-day basis and divided by the arithmetic average of compatible beginning and ending UPB."
+    unit: basis_points
+    scale: "1"
+    period_types: [instant, duration]
+    methodologies: [DETERMINISTIC_DERIVED, ISSUER_REPORTED]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+    validation_rules: [FINITE, NONNEGATIVE, BPS_0_10000]
+    comparability:
+      methodology_policy: EXACT
+      dimensions: [portfolio_population]
+    reconciliation_rules: [FORMULA_REPRODUCES_INPUTS, ANNUALIZATION_TRACE_REQUIRED]
+    quantization: {quantum: "0.000001", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: ANNUALIZED_RATE_BPS
+      formula_version: "1.0.0"
+      averaging: ARITHMETIC_BEGIN_END
+      annualization: ACTUAL_OVER_BASIS
+      inputs:
+        - {role: fee_income, metric_ids: [servicing_fee_income], unit: USD, period_relation: SAME_DURATION}
+        - {role: beginning_upb, metric_ids: [owned_msr_upb, servicing_for_others_upb], unit: USD, period_relation: BEGINNING_INSTANT}
+        - {role: ending_upb, metric_ids: [owned_msr_upb, servicing_for_others_upb], unit: USD, period_relation: ENDING_INSTANT}
+
+  - &delinquency_count_30
+    metric_id: delinquency_30_plus_count_rate
+    semantic_version: "2.0.0"
+    category: portfolio_quality
+    definition: "Share of loans at least 30 days delinquent by count in the explicitly disclosed servicing population."
+    unit: ratio
+    scale: "1"
+    period_types: [instant]
+    methodologies: [DELINQUENCY_COUNT_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: delinquency_measure_basis, fixed_value: count}
+      - {taxonomy: delinquency_threshold, fixed_value: 30_plus}
+      - {taxonomy: delinquency_denominator, fixed_value: loan_count}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: null}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: null}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: null}
+    validation_rules: [FINITE, RATIO_0_1]
+    comparability:
+      methodology_policy: EXACT
+      dimensions: [portfolio_population, delinquency_measure_basis, delinquency_threshold, delinquency_denominator, delinquency_foreclosure_treatment, delinquency_bankruptcy_treatment, delinquency_forbearance_treatment]
+    reconciliation_rules: [DELINQUENCY_BUCKETS_TO_DISCLOSED_TOTAL]
+    quantization: {quantum: "0.0000000001", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - <<: *delinquency_count_30
+    metric_id: delinquency_60_plus_count_rate
+    definition: "Share of loans at least 60 days delinquent by count in the explicitly disclosed servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: delinquency_measure_basis, fixed_value: count}
+      - {taxonomy: delinquency_threshold, fixed_value: 60_plus}
+      - {taxonomy: delinquency_denominator, fixed_value: loan_count}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: null}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: null}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: null}
+
+  - <<: *delinquency_count_30
+    metric_id: delinquency_90_plus_count_rate
+    definition: "Share of loans at least 90 days delinquent by count in the explicitly disclosed servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: delinquency_measure_basis, fixed_value: count}
+      - {taxonomy: delinquency_threshold, fixed_value: 90_plus}
+      - {taxonomy: delinquency_denominator, fixed_value: loan_count}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: null}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: null}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: null}
+
+  - &delinquency_upb_30
+    metric_id: delinquency_30_plus_upb_rate
+    semantic_version: "1.0.0"
+    category: portfolio_quality
+    definition: "Share of unpaid principal balance at least 30 days delinquent in the explicitly disclosed servicing population."
+    unit: ratio
+    scale: "1"
+    period_types: [instant]
+    methodologies: [DETERMINISTIC_DERIVED, DELINQUENCY_UPB_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL, REGULATORY_REPORTED]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: delinquency_measure_basis, fixed_value: upb}
+      - {taxonomy: delinquency_threshold, fixed_value: 30_plus}
+      - {taxonomy: delinquency_denominator, fixed_value: unpaid_principal_balance}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: null}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: null}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: null}
+    validation_rules: [FINITE, RATIO_0_1]
+    comparability:
+      methodology_policy: EXACT
+      dimensions: [portfolio_population, delinquency_measure_basis, delinquency_threshold, delinquency_denominator, delinquency_foreclosure_treatment, delinquency_bankruptcy_treatment, delinquency_forbearance_treatment]
+    reconciliation_rules: [DELINQUENCY_BUCKETS_TO_DISCLOSED_TOTAL]
+    quantization: {quantum: "0.0000000001", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: SUM_INPUTS_OVER_DENOMINATOR
+      formula_version: "1.0.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: days_30_to_89, metric_ids: [delinquency_30_to_89_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: days_90_plus, metric_ids: [delinquency_90_plus_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: denominator, metric_ids: [owned_msr_msl_upb], unit: USD, period_relation: SAME_INSTANT}
+
+  - <<: *delinquency_upb_30
+    metric_id: delinquency_60_plus_upb_rate
+    definition: "Share of unpaid principal balance at least 60 days delinquent in the explicitly disclosed servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: delinquency_measure_basis, fixed_value: upb}
+      - {taxonomy: delinquency_threshold, fixed_value: 60_plus}
+      - {taxonomy: delinquency_denominator, fixed_value: unpaid_principal_balance}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: null}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: null}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: null}
+    derivation: null
+
+  - <<: *delinquency_upb_30
+    metric_id: delinquency_90_plus_upb_rate
+    definition: "Share of unpaid principal balance at least 90 days delinquent in the explicitly disclosed servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: delinquency_measure_basis, fixed_value: upb}
+      - {taxonomy: delinquency_threshold, fixed_value: 90_plus}
+      - {taxonomy: delinquency_denominator, fixed_value: unpaid_principal_balance}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: null}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: null}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: null}
+    derivation:
+      formula: RATIO
+      formula_version: "1.0.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: numerator, metric_ids: [delinquency_90_plus_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: denominator, metric_ids: [owned_msr_msl_upb], unit: USD, period_relation: SAME_INSTANT}
+
+  - <<: *delinquency_upb_30
+    metric_id: foreclosure_upb_rate
+    definition: "Share of unpaid principal balance in foreclosure in the explicitly disclosed servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: delinquency_measure_basis, fixed_value: upb}
+      - {taxonomy: delinquency_threshold, fixed_value: foreclosure}
+      - {taxonomy: delinquency_denominator, fixed_value: unpaid_principal_balance}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: separately_reported}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: null}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: null}
+    derivation:
+      formula: RATIO
+      formula_version: "1.0.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: numerator, metric_ids: [foreclosure_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: denominator, metric_ids: [owned_msr_msl_upb], unit: USD, period_relation: SAME_INSTANT}
+
+  - metric_id: reo_upb
+    semantic_version: "1.0.0"
+    category: portfolio_quality
+    definition: "Unpaid principal balance or carrying amount explicitly identified as real-estate-owned exposure for the disclosed servicing population."
+    unit: USD
+    scale: "1"
+    period_types: [instant]
+    methodologies: [ISSUER_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL, REGULATORY_REPORTED]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [portfolio_population]}
+    reconciliation_rules: [RECONCILE_TO_DISCLOSED_PORTFOLIO_ONLY]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - metric_id: msr_hedging_result
+    semantic_version: "1.0.0"
+    category: msr_economics
+    definition: "Signed issuer-reported result of instruments explicitly designated or presented as hedging the MSR fair-value exposure."
+    unit: USD
+    scale: "1"
+    period_types: [duration]
+    methodologies: [MSR_HEDGE_RESULT_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: null}
+    validation_rules: [FINITE, SIGNED]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [MSR_HEDGE_SEPARATE_FROM_OPERATIONS, MSR_SPLIT_TO_DISCLOSED_TOTAL]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - &msr_flow_exact_periods
+    metric_id: msr_additions
+    semantic_version: "2.0.0"
+    category: msr_economics
+    definition: "MSRs added through retained production or other explicitly disclosed creation during the exact source period."
+    unit: USD
+    scale: "1"
+    period_types: [duration, duration_ytd, annual]
+    methodologies: [MSR_FAIR_VALUE_ROLLFORWARD_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: null}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [MSR_ROLLFORWARD_COMPLETE]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - <<: *msr_flow_exact_periods
+    metric_id: msr_purchases
+    definition: "MSRs acquired through purchases during the exact source period."
+
+  - <<: *msr_flow_exact_periods
+    metric_id: msr_sales
+    definition: "Positive MSR carrying-value reduction from sales during the exact source period."
+
+  - metric_id: msr_fair_value_inputs_or_assumptions_change
+    semantic_version: "1.0.0"
+    category: msr_economics
+    definition: "Signed fair-value change reported as one combined inputs-or-assumptions row when the issuer does not disclose separable market and assumption components."
+    unit: USD
+    scale: "1"
+    period_types: [duration, duration_ytd, annual]
+    methodologies: [MSR_FAIR_VALUE_ROLLFORWARD_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: null}
+    validation_rules: [FINITE, SIGNED]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [MSR_ROLLFORWARD_COMPLETE, DO_NOT_SPLIT_COMBINED_ISSUER_ROW]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - metric_id: msr_realization_passage_time_and_other
+    semantic_version: "1.0.0"
+    category: msr_economics
+    definition: "Positive reduction magnitude for one issuer-reported combined realization, passage-of-time, and other row that cannot be resolved into narrower components."
+    unit: USD
+    scale: "1"
+    period_types: [duration, duration_ytd, annual]
+    methodologies: [MSR_FAIR_VALUE_ROLLFORWARD_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: null}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [MSR_ROLLFORWARD_COMPLETE, DO_NOT_SPLIT_COMBINED_ISSUER_ROW]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - &msr_split_market
+    metric_id: msr_fair_value_market_change
+    semantic_version: "2.0.0"
+    category: msr_economics
+    definition: "Signed MSR fair-value change explicitly attributed to market inputs and separately disclosed from assumption changes."
+    unit: USD
+    scale: "1"
+    period_types: [duration]
+    methodologies: [MSR_FAIR_VALUE_ROLLFORWARD_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: null}
+    validation_rules: [FINITE, SIGNED]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [MSR_SPLIT_TO_DISCLOSED_TOTAL, NARROW_COMPONENT_REQUIRES_EXPLICIT_SOURCE_ROW]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - <<: *msr_split_market
+    metric_id: msr_fair_value_assumption_change
+    definition: "Signed MSR fair-value change explicitly attributed to model assumptions and separately disclosed from market-input changes."
+
+  - metric_id: msr_fair_value_multiple_of_related_upb
+    semantic_version: "1.0.0"
+    category: msr_economics
+    definition: "MSR fair value divided by the exact related owned-MSR UPB at the same instant and for the same population."
+    unit: multiple
+    scale: "1"
+    period_types: [instant]
+    methodologies: [DETERMINISTIC_DERIVED]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: owned_msr}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [FORMULA_REPRODUCES_INPUTS, RELATED_UPB_REQUIRED]
+    quantization: {quantum: "0.0000000001", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: FAIR_VALUE_TO_UPB_MULTIPLE
+      formula_version: "1.0.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: fair_value, metric_ids: [msr_fair_value], unit: USD, period_relation: SAME_INSTANT}
+        - {role: related_upb, metric_ids: [owned_msr_upb, servicing_for_others_upb], unit: USD, period_relation: SAME_INSTANT, allowed_scope_pairs: [[tfc_consolidated_residential_mortgage_servicing, tfc_owned_residential_msr]]}
+
+  - metric_id: msr_fair_value_bps_of_related_upb
+    semantic_version: "1.0.0"
+    category: msr_economics
+    definition: "MSR fair value divided by exact related owned-MSR UPB at the same instant and expressed in basis points."
+    unit: basis_points
+    scale: "1"
+    period_types: [instant]
+    methodologies: [DETERMINISTIC_DERIVED]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: owned_msr}
+    validation_rules: [FINITE, NONNEGATIVE, BPS_0_10000]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [FORMULA_REPRODUCES_INPUTS, RELATED_UPB_REQUIRED]
+    quantization: {quantum: "0.000001", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: FAIR_VALUE_TO_UPB_BPS
+      formula_version: "1.0.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: fair_value, metric_ids: [msr_fair_value], unit: USD, period_relation: SAME_INSTANT}
+        - {role: related_upb, metric_ids: [owned_msr_upb, servicing_for_others_upb], unit: USD, period_relation: SAME_INSTANT, allowed_scope_pairs: [[tfc_consolidated_residential_mortgage_servicing, tfc_owned_residential_msr]]}
+
+  - metric_id: capitalized_servicing_rate_on_additions
+    semantic_version: "1.0.0"
+    category: msr_economics
+    definition: "Issuer-disclosed capitalized servicing-right value as a rate of the explicitly related additions UPB; no platform-derived denominator substitution is permitted."
+    unit: basis_points
+    scale: "1"
+    period_types: [duration]
+    methodologies: [DETERMINISTIC_DERIVED, CAPITALIZED_SERVICING_RATE_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: owned_msr}
+    validation_rules: [FINITE, NONNEGATIVE, BPS_0_10000]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [DISCLOSED_RELATED_ADDITIONS_UPB_REQUIRED, NO_PRODUCTION_VOLUME_SUBSTITUTION]
+    quantization: {quantum: "0.000001", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: RATIO
+      formula_version: "1.0.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: numerator, metric_ids: [msr_additions], unit: USD, period_relation: SAME_DURATION}
+        - {role: denominator, metric_ids: [msr_additions_related_upb], unit: USD, period_relation: SAME_DURATION}
+
+  - &mix_support
+    metric_id: fha_servicing_upb
+    semantic_version: "1.0.0"
+    category: portfolio_mix_support
+    definition: "Published unpaid principal balance explicitly identified as FHA within one issuer-disclosed servicing population."
+    unit: USD
+    scale: "1"
+    period_types: [instant]
+    methodologies: [ISSUER_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+      - {taxonomy: servicing_component, fixed_value: fha}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [portfolio_population, servicing_component]}
+    reconciliation_rules: [EXACT_PUBLISHED_COMPONENT, RECONCILE_TO_SAME_TABLE_TOTAL]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - <<: *mix_support
+    metric_id: va_servicing_upb
+    definition: "Published unpaid principal balance explicitly identified as VA within one issuer-disclosed servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+      - {taxonomy: servicing_component, fixed_value: va}
+
+  - <<: *mix_support
+    metric_id: usda_servicing_upb
+    definition: "Published unpaid principal balance explicitly identified as USDA within one issuer-disclosed servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+      - {taxonomy: servicing_component, fixed_value: usda}
+
+  - <<: *mix_support
+    metric_id: closed_end_second_lien_servicing_upb
+    definition: "Published unpaid principal balance explicitly identified as closed-end second-lien mortgage loans within one issuer-disclosed servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+      - {taxonomy: servicing_component, fixed_value: closed_end_second_lien}
+
+  - <<: *mix_support
+    metric_id: other_servicing_upb
+    definition: "Published unpaid principal balance explicitly identified by the issuer as Other within one named servicing table; its source-defined composition is not inferred."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+      - {taxonomy: servicing_component, fixed_value: other}
+
+  - metric_id: owned_msr_msl_upb
+    semantic_version: "1.0.0"
+    category: portfolio_quality_support
+    definition: "Published total unpaid principal balance for the exact same-table population of loans with owned MSRs and MSLs; it is not interchangeable with MSR-only related UPB."
+    unit: USD
+    scale: "1"
+    period_types: [instant]
+    methodologies: [ISSUER_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [portfolio_population]}
+    reconciliation_rules: [EXACT_PUBLISHED_DENOMINATOR, RECONCILE_TO_SAME_TABLE_COMPONENTS]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - metric_id: msr_additions_related_upb
+    semantic_version: "1.0.0"
+    category: msr_economics_support
+    definition: "Published unpaid principal balance explicitly related by the issuer to MSRs capitalized as additions for the same reporting duration."
+    unit: USD
+    scale: "1"
+    period_types: [duration]
+    methodologies: [ISSUER_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: msr_population, fixed_value: owned_msr}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [msr_population]}
+    reconciliation_rules: [EXACT_PUBLISHED_DENOMINATOR, SAME_DURATION_AS_MSR_ADDITIONS]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - &delinquency_support
+    metric_id: delinquency_30_to_89_upb
+    semantic_version: "1.0.0"
+    category: portfolio_quality_support
+    definition: "Published unpaid principal balance 30 through 89 days delinquent in the exact disclosed owned-MSR-and-MSL servicing population."
+    unit: USD
+    scale: "1"
+    period_types: [instant]
+    methodologies: [DELINQUENCY_UPB_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+      - {taxonomy: delinquency_measure_basis, fixed_value: upb}
+      - {taxonomy: delinquency_threshold, fixed_value: 30_to_89}
+      - {taxonomy: delinquency_denominator, fixed_value: unpaid_principal_balance}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: excluded}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: source_defined}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: source_defined}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [portfolio_population, delinquency_measure_basis, delinquency_threshold, delinquency_denominator, delinquency_foreclosure_treatment, delinquency_bankruptcy_treatment, delinquency_forbearance_treatment]}
+    reconciliation_rules: [EXACT_PUBLISHED_BUCKET, SAME_TABLE_DENOMINATOR_REQUIRED]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation: null
+
+  - <<: *delinquency_support
+    metric_id: delinquency_90_plus_upb
+    definition: "Published unpaid principal balance 90 or more days delinquent in the exact disclosed owned-MSR-and-MSL servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+      - {taxonomy: delinquency_measure_basis, fixed_value: upb}
+      - {taxonomy: delinquency_threshold, fixed_value: 90_plus}
+      - {taxonomy: delinquency_denominator, fixed_value: unpaid_principal_balance}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: included}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: source_defined}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: source_defined}
+
+  - <<: *delinquency_support
+    metric_id: foreclosure_upb
+    definition: "Published unpaid principal balance explicitly identified as in foreclosure in the exact disclosed owned-MSR-and-MSL servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: owned_msr_and_msl}
+      - {taxonomy: delinquency_measure_basis, fixed_value: upb}
+      - {taxonomy: delinquency_threshold, fixed_value: foreclosure}
+      - {taxonomy: delinquency_denominator, fixed_value: unpaid_principal_balance}
+      - {taxonomy: delinquency_foreclosure_treatment, fixed_value: separately_reported}
+      - {taxonomy: delinquency_bankruptcy_treatment, fixed_value: source_defined}
+      - {taxonomy: delinquency_forbearance_treatment, fixed_value: source_defined}
+
+  - &mix_government
+    metric_id: government_servicing_upb
+    semantic_version: "2.0.0"
+    category: portfolio_mix
+    definition: "UPB explicitly classified by the issuer as government servicing within one named parent servicing population."
+    unit: USD
+    scale: "1"
+    period_types: [instant]
+    methodologies: [DETERMINISTIC_DERIVED, PORTFOLIO_MIX_REPORTED, SEC_FILING_EXHIBIT, SEC_FILING_XBRL]
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: portfolio_mix_category, fixed_value: government}
+      - {taxonomy: portfolio_mix_basis, fixed_value: upb}
+      - {taxonomy: portfolio_mix_overlap, fixed_value: null}
+    validation_rules: [FINITE, NONNEGATIVE]
+    comparability: {methodology_policy: EXACT, dimensions: [portfolio_population, portfolio_mix_category, portfolio_mix_basis, portfolio_mix_overlap]}
+    reconciliation_rules: [PORTFOLIO_MIX_TO_DISCLOSED_PARENT, NO_ASSUMED_EXHAUSTIVENESS]
+    quantization: {quantum: "0.01", rounding: ROUND_HALF_EVEN}
+    derivation:
+      formula: SUM_INPUTS
+      formula_version: "1.0.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: fha, metric_ids: [fha_servicing_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: va, metric_ids: [va_servicing_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: usda, metric_ids: [usda_servicing_upb], unit: USD, period_relation: SAME_INSTANT}
+
+  - <<: *mix_government
+    metric_id: conventional_servicing_upb
+    definition: "UPB explicitly classified by the issuer as conventional servicing within one named parent servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: portfolio_mix_category, fixed_value: conventional}
+      - {taxonomy: portfolio_mix_basis, fixed_value: upb}
+      - {taxonomy: portfolio_mix_overlap, fixed_value: null}
+    derivation:
+      formula: SUM_INPUTS
+      formula_version: "1.0.0"
+      averaging: NONE
+      annualization: NONE
+      inputs:
+        - {role: fannie_mae, metric_ids: [fnma_servicing_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: freddie_mac, metric_ids: [fhlmc_servicing_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: closed_end_second_lien, metric_ids: [closed_end_second_lien_servicing_upb], unit: USD, period_relation: SAME_INSTANT}
+        - {role: other, metric_ids: [other_servicing_upb], unit: USD, period_relation: SAME_INSTANT}
+
+  - <<: *mix_government
+    metric_id: gnma_servicing_upb
+    definition: "UPB explicitly associated with Ginnie Mae servicing within one named parent servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: portfolio_mix_category, fixed_value: gnma}
+      - {taxonomy: portfolio_mix_basis, fixed_value: upb}
+      - {taxonomy: portfolio_mix_overlap, fixed_value: null}
+
+  - <<: *mix_government
+    metric_id: fnma_servicing_upb
+    definition: "UPB explicitly associated with Fannie Mae servicing within one named parent servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: portfolio_mix_category, fixed_value: fnma}
+      - {taxonomy: portfolio_mix_basis, fixed_value: upb}
+      - {taxonomy: portfolio_mix_overlap, fixed_value: null}
+
+  - <<: *mix_government
+    metric_id: fhlmc_servicing_upb
+    definition: "UPB explicitly associated with Freddie Mac servicing within one named parent servicing population."
+    dimensions:
+      - {taxonomy: portfolio_population, fixed_value: null}
+      - {taxonomy: portfolio_mix_category, fixed_value: fhlmc}
+      - {taxonomy: portfolio_mix_basis, fixed_value: upb}
+      - {taxonomy: portfolio_mix_overlap, fixed_value: null}
+
+cross_source_rules:
+  - &tfc_sec_y9c_instant
+    rule_id: tfc_sec_vs_y9c_servicing_for_others
+    issuer_id: tfc
+    metric_id: servicing_for_others_upb
+    sec_methodologies: [SEC_COMPANY_FACTS_XBRL, SEC_FILING_XBRL, SEC_FILING_EXHIBIT]
+    regulatory_methodologies: [FR_Y9C]
+    allowed_scope_pairs:
+      - [tfc_consolidated_residential_mortgage_servicing, tfc_bhc_regulatory]
+    unit: USD
+    period_types: [instant]
+    absolute_tolerance: "0"
+    mismatch_disposition: QUARANTINE
+
+  - <<: *tfc_sec_y9c_instant
+    rule_id: tfc_sec_vs_y9c_msr_fair_value
+    metric_id: msr_fair_value
+    allowed_scope_pairs:
+      - [tfc_owned_residential_msr, tfc_bhc_regulatory]
+
+  - <<: *tfc_sec_y9c_instant
+    rule_id: tfc_sec_vs_y9c_msr_ending_balance
+    metric_id: msr_ending_balance
+    allowed_scope_pairs:
+      - [tfc_owned_residential_msr, tfc_bhc_regulatory]
+
+  - <<: *tfc_sec_y9c_instant
+    rule_id: tfc_sec_vs_y9c_servicing_fee_income
+    metric_id: servicing_fee_income
+    period_types: [duration, duration_ytd]

@@ -123,10 +123,7 @@ def test_exact_tfc_sec_and_y9c_fixture_mismatch_quarantines_without_preference()
         value_state=ValueState.REPORTED_ACTUAL,
         completeness=Completeness.COMPLETE,
     )
-    catalog = load_metric_catalog(
-        _CONFIG / "metrics" / "catalog.yaml",
-        extension_paths=(_CONFIG / "metrics" / "phase3_deepening.v1.yaml",),
-    )
+    catalog = load_metric_catalog(_CONFIG / "metrics" / "catalog.yaml")
 
     decision = reconcile_cross_source(
         sec_input,

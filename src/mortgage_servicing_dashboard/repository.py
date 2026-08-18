@@ -1391,7 +1391,11 @@ def _seed_metrics(session: Session, metrics: list[dict[str, Any]]) -> int:
                     category=str(metric["category"]),
                 )
             )
-        if session.get(MetricDefinitionVersion, version_id) is not None:
+        existing_version = session.get(MetricDefinitionVersion, version_id)
+        if existing_version is not None:
+            lifecycle = metric.get("lifecycle")
+            if lifecycle is not None and existing_version.rules.get("lifecycle") != lifecycle:
+                existing_version.rules = {**existing_version.rules, "lifecycle": lifecycle}
             continue
         rules = {
             key: value
@@ -1636,9 +1640,16 @@ def _seed_source_assessments(  # noqa: C901, PLR0913
     assessment_version = str(policy["assessment_version"])
     configured_metric_ids = [str(value) for value in policy["metric_ids"]]
     catalog_metric_ids = [str(metric["id"]) for metric in metrics]
-    if set(configured_metric_ids) != set(catalog_metric_ids):
-        msg = "eligible-source assessment must enumerate the complete metric catalog"
+    if not configured_metric_ids:
+        msg = "eligible-source assessment must configure at least one metric"
         raise ValueError(msg)
+    unknown_metrics = sorted(set(configured_metric_ids) - set(catalog_metric_ids))
+    if unknown_metrics:
+        msg = f"eligible-source assessment references unknown metrics: {unknown_metrics}"
+        raise ValueError(msg)
+    metric_versions = {
+        str(metric["id"]): str(metric.get("semantic_version", "1.0.0")) for metric in metrics
+    }
     company_policies = cast("dict[str, dict[str, Any]]", policy["companies"])
     if set(company_policies) != {str(company["id"]) for company in companies}:
         msg = "eligible-source assessment must enumerate the selected company universe"
@@ -1698,7 +1709,7 @@ def _seed_source_assessments(  # noqa: C901, PLR0913
                         id=assessment_id,
                         pipeline_run_id=run.id,
                         company_id=company_id,
-                        metric_version_id=f"{metric_id}:1.0.0",
+                        metric_version_id=f"{metric_id}:{metric_versions[metric_id]}",
                         reporting_entity_id=entity_id,
                         reporting_scope_id=scope_id,
                         period_end=date.fromisoformat(period_end_text),
@@ -1797,7 +1808,31 @@ def _missing_semantic_digest(  # noqa: PLR0913
     )
 
 
-def _seed_observations(  # noqa: PLR0913, PLR0915
+def _select_stage_a_candidates(
+    candidates: tuple[ParsedObservationCandidate, ...],
+) -> tuple[ParsedObservationCandidate, ...]:
+    """Coalesce exact corroboration and fail closed on semantic conflicts."""
+    if not candidates:
+        return ()
+    ordered = tuple(sorted(candidates, key=lambda item: (item.candidate_id, item.evidence_id)))
+    signatures = {
+        (
+            item.semantic_key_digest,
+            item.normalized_value,
+            item.currency,
+            item.unit,
+            item.canonical_scale,
+        )
+        for item in ordered
+    }
+    if len(signatures) != 1:
+        key = (ordered[0].company_id, ordered[0].period_end, ordered[0].metric_id)
+        msg = f"conflicting Stage A candidates for configured cell: {key}"
+        raise ValueError(msg)
+    return ordered
+
+
+def _seed_observations(  # noqa: C901, PLR0912, PLR0913, PLR0915
     session: Session,
     *,
     companies: list[dict[str, Any]],
@@ -1807,10 +1842,18 @@ def _seed_observations(  # noqa: PLR0913, PLR0915
     run: PipelineRun,
     known_at: datetime,
 ) -> int:
+    parsed_groups: dict[tuple[str, str, str], list[ParsedObservationCandidate]] = {}
+    for bundle in bundles.values():
+        for parsed_candidate in bundle.candidates:
+            key = (
+                parsed_candidate.company_id,
+                parsed_candidate.period_end.isoformat(),
+                parsed_candidate.metric_id,
+            )
+            parsed_groups.setdefault(key, []).append(parsed_candidate)
     parsed_by_key = {
-        (candidate.company_id, candidate.period_end.isoformat(), candidate.metric_id): candidate
-        for bundle in bundles.values()
-        for candidate in bundle.candidates
+        key: _select_stage_a_candidates(tuple(candidates))
+        for key, candidates in parsed_groups.items()
     }
     bundle_by_evidence = {f"evidence:{key}": bundle for key, bundle in bundles.items()}
     assessments = session.scalars(
@@ -1836,7 +1879,8 @@ def _seed_observations(  # noqa: PLR0913, PLR0915
                 observation_id = f"observation:{company_id}:{period_end_text}:{metric_id}:v1"
                 if session.get(MetricObservation, observation_id) is not None:
                     continue
-                candidate = parsed_by_key.get((company_id, period_end_text, metric_id))
+                candidate_group = parsed_by_key.get((company_id, period_end_text, metric_id), ())
+                candidate = candidate_group[0] if candidate_group else None
                 metric_version_id = f"{metric_id}:{metric['semantic_version']}"
                 if candidate is None:
                     assessment = assessment_by_key.get(
@@ -1975,20 +2019,42 @@ def _seed_observations(  # noqa: PLR0913, PLR0915
                     published_at=known_at,
                 )
                 session.add(observation)
-                session.add(
-                    ObservationEvidence(
-                        observation_id=observation_id,
-                        evidence_id=evidence_id,
-                        evidence_role="reviewed_source" if candidate is None else "primary",
-                        locator=locator,
-                        raw_label=raw_label,
-                        raw_value=raw_value,
-                        disclosed_unit=unit,
-                        disclosed_scale=scale,
-                        extraction_method=extraction_method,
-                        validation_status=QualityState.VALIDATED.value,
+                evidence_candidates = candidate_group if candidate is not None else ()
+                if not evidence_candidates:
+                    session.add(
+                        ObservationEvidence(
+                            observation_id=observation_id,
+                            evidence_id=evidence_id,
+                            evidence_role="reviewed_source",
+                            locator=locator,
+                            raw_label=raw_label,
+                            raw_value=raw_value,
+                            disclosed_unit=unit,
+                            disclosed_scale=scale,
+                            extraction_method=extraction_method,
+                            validation_status=QualityState.VALIDATED.value,
+                        )
                     )
-                )
+                else:
+                    seen_evidence: set[str] = set()
+                    for index, evidence_candidate in enumerate(evidence_candidates):
+                        if evidence_candidate.evidence_id in seen_evidence:
+                            continue
+                        seen_evidence.add(evidence_candidate.evidence_id)
+                        session.add(
+                            ObservationEvidence(
+                                observation_id=observation_id,
+                                evidence_id=evidence_candidate.evidence_id,
+                                evidence_role="primary" if index == 0 else "corroborating",
+                                locator=evidence_candidate.evidence_locator,
+                                raw_label=evidence_candidate.raw_label,
+                                raw_value=evidence_candidate.raw_value,
+                                disclosed_unit=evidence_candidate.unit,
+                                disclosed_scale=evidence_candidate.reported_scale,
+                                extraction_method=evidence_candidate.extraction_method,
+                                validation_status=QualityState.VALIDATED.value,
+                            )
+                        )
                 session.add(
                     ObservationRevision(
                         id=f"revision:{observation_id}:1",
@@ -2106,6 +2172,14 @@ def _seed_comparability_assessments(session: Session, *, known_at: datetime) -> 
                 observation_state=ObservationState(observation.observation_state),
                 portfolio_population=population,
                 dimensions=tuple(sorted(observation.dimensions.items())),
+                period_kind=observation.period_type,
+                period_start=observation.period_start,
+                period_end=observation.period_end,
+                # Published observation values are normalized to canonical
+                # units; retain the source/display factor only in evidence.
+                scale="1",
+                reporting_entity=observation.reporting_entity_id,
+                cross_company_comparison=True,
             )
 
         for left, left_version, left_population in left_rows:
@@ -2156,7 +2230,21 @@ def _write_stage_a(
     root = config_directory(config_dir)
     universe, catalog, data = load_stage_a_configuration(root)
     companies = cast("list[dict[str, Any]]", universe["companies"])
-    metrics = cast("list[dict[str, Any]]", catalog["metrics"])
+    all_metrics = cast("list[dict[str, Any]]", catalog["metrics"])
+    policy = cast("dict[str, Any]", data["eligible_source_assessment"])
+    configured_metric_ids = tuple(str(value) for value in policy["metric_ids"])
+    if not configured_metric_ids:
+        msg = "Stage A requires a nonempty configured metric subset"
+        raise ValueError(msg)
+    if len(set(configured_metric_ids)) != len(configured_metric_ids):
+        msg = "Stage A configured metric subset contains duplicates"
+        raise ValueError(msg)
+    metric_by_id = {str(metric["id"]): metric for metric in all_metrics}
+    unknown_metrics = sorted(set(configured_metric_ids) - set(metric_by_id))
+    if unknown_metrics:
+        msg = f"Stage A configured metrics are absent from catalog: {unknown_metrics}"
+        raise ValueError(msg)
+    metrics = [metric_by_id[metric_id] for metric_id in configured_metric_ids]
     quarters = cast("list[dict[str, Any]]", data["quarters"])
     bundles = _load_source_bundles(config_root=root, data=data, companies=companies)
     known_at = _instant(str(data["knowledge_at"]))
@@ -2209,19 +2297,33 @@ def _write_stage_a(
                 run=run,
                 known_at=known_at,
             )
-            measured = sum(len(bundle.candidates) for bundle in bundles.values())
             total_grid = len(companies) * len(metrics) * len(quarters)
-            not_disclosed = int(
-                session.scalar(
-                    select(func.count(MetricObservation.id)).where(
-                        MetricObservation.observation_state == ObservationState.NOT_DISCLOSED.value
-                    )
-                )
-                or 0
+            selected_observation_ids = [
+                f"observation:{company['id']}:{quarter['period_end']}:{metric['id']}:v1"
+                for company in companies
+                for quarter in quarters
+                for metric in metrics
+            ]
+            selected_rows = session.scalars(
+                select(MetricObservation).where(MetricObservation.id.in_(selected_observation_ids))
+            ).all()
+            measured = sum(
+                row.observation_state != ObservationState.NOT_DISCLOSED.value
+                for row in selected_rows
             )
-            source_not_checked = total_grid - measured - not_disclosed
+            not_disclosed = sum(
+                row.observation_state == ObservationState.NOT_DISCLOSED.value
+                for row in selected_rows
+            )
+            source_not_checked = total_grid - len(selected_rows)
+            if source_not_checked < 0:
+                msg = "configured Stage A outcome counts exceed the selected metric grid"
+                raise ValueError(msg)
+            selected_metric_ids = {str(metric["id"]) for metric in metrics}
             quarantine_count = sum(
-                len(bundle.definition.quarantine_rows) for bundle in bundles.values()
+                str(recipe["proposed_metric_id"]) in selected_metric_ids
+                for bundle in bundles.values()
+                for recipe in bundle.definition.quarantine_rows
             )
             run.status = "COMPLETED_WITH_GAPS" if source_not_checked else "COMPLETED"
             run.completed_at = known_at
@@ -2281,6 +2383,7 @@ def _phase3_metric_payload(definition: EngineMetricDefinition) -> dict[str, obje
     return {
         "id": definition.metric_id,
         "semantic_version": definition.semantic_version,
+        "lifecycle": definition.lifecycle.value,
         "category": definition.category,
         "definition": definition.definition,
         "unit": definition.unit.value,
@@ -2470,7 +2573,7 @@ def _phase3_run(
         requested_company_id=None,
         requested_periods=sorted({item.period_end.isoformat() for item in dataset.assessments}),
         code_version="phase3-profitability-deepening-v1",
-        config_version="+".join(dataset.catalog.extension_versions),
+        config_version=dataset.catalog.base_version,
         parser_version="phase3-dataset-v1",
         terminal_outcomes={
             "PUBLISHED": 0,
@@ -2555,11 +2658,11 @@ def _seed_phase3_evidence(
 
 
 def _phase3_metric_version(catalog: MetricCatalog, metric_id: str) -> str:
-    versions = catalog.versions(metric_id)
-    if not versions:
+    definition = catalog.current_definition(metric_id)
+    if definition is None:
         msg = f"Phase 3 cell references a metric absent from the composed catalog: {metric_id}"
         raise ValueError(msg)
-    return str(versions[-1].semantic_version)
+    return str(definition.semantic_version)
 
 
 def _seed_phase3_assessments(
@@ -2727,6 +2830,7 @@ def _publish_phase3_reported(  # noqa: C901, PLR0915
             value_state=ValueState.REPORTED_ACTUAL,
             completeness=Completeness.COMPLETE,
             dimensions=wrapped.dimensions,
+            scale="1",
         )
         governed_validation = validate_metric_input(governed_input, dataset.catalog)
         if governed_validation.disposition is not DecisionDisposition.VALIDATED:
@@ -3354,6 +3458,10 @@ def _seed_phase3_blocked(
         if session.get(QuarantineCandidate, candidate_id) is not None:
             continue
         evidence_id = evidence_by_source[assessment.source_keys[0]]
+        definition = dataset.catalog.current_definition(item.metric_id)
+        if definition is None:
+            msg = f"blocked Phase 3 metric is absent from catalog: {item.metric_id}"
+            raise ValueError(msg)
         session.add(
             QuarantineCandidate(
                 id=candidate_id,
@@ -3362,7 +3470,7 @@ def _seed_phase3_blocked(
                 raw_source_label="Governed derivation blocked",
                 raw_value="BLOCKED_DERIVATION",
                 proposed_normalized_value=None,
-                unit=dataset.catalog.versions(item.metric_id)[-1].unit.value,
+                unit=definition.unit.value,
                 scale="1",
                 period_end=item.period_end,
                 reporting_entity_id=assessment.reporting_entity_id,
@@ -3525,6 +3633,11 @@ def _reconcile_phase3_regulatory(  # noqa: C901, PLR0915
                                 for name, value in sec.dimensions.items()
                             )
                         ),
+                        # MetricObservation.value is already normalized; the
+                        # source/definition display factor is not comparison
+                        # scale. Reconciliation inputs therefore use canonical
+                        # normalized scale deliberately.
+                        scale="1",
                     )
                     first_fact = selected[0][0]
                     regulatory_input = MetricInput(
@@ -3550,6 +3663,7 @@ def _reconcile_phase3_regulatory(  # noqa: C901, PLR0915
                                 for name, value in sec.dimensions.items()
                             )
                         ),
+                        scale="1",
                     )
                     decision = reconcile_cross_source(
                         sec_input,
@@ -3975,27 +4089,31 @@ class IntelligenceRepository:
             ]
 
     def metrics(self) -> list[dict[str, object]]:
-        """Return the versioned metric catalog."""
+        """Return one current metric definition while retaining history in storage."""
         statement = (
             select(MetricDefinition, MetricDefinitionVersion)
             .join(MetricDefinitionVersion, MetricDefinitionVersion.metric_id == MetricDefinition.id)
             .order_by(MetricDefinition.category, MetricDefinition.id)
         )
         with Session(self._engine) as session:
-            return [
-                {
-                    "id": definition.id,
-                    "display_name": definition.display_name,
-                    "category": definition.category,
-                    "semantic_version": version.semantic_version,
-                    "business_meaning": version.business_meaning,
-                    "grain": version.grain,
-                    "unit": version.unit,
-                    "permitted_scopes": version.permitted_scopes,
-                    "rules": version.rules,
-                }
-                for definition, version in session.execute(statement)
-            ]
+            current: list[dict[str, object]] = []
+            for definition, version in session.execute(statement):
+                if version.rules.get("lifecycle") == "HISTORICAL":
+                    continue
+                current.append(
+                    {
+                        "id": definition.id,
+                        "display_name": definition.display_name,
+                        "category": definition.category,
+                        "semantic_version": version.semantic_version,
+                        "business_meaning": version.business_meaning,
+                        "grain": version.grain,
+                        "unit": version.unit,
+                        "permitted_scopes": version.permitted_scopes,
+                        "rules": version.rules,
+                    }
+                )
+            return current
 
     def evidence(self, evidence_id: str) -> dict[str, object] | None:
         """Return one immutable evidence identity and retention record."""
@@ -4566,7 +4684,10 @@ class IntelligenceRepository:
             return None
         left = by_company["tfc"]
         right = by_company["pfsi"]
-        result = assess_comparability(_comparison_input(left), _comparison_input(right))
+        result = assess_comparability(
+            _comparison_input(left, cross_company=True),
+            _comparison_input(right, cross_company=True),
+        )
         return ComparisonRecord(
             metric_id=metric_id,
             period_end=period_end.isoformat(),
@@ -4630,7 +4751,11 @@ class IntelligenceRepository:
             return {"candidate_id": candidate.id, "status": candidate.status}
 
 
-def _comparison_input(record: ObservationRecord) -> ComparisonInput:
+def _comparison_input(
+    record: ObservationRecord,
+    *,
+    cross_company: bool = False,
+) -> ComparisonInput:
     return ComparisonInput(
         metric_id=record.metric_id,
         metric_version=record.metric_version,
@@ -4642,6 +4767,14 @@ def _comparison_input(record: ObservationRecord) -> ComparisonInput:
         observation_state=ObservationState(record.state),
         portfolio_population=record.portfolio_population,
         dimensions=tuple(sorted(record.dimensions.items())),
+        period_kind=record.period_type,
+        period_start=(date.fromisoformat(record.period_start) if record.period_start else None),
+        period_end=date.fromisoformat(record.period_end),
+        # ``record.value`` is canonical Decimal data. Strict comparisons use
+        # canonical scale and never the issuer's disclosed display factor.
+        scale="1" if record.value is not None else record.scale,
+        reporting_entity=record.reporting_entity_id,
+        cross_company_comparison=cross_company,
     )
 
 

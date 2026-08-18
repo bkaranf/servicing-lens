@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -17,6 +18,7 @@ from fastapi.routing import APIRoute
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
+import mortgage_servicing_dashboard.repository as repository_module
 from mortgage_servicing_dashboard.api import create_app
 from mortgage_servicing_dashboard.cli import main
 from mortgage_servicing_dashboard.database import (
@@ -206,6 +208,102 @@ def test_pairwise_comparability_states() -> None:
     assert len(caveat.reasons) == 3
 
 
+def test_pairwise_strict_identity_makes_methodology_mismatch_hard() -> None:
+    result = assess_comparability(
+        _comparison(
+            period_kind="duration",
+            period_start=date(2026, 4, 1),
+            period_end=date(2026, 6, 30),
+            scale="1",
+            reporting_entity="entity",
+        ),
+        _comparison(
+            methodology="derived",
+            period_kind="duration",
+            period_start=date(2026, 4, 1),
+            period_end=date(2026, 6, 30),
+            scale="1",
+            reporting_entity="entity",
+        ),
+    )
+    assert result.status is ComparabilityStatus.NOT_COMPARABLE
+    assert result.reasons == ("methodologies differ",)
+
+
+def test_cross_company_comparison_allows_equivalent_entity_roles() -> None:
+    result = assess_comparability(
+        _comparison(
+            reporting_scope="tfc_scope",
+            portfolio_population="governed_equivalent_population",
+            reporting_entity="tfc_registrant",
+            cross_company_comparison=True,
+        ),
+        _comparison(
+            reporting_scope="pfsi_scope",
+            portfolio_population="governed_equivalent_population",
+            reporting_entity="pfsi_registrant",
+            cross_company_comparison=True,
+        ),
+    )
+    assert result.status is ComparabilityStatus.COMPARABLE
+    assert result.reasons == ()
+
+
+def test_stage_a_candidate_groups_retain_corroboration_and_reject_conflicts() -> None:
+    root = config_directory()
+    universe, _catalog, data = load_stage_a_configuration(root)
+    companies = cast("list[dict[str, Any]]", universe["companies"])
+    bundles = repository_module._load_source_bundles(
+        config_root=root,
+        data=data,
+        companies=companies,
+    )
+    candidate = next(item for bundle in bundles.values() for item in bundle.candidates)
+    corroborating = replace(
+        candidate,
+        candidate_id=f"{candidate.candidate_id}-corroborating",
+        evidence_id="evidence:corroborating",
+    )
+    selected = repository_module._select_stage_a_candidates((corroborating, candidate))
+    assert {item.evidence_id for item in selected} == {
+        candidate.evidence_id,
+        "evidence:corroborating",
+    }
+    with pytest.raises(ValueError, match="conflicting Stage A candidates"):
+        repository_module._select_stage_a_candidates(
+            (candidate, replace(corroborating, normalized_value=candidate.normalized_value + 1))
+        )
+
+
+def test_stage_a_subset_outcomes_count_only_selected_grid(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = config_directory()
+    universe, catalog, data = load_stage_a_configuration(root)
+    subset_data = deepcopy(data)
+    subset_data["eligible_source_assessment"]["metric_ids"] = ["total_servicing_upb"]
+    monkeypatch.setattr(
+        repository_module,
+        "load_stage_a_configuration",
+        lambda _root: (universe, catalog, subset_data),
+    )
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'subset.db').as_posix()}")
+    counts = seed_stage_a(engine, config_dir=root)
+    assert counts["metrics"] == 1
+    assert counts["observations"] == 8
+    with Session(engine) as session:
+        run = session.scalars(select(PipelineRun)).one()
+        assert run.terminal_outcomes == {
+            "PUBLISHED": 8,
+            "NOT_DISCLOSED": 0,
+            "SOURCE_NOT_CHECKED": 0,
+            "QUARANTINED": 0,
+            "FAILED": 0,
+        }
+    engine.dispose()
+
+
 def test_configuration_resolution_and_validation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -336,6 +434,7 @@ def test_seed_is_idempotent_and_repository_queries(seeded_engine: Engine) -> Non
         assert retained.reasons == [
             "portfolio populations differ",
             "reporting scopes differ",
+            "methodologies differ",
         ]
     missing = repo.compare(metric_id="servicing_revenue", period_end=date(2026, 6, 30))
     assert missing is None

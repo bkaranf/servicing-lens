@@ -251,9 +251,11 @@ reconciliation is incomplete is not exit.
 
 Stage A exited on 2026-08-12 under D-015, standalone extraction completed under
 D-013, and Phase 2 exited under D-016. Phase 3 now deepens only TFC and PFSI over
-Q3 2025 through Q2 2026 through a 53-metric catalog extension, complete retained
-eligible-source assessments, exact reported/support observations, governed
-derivations, and explicit `NOT_DISCLOSED` cells. D-017 records its exit evidence.
+Q3 2025 through Q2 2026 through a compact configured financial catalog with
+immutable semantic history, retained eligible-source assessments, exact
+reported/support observations, governed derivations, and explicit
+`NOT_DISCLOSED` cells. D-017 records its exit evidence; the configured subset
+is not a claim of fixed global completeness.
 
 The remaining order is: exactly two additional banks and two additional
 nonbanks, landed and gated one issuer at a time; then UI alignment last. Issuers
