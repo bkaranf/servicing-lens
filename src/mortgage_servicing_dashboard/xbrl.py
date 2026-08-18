@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -33,9 +34,13 @@ _INLINE_XBRL_NAMESPACES: Final = frozenset(
 )
 _INLINE_TRANSFORMATION_NAMESPACES: Final = frozenset(
     {
+        "http://www.xbrl.org/inlineXBRL/transformation/2015-02-26",
         "http://www.xbrl.org/inlineXBRL/transformation/2020-02-12",
         "http://www.xbrl.org/inlineXBRL/transformation/2022-02-16",
     }
+)
+_LEGACY_INLINE_TRANSFORMATION_NAMESPACE: Final = (
+    "http://www.xbrl.org/inlineXBRL/transformation/2015-02-26"
 )
 _RESERVED_FACT_NAMESPACES: Final = frozenset(
     {
@@ -48,6 +53,9 @@ _RESERVED_FACT_NAMESPACES: Final = frozenset(
 )
 _MAX_CIK_DIGITS: Final = 10
 _MAX_XML_BYTES: Final = 25_000_000
+_NUM_DOT_DECIMAL_PATTERN: Final = re.compile(
+    r"^(?:0|[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)(?:\.[0-9]+)?$"
+)
 
 XbrlDecimals: TypeAlias = int | str | None
 
@@ -537,7 +545,7 @@ class SecFilingXbrlAdapter:
         Raises:
             XbrlDataError: If XML, a context, a unit, or a number is ambiguous.
         """
-        root, namespaces = _load_xbrl_xml(payload)
+        root, namespaces, fact_namespace_scopes = _load_xbrl_xml(payload)
         if qualified_concepts is not None and any(
             not concept.strip() or ":" not in concept for concept in qualified_concepts
         ):
@@ -592,7 +600,7 @@ class SecFilingXbrlAdapter:
             value = _parse_filing_numeric_value(
                 element,
                 raw_value=raw_value,
-                namespaces=namespaces,
+                namespace_scope=fact_namespace_scopes.get(id(element), {}),
             )
             if element.attrib.get("sign") == "-":
                 value = -abs(value)
@@ -1091,7 +1099,9 @@ def _optional_integer(value: object, *, field_name: str) -> int | None:
         raise XbrlDataError(msg) from error
 
 
-def _load_xbrl_xml(payload: bytes) -> tuple[ET.Element, Mapping[str, str]]:
+def _load_xbrl_xml(
+    payload: bytes,
+) -> tuple[ET.Element, Mapping[str, str], Mapping[int, Mapping[str, str]]]:
     if len(payload) > _MAX_XML_BYTES:
         msg = "filing XBRL payload exceeds the deterministic parser size limit"
         raise XbrlDataError(msg)
@@ -1100,20 +1110,46 @@ def _load_xbrl_xml(payload: bytes) -> tuple[ET.Element, Mapping[str, str]]:
         msg = "filing XBRL must not contain a DTD or entity declaration"
         raise XbrlDataError(msg)
     try:
-        namespaces: dict[str, str] = {}
-        for _, raw_namespace in ET.iterparse(  # noqa: S314 - DTD/entities rejected above.
-            BytesIO(payload),
-            events=("start-ns",),
-        ):
-            namespace = cast("tuple[str, str]", raw_namespace)
-            prefix, uri = namespace
-            if uri not in namespaces or prefix:
-                namespaces[uri] = prefix
-        root = ET.fromstring(payload)  # noqa: S314 - DTD/entities rejected and size bounded above.
+        root, namespaces, fact_namespace_scopes = _parse_xbrl_tree_and_namespaces(payload)
     except ET.ParseError as error:
         msg = "filing XBRL payload is not well-formed XML"
         raise XbrlDataError(msg) from error
-    return root, namespaces
+    return root, namespaces, fact_namespace_scopes
+
+
+def _parse_xbrl_tree_and_namespaces(
+    payload: bytes,
+) -> tuple[ET.Element, dict[str, str], dict[int, Mapping[str, str]]]:
+    namespaces: dict[str, str] = {}
+    fact_namespace_scopes: dict[int, Mapping[str, str]] = {}
+    scope_stack: list[dict[str, str]] = []
+    pending_namespaces: list[tuple[str, str]] = []
+    root: ET.Element | None = None
+    parser = ET.iterparse(  # noqa: S314 - DTD/entities rejected by caller.
+        BytesIO(payload),
+        events=("start", "end", "start-ns"),
+    )
+    for event, raw_item in parser:
+        if event == "start-ns":
+            prefix, uri = cast("tuple[str, str]", raw_item)
+            pending_namespaces.append((prefix, uri))
+            if uri not in namespaces or prefix:
+                namespaces[uri] = prefix
+        elif event == "start":
+            element = raw_item
+            root = element if root is None else root
+            scope = dict(scope_stack[-1]) if scope_stack else {}
+            scope.update(pending_namespaces)
+            pending_namespaces.clear()
+            scope_stack.append(scope)
+            if "format" in element.attrib:
+                fact_namespace_scopes[id(element)] = scope
+        else:
+            scope_stack.pop()
+    if root is None:
+        msg = "filing XBRL payload has no document element"
+        raise XbrlDataError(msg)
+    return root, namespaces, fact_namespace_scopes
 
 
 def _expanded_name(tag: str) -> tuple[str, str]:
@@ -1272,7 +1308,7 @@ def _parse_filing_numeric_value(
     element: ET.Element,
     *,
     raw_value: str,
-    namespaces: Mapping[str, str],
+    namespace_scope: Mapping[str, str],
 ) -> Decimal:
     format_name = element.attrib.get("format")
     if format_name is None:
@@ -1281,16 +1317,26 @@ def _parse_filing_numeric_value(
     if not separator or not prefix or not local_name:
         msg = "inline XBRL numeric fact has an invalid transformation format"
         raise XbrlDataError(msg)
-    namespace_uris = tuple(
-        uri for uri, declared_prefix in namespaces.items() if declared_prefix == prefix
-    )
-    if len(namespace_uris) != 1 or namespace_uris[0] not in _INLINE_TRANSFORMATION_NAMESPACES:
+    transformation_namespace = namespace_scope.get(prefix)
+    if transformation_namespace not in _INLINE_TRANSFORMATION_NAMESPACES:
         msg = f"inline XBRL numeric fact uses an unsupported transformation: {format_name}"
         raise XbrlDataError(msg)
-    if local_name == "fixed-zero":
+    if local_name == "fixed-zero" and (
+        transformation_namespace != _LEGACY_INLINE_TRANSFORMATION_NAMESPACE
+    ):
         return Decimal(0)
-    if local_name == "num-dot-decimal":
-        return _parse_decimal_text(raw_value, location="filing XBRL fact")
+    if (
+        local_name == "num-dot-decimal"
+        and transformation_namespace != _LEGACY_INLINE_TRANSFORMATION_NAMESPACE
+    ) or (
+        local_name == "numdotdecimal"
+        and transformation_namespace == _LEGACY_INLINE_TRANSFORMATION_NAMESPACE
+    ):
+        normalized = raw_value.strip()
+        if _NUM_DOT_DECIMAL_PATTERN.fullmatch(normalized) is None:
+            msg = "filing XBRL fact is not a valid num-dot-decimal value"
+            raise XbrlDataError(msg)
+        return Decimal(normalized.replace(",", ""))
     msg = f"inline XBRL numeric fact uses an unsupported transformation: {format_name}"
     raise XbrlDataError(msg)
 

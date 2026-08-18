@@ -6,6 +6,7 @@ exceptions at its lazy import boundary and passes them to :func:`map_edgar_excep
 
 from __future__ import annotations
 
+import sys
 from enum import StrEnum
 
 
@@ -85,6 +86,47 @@ _NOT_FOUND_ERRORS = frozenset(
 )
 _IDENTITY_ERRORS = frozenset({"IdentityError", "IdentityNotSetError", "SECIdentityError"})
 _PARSING_ERRORS = frozenset({"ParsingError", "XBRLProcessingError"})
+_PUBLIC_TRANSPORT_ERRORS: dict[str, frozenset[str]] = {
+    "httpcore": frozenset(
+        {
+            "ConnectError",
+            "ConnectTimeout",
+            "ConnectionNotAvailable",
+            "LocalProtocolError",
+            "NetworkError",
+            "PoolTimeout",
+            "ProtocolError",
+            "ProxyError",
+            "ReadError",
+            "ReadTimeout",
+            "RemoteProtocolError",
+            "TimeoutException",
+            "UnsupportedProtocol",
+            "WriteError",
+            "WriteTimeout",
+        }
+    ),
+    "httpx": frozenset(
+        {
+            "CloseError",
+            "ConnectError",
+            "ConnectTimeout",
+            "LocalProtocolError",
+            "NetworkError",
+            "PoolTimeout",
+            "ProtocolError",
+            "ProxyError",
+            "ReadError",
+            "ReadTimeout",
+            "RemoteProtocolError",
+            "TimeoutException",
+            "TransportError",
+            "UnsupportedProtocol",
+            "WriteError",
+            "WriteTimeout",
+        }
+    ),
+}
 
 
 def map_edgar_exception(
@@ -156,3 +198,35 @@ def map_edgar_exception(
         msg = "map_edgar_exception accepts only edgartools domain exceptions"
         raise TypeError(msg)
     return mapped
+
+
+def map_public_transport_exception(
+    error: BaseException,
+    *,
+    operation: str,
+) -> AdapterTransportError:
+    """Map transport failures escaping public edgartools without importing a client.
+
+    Edgartools can surface an underlying ``httpx``/``httpcore`` streaming error
+    directly after its public API has started reading a response.  The application
+    does not call either transport library; this narrow mapper merely keeps that
+    dependency failure inside the same secret-safe adapter boundary.
+    """
+    for module_name, allowed_names in _PUBLIC_TRANSPORT_ERRORS.items():
+        module = sys.modules.get(module_name)
+        if module is None:
+            continue
+        for class_name in allowed_names:
+            exception_type = getattr(module, class_name, None)
+            if (
+                isinstance(exception_type, type)
+                and issubclass(exception_type, BaseException)
+                and isinstance(error, exception_type)
+            ):
+                return AdapterTransportError(
+                    "edgartools could not complete the SEC response",
+                    state=AdapterState.TRANSPORT_ERROR,
+                    operation=operation,
+                )
+    msg = "map_public_transport_exception accepts only edgartools transport dependencies"
+    raise TypeError(msg)

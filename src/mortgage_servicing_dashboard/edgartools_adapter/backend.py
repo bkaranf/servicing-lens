@@ -44,6 +44,7 @@ from mortgage_servicing_dashboard.edgartools_adapter.errors import (
     AdapterValidationError,
     EdgarToolsAdapterError,
     map_edgar_exception,
+    map_public_transport_exception,
 )
 
 _ACCESSION_LENGTH = 20
@@ -52,6 +53,10 @@ _ASCII_DELETE = 127
 _CIK_LENGTH = 10
 _DATE_RANGE_PARTS = 2
 _MAX_CONTENT_BYTES = 25_000_000
+# Filing.size is aggregate metadata, not an allocation or attachment-download limit.
+# Retain a generous plausibility ceiling while individual acquired bytes remain capped
+# by _MAX_CONTENT_BYTES.
+_MAX_FILING_METADATA_SIZE_BYTES = 1_000_000_000
 _MAX_METADATA_TEXT = 16_384
 _MAX_URL_LENGTH = 2_048
 _MAX_DOCUMENT_LENGTH = 255
@@ -764,9 +769,15 @@ def _validate_official_sec_url(
     return cast("str", value)
 
 
-def _bounded_size(value: object, *, field: str, operation: str) -> int | None:
+def _bounded_size(
+    value: object,
+    *,
+    field: str,
+    operation: str,
+    maximum: int = _MAX_CONTENT_BYTES,
+) -> int | None:
     result = _optional_nonnegative_int(value, field=field, operation=operation)
-    if result is not None and result > _MAX_CONTENT_BYTES:
+    if result is not None and result > maximum:
         message = f"edgartools returned an overlong {field}"
         raise AdapterParsingError(
             message,
@@ -795,9 +806,13 @@ def _get_from_company_metadata(
 def _raise_mapped_edgar_error(error: Exception, *, edgar: Any, operation: str) -> None:
     """Raise one secret-safe mapping for an actual edgartools domain error."""
     edgar_error = getattr(edgar, "EdgarError", None)
-    if not isinstance(edgar_error, type) or not isinstance(error, edgar_error):
-        raise error
-    mapped = map_edgar_exception(error, operation=operation)
+    if isinstance(edgar_error, type) and isinstance(error, edgar_error):
+        mapped: EdgarToolsAdapterError = map_edgar_exception(error, operation=operation)
+    else:
+        try:
+            mapped = map_public_transport_exception(error, operation=operation)
+        except TypeError:
+            raise error from None
     raise mapped from error
 
 
@@ -849,7 +864,7 @@ def _map_filing(
         getattr(value, "text_url", None),
         accession=accession,
         expected_cik=returned_cik,
-        document=f"{accession.replace('-', '')}.txt",
+        document=f"{accession}.txt",
         operation=operation,
     )
     return Filing(
@@ -892,6 +907,7 @@ def _map_filing(
             getattr(value, "size", None),
             field="size",
             operation=operation,
+            maximum=_MAX_FILING_METADATA_SIZE_BYTES,
         ),
         homepage_url=homepage_url,
         text_url=text_url,

@@ -63,6 +63,7 @@ from mortgage_servicing_dashboard.edgartools_adapter.errors import (
     AdapterValidationError,
     EdgarToolsAdapterError,
     map_edgar_exception,
+    map_public_transport_exception,
 )
 
 _NOW = datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
@@ -474,6 +475,46 @@ def test_error_mapper_rejects_foreign_exceptions() -> None:
         map_edgar_exception(RuntimeError("foreign"), operation="get_filing")
 
 
+def test_public_transport_mapper_redacts_escaped_httpx_timeout() -> None:
+    httpx = pytest.importorskip("httpx")
+    error = httpx.ReadTimeout("secret source detail")
+
+    mapped = map_public_transport_exception(error, operation="acquire_attachment")
+
+    assert mapped.state is AdapterState.TRANSPORT_ERROR
+    assert mapped.operation == "acquire_attachment"
+    assert "secret" not in str(mapped)
+
+
+def test_public_transport_mapper_accepts_raw_httpcore_connection_unavailable() -> None:
+    httpcore = pytest.importorskip("httpcore")
+
+    mapped = map_public_transport_exception(
+        httpcore.ConnectionNotAvailable("secret source detail"),
+        operation="list_filings",
+    )
+
+    assert mapped.state is AdapterState.TRANSPORT_ERROR
+    assert "secret" not in str(mapped)
+
+
+def test_public_transport_mapper_rejects_forged_cross_product_class() -> None:
+    pytest.importorskip("httpx")
+    forged_base = type("ForeignBase", (Exception,), {"__module__": "httpx"})
+    forged_timeout = type("ReadTimeout", (forged_base,), {"__module__": __name__})
+
+    with pytest.raises(TypeError, match="transport dependencies"):
+        map_public_transport_exception(
+            forged_timeout("secret source detail"),
+            operation="list_filings",
+        )
+
+
+def test_public_transport_mapper_rejects_foreign_exceptions() -> None:
+    with pytest.raises(TypeError, match="transport dependencies"):
+        map_public_transport_exception(RuntimeError("foreign"), operation="get_filing")
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class _LibraryFiling:
     cik: object
@@ -505,7 +546,7 @@ def _library_filing() -> _LibraryFiling:
         is_inline_xbrl=True,
         size=12_345_678,
         homepage_url="https://www.sec.gov/Archives/edgar/data/92230/0000092230-26-000100-index.html",
-        text_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/000009223026000100.txt",
+        text_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/0000092230-26-000100.txt",
     )
 
 
@@ -524,7 +565,7 @@ def _expected_filing() -> Filing:
         is_inline_xbrl=True,
         size=12_345_678,
         homepage_url="https://www.sec.gov/Archives/edgar/data/92230/0000092230-26-000100-index.html",
-        text_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/000009223026000100.txt",
+        text_url="https://www.sec.gov/Archives/edgar/data/92230/000009223026000100/0000092230-26-000100.txt",
     )
 
 
@@ -622,6 +663,30 @@ def test_get_filing_uses_one_exact_company_query_and_preserves_rich_metadata() -
     assert module.filing_get_calls == [_ACCESSION]
     assert module.index_calls == []
     assert module.global_lookup_calls == []
+
+
+def test_get_filing_accepts_aggregate_size_above_attachment_content_bound() -> None:
+    returned = dataclasses.replace(_library_filing(), size=28_752_269)
+    backend, _ = _public_backend(_FakeEdgarModule(returned))
+
+    result = backend.get_filing(_ACCESSION, expected_cik=_CIK)
+
+    assert result.size == 28_752_269
+
+
+@pytest.mark.parametrize(
+    ("size", "accepted"),
+    [(1_000_000_000, True), (1_000_000_001, False)],
+)
+def test_get_filing_bounds_aggregate_metadata_size(size: int, *, accepted: bool) -> None:
+    returned = dataclasses.replace(_library_filing(), size=size)
+    backend, _ = _public_backend(_FakeEdgarModule(returned))
+
+    if accepted:
+        assert backend.get_filing(_ACCESSION, expected_cik=_CIK).size == size
+    else:
+        with pytest.raises(AdapterParsingError, match="overlong size"):
+            backend.get_filing(_ACCESSION, expected_cik=_CIK)
 
 
 def test_get_filing_without_expected_cik_uses_one_global_exact_lookup() -> None:
@@ -2082,6 +2147,20 @@ def test_list_filings_maps_one_transport_failure_without_retry() -> None:
     assert module.company_calls == [_CIK]
 
 
+def test_list_filings_maps_escaped_public_httpx_failure_without_retry() -> None:
+    httpx = pytest.importorskip("httpx")
+    company = _CapabilityCompany(filings=httpx.ReadTimeout("secret transport detail"))
+    backend, module = _capability_backend(company, None)
+
+    with pytest.raises(AdapterTransportError) as captured:
+        backend.list_filings(_CIK)
+
+    assert captured.value.operation == "list_filings"
+    assert "secret" not in str(captured.value)
+    assert len(company.filing_queries) == 1
+    assert module.company_calls == [_CIK]
+
+
 def test_list_filings_rejects_noncanonical_returned_accession() -> None:
     returned = dataclasses.replace(_library_filing(), accession_number="not-an-accession")
     company = _CapabilityCompany(filings=(returned,))
@@ -2787,7 +2866,7 @@ def test_filing_mapping_rejects_malformed_typed_metadata(
         ),
         (
             "text_url",
-            "https://www.sec.gov:443/Archives/edgar/data/92230/000009223026000100/000009223026000100.txt",
+            "https://www.sec.gov:443/Archives/edgar/data/92230/000009223026000100/0000092230-26-000100.txt",
         ),
         (
             "text_url",
@@ -2825,7 +2904,7 @@ def test_filing_mapping_accepts_agent_accession_prefix_for_pfsi_cik() -> None:
         ),
         text_url=(
             "https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/"
-            "000110465926090486.txt"
+            "0001104659-26-090486.txt"
         ),
     )
     backend, _ = _public_backend(_FakeEdgarModule(returned))

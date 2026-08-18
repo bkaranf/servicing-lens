@@ -219,6 +219,130 @@ def test_inline_xbrl_skips_nil_and_transforms_fixed_zero_exactly() -> None:
     assert all(isinstance(fact.value, Decimal) for fact in facts)
 
 
+def test_inline_xbrl_supports_2015_numdotdecimal_exactly() -> None:
+    payload = b"".join(
+        (
+            b'<html xmlns="http://www.w3.org/1999/xhtml" ',
+            b'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" ',
+            b'xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2015-02-26" ',
+            b'xmlns:xbrli="http://www.xbrl.org/2003/instance">',
+            b'<xbrli:context id="I"><xbrli:entity><xbrli:identifier>1745916',
+            b"</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31",
+            b"</xbrli:instant></xbrli:period></xbrli:context>",
+            b'<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>',
+            b'<ix:nonFraction name="us-gaap:Assets" contextRef="I" unitRef="USD" ',
+            b'decimals="-3" scale="3" format="ixt:numdotdecimal">1,234',
+            b"</ix:nonFraction></html>",
+        )
+    )
+
+    (fact,) = SecFilingXbrlAdapter().parse(
+        payload,
+        issuer_id="pfsi",
+        evidence_id="evidence:legacy-inline-transformation",
+        accession="0001104659-26-018142",
+        form="10-K",
+        filed=date(2026, 2, 20),
+    )
+
+    assert fact.raw_value == "1,234"
+    assert fact.value == Decimal(1_234_000)
+    assert fact.scale == Decimal(1000)
+
+
+@pytest.mark.parametrize(
+    "raw_value",
+    ["1,2", "$1,234", "(1,234)", "01", "1,234,56", "1\u0662", "1,\u0662\u0663\u0664"],
+)
+def test_inline_xbrl_rejects_malformed_2015_numdotdecimal(raw_value: str) -> None:
+    payload = (
+        '<html xmlns="http://www.w3.org/1999/xhtml" '
+        'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" '
+        'xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2015-02-26" '
+        'xmlns:xbrli="http://www.xbrl.org/2003/instance">'
+        '<xbrli:context id="I"><xbrli:entity><xbrli:identifier>1745916'
+        "</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31"
+        "</xbrli:instant></xbrli:period></xbrli:context>"
+        '<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>'
+        '<ix:nonFraction name="us-gaap:Assets" contextRef="I" unitRef="USD" '
+        f'format="ixt:numdotdecimal">{raw_value}</ix:nonFraction></html>'
+    ).encode()
+
+    with pytest.raises(XbrlDataError, match="valid num-dot-decimal"):
+        SecFilingXbrlAdapter().parse(
+            payload,
+            issuer_id="pfsi",
+            evidence_id="evidence:malformed-legacy-transformation",
+            accession="0001104659-26-018142",
+            form="10-K",
+            filed=date(2026, 2, 20),
+        )
+
+
+def test_inline_xbrl_rejects_transformation_prefix_outside_fact_scope() -> None:
+    payload = b"".join(
+        (
+            b'<html xmlns="http://www.w3.org/1999/xhtml" ',
+            b'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" ',
+            b'xmlns:xbrli="http://www.xbrl.org/2003/instance">',
+            b'<div xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2015-02-26"/>',
+            b'<xbrli:context id="I"><xbrli:entity><xbrli:identifier>1745916',
+            b"</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31",
+            b"</xbrli:instant></xbrli:period></xbrli:context>",
+            b'<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>',
+            b'<ix:nonFraction name="us-gaap:Assets" contextRef="I" unitRef="USD" ',
+            b'format="ixt:numdotdecimal">1,234</ix:nonFraction></html>',
+        )
+    )
+
+    with pytest.raises(XbrlDataError, match="unsupported transformation"):
+        SecFilingXbrlAdapter().parse(
+            payload,
+            issuer_id="pfsi",
+            evidence_id="evidence:out-of-scope-transformation",
+            accession="0001104659-26-018142",
+            form="10-K",
+            filed=date(2026, 2, 20),
+        )
+
+
+@pytest.mark.parametrize(
+    ("namespace", "format_name"),
+    [
+        ("http://www.xbrl.org/inlineXBRL/transformation/2015-02-26", "num-dot-decimal"),
+        ("http://www.xbrl.org/inlineXBRL/transformation/2020-02-12", "numdotdecimal"),
+        ("http://www.xbrl.org/inlineXBRL/transformation/2022-02-16", "numdotdecimal"),
+        ("http://www.xbrl.org/inlineXBRL/transformation/2015-02-26", "fixed-zero"),
+    ],
+)
+def test_inline_xbrl_rejects_cross_version_transformation_names(
+    namespace: str,
+    format_name: str,
+) -> None:
+    payload = (
+        '<html xmlns="http://www.w3.org/1999/xhtml" '
+        'xmlns:ix="http://www.xbrl.org/2013/inlineXBRL" '
+        f'xmlns:ixt="{namespace}" '
+        'xmlns:xbrli="http://www.xbrl.org/2003/instance">'
+        '<xbrli:context id="I"><xbrli:entity><xbrli:identifier>1745916'
+        "</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2025-12-31"
+        "</xbrli:instant></xbrli:period></xbrli:context>"
+        '<xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>'
+        '<ix:nonFraction name="us-gaap:Assets" contextRef="I" unitRef="USD" '
+        f'format="ixt:{format_name}">1</ix:nonFraction></html>'
+    ).encode()
+
+    with pytest.raises(XbrlDataError, match="unsupported transformation"):
+        SecFilingXbrlAdapter().parse(
+            payload,
+            issuer_id="pfsi",
+            evidence_id="evidence:cross-version-transformation",
+            accession="0001104659-26-018142",
+            form="10-K",
+            filed=date(2026, 2, 20),
+        )
+
+
 @pytest.mark.parametrize(
     ("format_name", "error"),
     [
