@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BOUNDED DERIVED REPLAY EXCERPT; NOT ORIGINAL SEC DOCUMENT BYTES; fixture=b-usb-2024-12-31; accession=0000036104-25-000016; document=usb-20241231_htm.xml; original_sha256=94e3948b1d4ede54ec77ad41ef24403fd0a769f8c473ca3471a00934cfaf93fe -->
+<phase5Replay xmlns:cyd="http://xbrl.sec.gov/cyd/2024" xmlns:dei="http://xbrl.sec.gov/dei/2024" xmlns:ecd="http://xbrl.sec.gov/ecd/2024" xmlns:iso4217="http://www.xbrl.org/2003/iso4217" xmlns:link="http://www.xbrl.org/2003/linkbase" xmlns:srt="http://fasb.org/srt/2024" xmlns:us-gaap="http://fasb.org/us-gaap/2024" xmlns:usb="http://www.usbank.com/20241231" xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xlink="http://www.w3.org/1999/xlink">
+<xbrli:context xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-14">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-15">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-389">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">usb:VariableInterestEntityNotPrimaryBeneficiaryCommunityDevelopmentAndTaxAdvantagedInvestmentsMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-390">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">usb:VariableInterestEntityNotPrimaryBeneficiaryCommunityDevelopmentAndTaxAdvantagedInvestmentsMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-391">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">usb:VariableInterestEntityNotPrimaryBeneficiaryPrivateInvestmentFundsAndPartnershipsMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-392">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">usb:VariableInterestEntityNotPrimaryBeneficiaryPrivateInvestmentFundsAndPartnershipsMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-399">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">usb:VariableInterestEntityPrimaryBeneficiaryCommunityDevelopmentAndTaxAdvantagedInvestmentsMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-400">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">usb:VariableInterestEntityPrimaryBeneficiaryCommunityDevelopmentAndTaxAdvantagedInvestmentsMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-401">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">usb:VariableInterestEntityPrimaryBeneficiaryTenderOptionBondProgramMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-504">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">srt:ParentCompanyMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-505">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000036104</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">srt:ParentCompanyMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:unit xmlns:xbrli="http://www.xbrl.org/2003/instance" id="usd">
+        <xbrli:measure>iso4217:USD</xbrli:measure>
+    </xbrli:unit>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-14" decimals="-6" id="f-123" unitRef="usd">678318000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-15" decimals="-6" id="f-124" unitRef="usd">663491000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-389" decimals="-6" id="f-2116" unitRef="usd">8107000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-390" decimals="-6" id="f-2117" unitRef="usd">6659000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-391" decimals="-6" id="f-2122" unitRef="usd">264000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-392" decimals="-6" id="f-2123" unitRef="usd">219000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-399" decimals="-8" id="f-2134" unitRef="usd">6400000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-400" decimals="-8" id="f-2136" unitRef="usd">6100000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-401" decimals="-6" id="f-2138" unitRef="usd">607000000</us-gaap:Assets>
+
+<usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset xmlns:usb="http://www.usbank.com/20241231" contextRef="c-14" decimals="-8" id="f-2161" unitRef="usd">216600000000</usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset>
+
+<usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset xmlns:usb="http://www.usbank.com/20241231" contextRef="c-15" decimals="-8" id="f-2162" unitRef="usd">233400000000</usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-504" decimals="-6" id="f-4785" unitRef="usd">95183000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-505" decimals="-6" id="f-4786" unitRef="usd">90859000000</us-gaap:Assets>
+
+</phase5Replay>

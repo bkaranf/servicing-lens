@@ -7,9 +7,11 @@ import json
 import os
 import re
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal
+from itertools import combinations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NoReturn, cast
 
@@ -63,6 +65,10 @@ from mortgage_servicing_dashboard.edgar_tools_pipeline import (
     CommittedCaseState,
     ValidatedFiling,
 )
+from mortgage_servicing_dashboard.financial_discovery import (
+    FinancialFieldRegistry,
+    FinancialMetricDefinition,
+)
 from mortgage_servicing_dashboard.sources import (
     AcquiredDocument,
     RecordedEvidenceAcquirer,
@@ -78,9 +84,16 @@ if TYPE_CHECKING:
     from mortgage_servicing_dashboard.phase3 import Phase3Dataset
 
 _MAX_REPOSITORY_RESULTS = 500
+_MIN_COMPARISON_COMPANY_COUNT = 2
+_MAX_COMPARISON_COMPANY_COUNT = 3
 _EDGARTOOLS_METHOD = "SEC_FILING_XBRL_VIA_EDGARTOOLS"
 _FINANCIAL_MAPPING_VERSION = "financial-fields-v1"
-_TOTAL_ASSETS_VERSION_ID = "total_assets:1.0.0"
+_LEGACY_UNIVERSE_VERSIONS = frozenset(
+    {
+        "phase-2-acquisition-2026-08-12",
+        _FINANCIAL_MAPPING_VERSION,
+    }
+)
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 _EDGARTOOLS_COMPANIES: dict[str, tuple[str, str, str, str, str]] = {
     "tfc": (
@@ -98,6 +111,43 @@ _EDGARTOOLS_COMPANIES: dict[str, tuple[str, str, str, str, str]] = {
         "pfsi_registrant",
     ),
 }
+
+
+@dataclass(frozen=True, slots=True)
+class EdgarToolsCompanyIdentity:
+    """Governed legal identity supplied to generalized edgartools persistence."""
+
+    legal_name: str
+    ticker: str
+    classification: str
+    cik: str
+    reporting_entity_id: str
+    exchange: str = "NYSE"
+    security_type: str = "common_stock"
+
+    def __post_init__(self) -> None:
+        """Reject incomplete governed legal identities."""
+        if any(
+            not value.strip()
+            for value in (
+                self.legal_name,
+                self.ticker,
+                self.classification,
+                self.cik,
+                self.reporting_entity_id,
+                self.exchange,
+                self.security_type,
+            )
+        ):
+            message = "edgartools company identity fields must not be blank"
+            raise ValueError(message)
+
+
+def _legacy_company_identities() -> dict[str, EdgarToolsCompanyIdentity]:
+    return {
+        company_id: EdgarToolsCompanyIdentity(*values)
+        for company_id, values in _EDGARTOOLS_COMPANIES.items()
+    }
 
 
 def _as_utc(value: datetime | None) -> datetime | None:
@@ -120,14 +170,25 @@ def _fail_edgartools_persistence(message: str) -> NoReturn:
 class AtomicEdgarToolsRepository:
     """Atomic publication callback for coordinator-validated filing facts.
 
-    This path bootstraps only the two governed SEC registrants, their consolidated
-    company scopes, the required regimes, and the selected ``total_assets`` metric.
-    It never invokes the legacy Stage A or Phase 3 seeders.
+    The default contract remains the two legacy ``total_assets`` registrants. A
+    caller may inject an exact company registry and financial-field registry for a
+    larger manifest-bounded cohort. It never invokes legacy seeders.
     """
 
-    def __init__(self, engine: Engine) -> None:
-        """Bind the isolated publication engine without touching its schema."""
+    def __init__(
+        self,
+        engine: Engine,
+        *,
+        companies: Mapping[str, EdgarToolsCompanyIdentity] | None = None,
+        registry: FinancialFieldRegistry | None = None,
+    ) -> None:
+        """Bind the isolated publication engine and optional governed contracts."""
         self._engine = engine
+        self._companies = dict(companies or _legacy_company_identities())
+        self._registry = registry
+        self._universe_version = (
+            registry.version if registry is not None else _FINANCIAL_MAPPING_VERSION
+        )
         self._last_result: AtomicPersistenceResult | None = None
 
     @property
@@ -162,7 +223,11 @@ class AtomicEdgarToolsRepository:
                 ),
             )
         )
-        _validate_edgartools_batch(ordered)
+        _validate_edgartools_batch(
+            ordered,
+            companies=self._companies,
+            registry=self._registry,
+        )
         if not ordered:
             self._last_result = AtomicPersistenceResult()
             return self._last_result
@@ -182,9 +247,21 @@ class AtomicEdgarToolsRepository:
         }
         knowledge_base = utc_now()
         outcomes: list[CommittedCaseOutcome] = []
+        permitted_scopes: dict[str, set[str]] = {}
+        for item in ordered:
+            permitted_scopes.setdefault(_metric_version_id(item), set()).add(
+                item.reporting_scope_id
+            )
         with Session(self._engine) as session, session.begin():
             for item in ordered:
-                _ensure_edgartools_structure(session, item)
+                _ensure_edgartools_structure(
+                    session,
+                    item,
+                    company=self._companies[item.company_id],
+                    permitted_scopes=permitted_scopes[_metric_version_id(item)],
+                    metric_definition=_financial_metric_definition(item, self._registry),
+                    universe_version=self._universe_version,
+                )
             session.flush()
             run, run_created = _edgartools_run(session, ordered, started_at=knowledge_base)
             for ordinal, item in enumerate(ordered):
@@ -220,11 +297,11 @@ class AtomicEdgarToolsRepository:
 
     def known_accessions(self, company_id: str) -> frozenset[str]:
         """Load persisted SEC accessions for one governed company from this database."""
-        company = _EDGARTOOLS_COMPANIES.get(company_id)
+        company = self._companies.get(company_id)
         if company is None:
-            _fail_edgartools_persistence("edgartools accessions are limited to TFC and PFSI")
+            _fail_edgartools_persistence("edgartools accessions are limited to governed companies")
         initialize_schema(self._engine)
-        entity_id = company[4]
+        entity_id = company.reporting_entity_id
         with Session(self._engine) as session:
             return frozenset(
                 session.scalars(
@@ -235,14 +312,16 @@ class AtomicEdgarToolsRepository:
 
 def _validate_edgartools_batch(  # noqa: C901, PLR0912, PLR0915
     results: tuple[ValidatedFiling, ...],
+    *,
+    companies: Mapping[str, EdgarToolsCompanyIdentity] | None = None,
+    registry: FinancialFieldRegistry | None = None,
 ) -> None:
+    governed_companies = dict(companies or _legacy_company_identities())
     case_ids: set[str] = set()
     for item in results:
-        company = _EDGARTOOLS_COMPANIES.get(item.company_id)
+        company = governed_companies.get(item.company_id)
         if company is None:
-            _fail_edgartools_persistence("edgartools publication is limited to TFC and PFSI")
-        _, _, _, cik, entity_id = company
-        expected_scope = f"{item.company_id}_consolidated_company"
+            _fail_edgartools_persistence("edgartools publication is limited to governed companies")
         required = (
             item.case_id,
             item.mapping_version,
@@ -270,22 +349,66 @@ def _validate_edgartools_batch(  # noqa: C901, PLR0912, PLR0915
             item.evidence_capture_method,
             item.evidence_media_type,
             item.edgartools_version,
+            item.source_document or item.primary_document,
+            item.source_sequence or item.primary_sequence,
+            item.source_document_type or item.primary_document_type,
+            item.source_description or item.primary_description,
+            item.metric_version,
         )
         if any(not value.strip() for value in required):
             _fail_edgartools_persistence("validated filing lineage contains a blank required field")
         if item.case_id in case_ids:
             _fail_edgartools_persistence("validated filing batch repeats a case identifier")
         case_ids.add(item.case_id)
-        if (
-            item.mapping_version != _FINANCIAL_MAPPING_VERSION
-            or item.field_id != "total_assets"
-            or item.cik != cik
-            or item.reporting_entity_id != entity_id
-            or item.reporting_scope_id != expected_scope
-        ):
+        expected_mapping_version = (
+            _FINANCIAL_MAPPING_VERSION if registry is None else registry.version
+        )
+        if item.mapping_version != expected_mapping_version:
             _fail_edgartools_persistence(
                 "validated filing is outside the governed financial mapping"
             )
+        if item.cik != company.cik or item.reporting_entity_id != company.reporting_entity_id:
+            _fail_edgartools_persistence(
+                "validated filing is outside the governed financial mapping"
+            )
+        if registry is None:
+            if (
+                item.field_id != "total_assets"
+                or item.reporting_scope_id != f"{item.company_id}_consolidated_company"
+            ):
+                _fail_edgartools_persistence(
+                    "validated filing is outside the governed financial mapping"
+                )
+        else:
+            mapping_matches = tuple(
+                mapping
+                for mapping in registry.mappings
+                if mapping.mapping_id == item.mapping_id
+                and mapping.issuer_id == item.company_id
+                and mapping.xbrl.cik == item.cik
+                and mapping.field_id == item.field_id
+                and mapping.xbrl.metric_version == item.metric_version
+                and mapping.xbrl.reporting_entity_id == item.reporting_entity_id
+                and mapping.xbrl.reporting_scope_id == item.reporting_scope_id
+                and mapping.classification is item.classification
+                and mapping.xbrl.qualified_concept == item.qualified_concept
+                and mapping.xbrl.unit == item.unit
+                and mapping.xbrl.period_type is item.period_type
+                and mapping.display_name == (item.metric_display_name or item.original_label)
+                and mapping.reporting_scope_name == item.reporting_scope_name
+                and mapping.portfolio_population == item.portfolio_population
+                and mapping.scope_methodology == item.scope_methodology
+                and mapping.reporting_scope_category.value == item.reporting_scope_category
+                and tuple(
+                    (dimension.dimension, dimension.member) for dimension in mapping.xbrl.dimensions
+                )
+                == item.dimensions
+                and mapping.xbrl.applies_to(item.report_period)
+            )
+            if registry.version != item.mapping_version or len(mapping_matches) != 1:
+                _fail_edgartools_persistence(
+                    "validated filing is outside the governed financial mapping"
+                )
         if not isinstance(item.normalized_value, Decimal) or not item.normalized_value.is_finite():
             _fail_edgartools_persistence("validated filing value must be a finite Decimal")
         if (
@@ -319,6 +442,16 @@ def _validate_edgartools_batch(  # noqa: C901, PLR0912, PLR0915
             _fail_edgartools_persistence("validated filing source-object lineage is incomplete")
         if not item.primary_sequence.isdigit() or int(item.primary_sequence) < 1:
             _fail_edgartools_persistence("primary document sequence is invalid")
+        source_sequence = item.source_sequence or item.primary_sequence
+        if not source_sequence.isdigit() or int(source_sequence) < 1:
+            _fail_edgartools_persistence("source document sequence is invalid")
+        source_document = item.source_document or item.primary_document
+        if item.source_is_primary != (source_document == item.primary_document):
+            _fail_edgartools_persistence(
+                "source and primary document classification is inconsistent"
+            )
+        if not item.primary_source_url and source_document != item.primary_document:
+            _fail_edgartools_persistence("non-primary source requires the primary document URL")
         if not item.source_element_ids:
             _fail_edgartools_persistence("validated filing requires at least one source element")
         if item.amendment != (item.revision_of_accession is not None):
@@ -327,40 +460,152 @@ def _validate_edgartools_batch(  # noqa: C901, PLR0912, PLR0915
             )
         if item.amendment != item.form.endswith("/A"):
             _fail_edgartools_persistence("filing amendment flag and form suffix disagree")
-        if item.evidence_representation != "EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8":
-            _fail_edgartools_persistence("validated filing evidence representation is not approved")
-        if item.evidence_capture_method != "edgartools_attachment_text_utf8":
-            _fail_edgartools_persistence("validated filing capture method is not approved")
+        evidence_pair = (item.evidence_representation, item.evidence_capture_method)
+        live_pair = (
+            "EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8",
+            "edgartools_attachment_text_utf8",
+        )
+        replay_pair = (
+            "BOUNDED_DERIVED_REPLAY_EXCERPT",
+            "offline_bounded_xbrl_replay_excerpt",
+        )
+        if evidence_pair not in {live_pair, replay_pair}:
+            _fail_edgartools_persistence(
+                "validated filing evidence representation and capture method are not approved"
+            )
+        if evidence_pair == replay_pair and (
+            _SHA256_PATTERN.fullmatch(item.original_evidence_sha256) is None
+            or item.original_evidence_byte_length <= 0
+            or item.original_evidence_sha256 == item.evidence_sha256
+            or item.original_evidence_representation != live_pair[0]
+            or item.original_evidence_capture_method != live_pair[1]
+            or not item.original_source_locators
+        ):
+            _fail_edgartools_persistence(
+                "bounded replay evidence lacks distinct original-document lineage"
+            )
         if item.fiscal_quarter not in {"FY", "Q1", "Q2", "Q3", "Q4"}:
             _fail_edgartools_persistence(
                 "validated filing fiscal quarter must be FY or Q1 through Q4"
             )
         if item.fiscal_year < date.min.year:
             _fail_edgartools_persistence("validated filing fiscal year is invalid")
+        if item.period_type.value == "instant" and item.period_start is not None:
+            _fail_edgartools_persistence("instant filing fact cannot have a period start")
+        if item.period_type.value == "duration" and (
+            item.period_start is None or item.period_start > item.report_period
+        ):
+            _fail_edgartools_persistence("duration filing fact requires an ordered period")
 
 
-def _ensure_edgartools_structure(  # noqa: C901
+def _financial_metric_definition(
+    item: ValidatedFiling,
+    registry: FinancialFieldRegistry | None,
+) -> FinancialMetricDefinition:
+    """Resolve issuer-neutral metadata independently of batch or issuer order."""
+    definition = (
+        registry.metric_definition(item.field_id, item.metric_version)
+        if registry is not None
+        else None
+    )
+    if definition is not None:
+        return definition
+    if registry is not None and registry.metric_definitions:
+        _fail_edgartools_persistence(
+            "validated filing lacks governed issuer-neutral metric metadata"
+        )
+    return FinancialMetricDefinition(
+        metric_id=item.field_id,
+        semantic_version=item.metric_version,
+        display_name=_metric_display_name(item.field_id),
+        category="core_financial",
+        business_meaning=("Consolidated period-end total assets reported by the SEC registrant."),
+        grain="reporting entity, reporting scope, fiscal period",
+        unit="USD",
+    )
+
+
+def _ensure_edgartools_structure(  # noqa: C901, PLR0912, PLR0913, PLR0915
     session: Session,
     item: ValidatedFiling,
+    *,
+    company: EdgarToolsCompanyIdentity | None = None,
+    permitted_scopes: set[str] | None = None,
+    metric_definition: FinancialMetricDefinition,
+    universe_version: str,
 ) -> None:
-    legal_name, ticker, classification, cik, entity_id = _EDGARTOOLS_COMPANIES[item.company_id]
-    company = session.get(Company, item.company_id)
-    if company is None:
+    identity = company or _legacy_company_identities()[item.company_id]
+    legal_name = identity.legal_name
+    ticker = identity.ticker
+    classification = identity.classification
+    cik = identity.cik
+    entity_id = identity.reporting_entity_id
+    company_row = session.get(Company, item.company_id)
+    if company_row is None:
         session.add(
             Company(
                 id=item.company_id,
                 legal_name=legal_name,
                 ticker=ticker,
                 classification=classification,
-                universe_version=_FINANCIAL_MAPPING_VERSION,
+                universe_version=universe_version,
                 active=True,
             )
         )
-    elif company.ticker != ticker or company.legal_name != legal_name:
-        _fail_edgartools_persistence(
-            "existing company identity conflicts with the governed registrant"
+    else:
+        if (
+            company_row.ticker != ticker
+            or company_row.legal_name != legal_name
+            or company_row.classification != classification
+            or not company_row.active
+        ):
+            _fail_edgartools_persistence(
+                "existing company identity conflicts with the governed registrant"
+            )
+        if company_row.universe_version != universe_version:
+            has_phase5_publication = bool(
+                session.scalar(
+                    select(func.count(MetricObservation.id)).where(
+                        MetricObservation.reporting_entity_id == entity_id,
+                        MetricObservation.methodology == _EDGARTOOLS_METHOD,
+                    )
+                )
+            )
+            if (
+                company_row.universe_version in _LEGACY_UNIVERSE_VERSIONS
+                and universe_version != _FINANCIAL_MAPPING_VERSION
+                and not has_phase5_publication
+            ):
+                # An exact legacy identity may be explicitly promoted once during
+                # Phase 5 onboarding. Subsequent reruns must match Phase 5 exactly.
+                company_row.universe_version = universe_version
+            else:
+                _fail_edgartools_persistence(
+                    "existing company universe version conflicts with the governed registry"
+                )
+    security_id = f"{item.company_id}:common"
+    security = session.get(Security, security_id)
+    if security is None:
+        session.add(
+            Security(
+                id=security_id,
+                company_id=item.company_id,
+                ticker=ticker,
+                exchange=identity.exchange,
+                security_type=identity.security_type,
+            )
         )
-    if session.get(ReportingEntity, entity_id) is None:
+    elif (
+        security.company_id != item.company_id
+        or security.ticker != ticker
+        or security.exchange != identity.exchange
+        or security.security_type != identity.security_type
+    ):
+        _fail_edgartools_persistence(
+            "existing security identity conflicts with the governed registrant"
+        )
+    reporting_entity = session.get(ReportingEntity, entity_id)
+    if reporting_entity is None:
         session.add(
             ReportingEntity(
                 id=entity_id,
@@ -368,6 +613,14 @@ def _ensure_edgartools_structure(  # noqa: C901
                 legal_name=legal_name,
                 entity_type="SEC_REGISTRANT",
             )
+        )
+    elif (
+        reporting_entity.company_id != item.company_id
+        or reporting_entity.legal_name != legal_name
+        or reporting_entity.entity_type != "SEC_REGISTRANT"
+    ):
+        _fail_edgartools_persistence(
+            "existing reporting entity conflicts with the governed registrant"
         )
     session.flush()
     identifier_id = f"{entity_id}:cik"
@@ -383,7 +636,13 @@ def _ensure_edgartools_structure(  # noqa: C901
                 valid_to=None,
             )
         )
-    elif identifier.value != cik:
+    elif (
+        identifier.reporting_entity_id != entity_id
+        or identifier.scheme != "SEC_CIK"
+        or identifier.value != cik
+        or identifier.valid_from != date(1900, 1, 1)
+        or identifier.valid_to is not None
+    ):
         _fail_edgartools_persistence("existing CIK conflicts with the governed registrant")
     reporting_scope = session.get(ReportingScope, item.reporting_scope_id)
     if reporting_scope is None:
@@ -427,34 +686,68 @@ def _ensure_edgartools_structure(  # noqa: C901
                 effective_to=None,
             )
         )
-    if session.get(MetricDefinition, "total_assets") is None:
+    definition = session.get(MetricDefinition, item.field_id)
+    if definition is None:
         session.add(
             MetricDefinition(
-                id="total_assets",
-                display_name="Total assets",
-                category="CORE_FINANCIAL",
+                id=item.field_id,
+                display_name=metric_definition.display_name,
+                category=metric_definition.category,
             )
         )
+    elif (
+        definition.display_name != metric_definition.display_name
+        or definition.category != metric_definition.category
+    ):
+        _fail_edgartools_persistence(
+            "existing metric definition conflicts with governed issuer-neutral metadata"
+        )
     session.flush()
-    if session.get(MetricDefinitionVersion, _TOTAL_ASSETS_VERSION_ID) is None:
+    metric_version_id = _metric_version_id(item)
+    metric_version = session.get(MetricDefinitionVersion, metric_version_id)
+    allowed_scopes = sorted(permitted_scopes or {item.reporting_scope_id})
+    if metric_version is None:
         session.add(
             MetricDefinitionVersion(
-                id=_TOTAL_ASSETS_VERSION_ID,
-                metric_id="total_assets",
-                semantic_version="1.0.0",
-                business_meaning="Consolidated total assets reported by the SEC registrant.",
-                grain="reporting entity, consolidated scope, instant period",
-                unit="USD",
-                permitted_scopes=["tfc_consolidated_company", "pfsi_consolidated_company"],
+                id=metric_version_id,
+                metric_id=item.field_id,
+                semantic_version=item.metric_version,
+                business_meaning=metric_definition.business_meaning,
+                grain=metric_definition.grain,
+                unit=metric_definition.unit,
+                permitted_scopes=allowed_scopes,
                 rules={
-                    "classification": "CORE_FINANCIAL",
-                    "mapping_version": _FINANCIAL_MAPPING_VERSION,
+                    "mapping_version": universe_version,
                     "publication_source": _EDGARTOOLS_METHOD,
                 },
                 effective_from=date(1900, 1, 1),
                 effective_to=None,
             )
         )
+    else:
+        if (
+            metric_version.metric_id != item.field_id
+            or metric_version.semantic_version != item.metric_version
+            or metric_version.business_meaning != metric_definition.business_meaning
+            or metric_version.grain != metric_definition.grain
+            or metric_version.unit != metric_definition.unit
+        ):
+            _fail_edgartools_persistence(
+                "existing metric version conflicts with governed issuer-neutral metadata"
+            )
+        existing_mapping_version = metric_version.rules.get("mapping_version")
+        if existing_mapping_version not in {None, universe_version}:
+            _fail_edgartools_persistence(
+                "existing metric version mapping contract conflicts with the governed registry"
+            )
+        if existing_mapping_version is None:
+            metric_version.rules = {
+                **metric_version.rules,
+                "mapping_version": universe_version,
+            }
+        combined_scopes = sorted(set(metric_version.permitted_scopes) | set(allowed_scopes))
+        if combined_scopes != metric_version.permitted_scopes:
+            metric_version.permitted_scopes = combined_scopes
 
 
 def _edgartools_run(
@@ -470,6 +763,7 @@ def _edgartools_run(
                 "accession": item.accession_number,
                 "evidence_sha256": item.evidence_sha256,
                 "mapping_version": item.mapping_version,
+                "mapping_id": item.mapping_id,
             }
             for item in results
         ]
@@ -491,13 +785,18 @@ def _edgartools_run(
         requested_company_id=company_ids[0] if len(company_ids) == 1 else None,
         requested_periods=sorted({item.report_period.isoformat() for item in results}),
         code_version="edgartools-financial-sync-v1",
-        config_version=_FINANCIAL_MAPPING_VERSION,
+        config_version=results[0].mapping_version,
         parser_version="inline-xbrl-selected-fields-v1",
         terminal_outcomes={},
     )
     session.add(run)
     session.flush()
     return run, True
+
+
+def _metric_version_id(item: ValidatedFiling) -> str:
+    """Return the stable metric-version key carried by the reviewed mapping."""
+    return f"{item.field_id}:{item.metric_version}"
 
 
 def _persist_validated_filing(
@@ -529,7 +828,10 @@ def _edgartools_evidence(
     run: PipelineRun,
     counts: dict[str, int],
 ) -> str:
-    source_class = "SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS"
+    is_replay = item.evidence_representation == "BOUNDED_DERIVED_REPLAY_EXCERPT"
+    source_class = (
+        "SEC_XBRL_BOUNDED_REPLAY_EXCERPT" if is_replay else "SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS"
+    )
     existing = session.scalar(
         select(SourceEvidence).where(
             SourceEvidence.content_sha256 == item.evidence_sha256,
@@ -571,7 +873,11 @@ def _edgartools_evidence(
             reporting_entity_candidate=item.reporting_entity_id,
             reporting_period_candidate=item.report_period.isoformat(),
             retention_location=item.evidence_location,
-            bounded_excerpt="Retained edgartools filing document; raw body omitted.",
+            bounded_excerpt=(
+                "Tracked bounded derived XBRL replay excerpt; not the original SEC document."
+                if is_replay
+                else "Retained edgartools filing document; raw body omitted."
+            ),
             response_status=None,
             etag=None,
             last_modified=None,
@@ -643,20 +949,68 @@ def _edgartools_document(
     evidence_id: str,
     counts: dict[str, int],
 ) -> None:
-    digest = hashlib.sha256(f"{item.accession_number}|{item.primary_document}".encode()).hexdigest()
+    source_document = item.source_document or item.primary_document
+    source_sequence = item.source_sequence or item.primary_sequence
+    source_document_type = item.source_document_type or item.primary_document_type
+    source_description = item.source_description or item.primary_description
+    primary_source_url = item.primary_source_url or item.source_url
+
+    _ensure_edgartools_document_row(
+        session,
+        filing=filing,
+        accession=item.accession_number,
+        filename=item.primary_document,
+        source_url=primary_source_url,
+        sequence=int(item.primary_sequence),
+        document_type=item.primary_document_type,
+        description=item.primary_description,
+        is_primary=True,
+        evidence_id=evidence_id if item.source_is_primary else None,
+        counts=counts,
+    )
+    if source_document != item.primary_document:
+        _ensure_edgartools_document_row(
+            session,
+            filing=filing,
+            accession=item.accession_number,
+            filename=source_document,
+            source_url=item.source_url,
+            sequence=int(source_sequence),
+            document_type=source_document_type,
+            description=source_description,
+            is_primary=item.source_is_primary,
+            evidence_id=evidence_id,
+            counts=counts,
+        )
+
+
+def _ensure_edgartools_document_row(  # noqa: PLR0913
+    session: Session,
+    *,
+    filing: Filing,
+    accession: str,
+    filename: str,
+    source_url: str,
+    sequence: int,
+    document_type: str,
+    description: str,
+    is_primary: bool,
+    evidence_id: str | None,
+    counts: dict[str, int],
+) -> None:
+    digest = hashlib.sha256(f"{accession}|{filename}".encode()).hexdigest()
     document_id = f"document:edgartools:{digest[:47]}"
     existing = session.get(FilingDocument, document_id)
     if existing is not None:
         if (
             existing.filing_id != filing.id
-            or existing.filename != item.primary_document
-            or existing.source_url != item.source_url
-            or existing.document_type != item.form
-            or existing.sequence != int(item.primary_sequence)
-            or existing.document_type != item.primary_document_type
-            or existing.description != item.primary_description
+            or existing.filename != filename
+            or existing.source_url != source_url
+            or existing.document_type != document_type
+            or existing.sequence != sequence
+            or existing.description != description
             or existing.source_evidence_id != evidence_id
-            or existing.is_primary is not True
+            or existing.is_primary is not is_primary
         ):
             _fail_edgartools_persistence(
                 "filing document identity conflicts with validated metadata"
@@ -666,13 +1020,13 @@ def _edgartools_document(
         FilingDocument(
             id=document_id,
             filing_id=filing.id,
-            sequence=int(item.primary_sequence),
-            document_type=item.primary_document_type,
-            filename=item.primary_document,
-            source_url=item.source_url,
+            sequence=sequence,
+            document_type=document_type,
+            filename=filename,
+            source_url=source_url,
             source_evidence_id=evidence_id,
-            description=item.primary_description,
-            is_primary=True,
+            description=description,
+            is_primary=is_primary,
         )
     )
     counts["documents"] += 1
@@ -725,11 +1079,11 @@ def _edgartools_raw_fact(
             source_sign=item.source_sign,
             source_precision=item.source_precision,
             presentation_sign=item.presentation_sign,
-            period_type="instant",
-            period_start=None,
+            period_type=item.period_type.value,
+            period_start=item.period_start,
             period_end=item.report_period,
-            instant=item.report_period,
-            dimensions={},
+            instant=(item.report_period if item.period_type.value == "instant" else None),
+            dimensions=dict(item.dimensions),
             methodology=_EDGARTOOLS_METHOD,
         )
     )
@@ -739,12 +1093,12 @@ def _edgartools_raw_fact(
 def _edgartools_semantic_digest(item: ValidatedFiling) -> str:
     return _stable_hash(
         {
-            "metric_version_id": _TOTAL_ASSETS_VERSION_ID,
+            "metric_version_id": _metric_version_id(item),
             "reporting_entity_id": item.reporting_entity_id,
             "reporting_scope_id": item.reporting_scope_id,
-            "period_start": None,
+            "period_start": (None if item.period_start is None else item.period_start.isoformat()),
             "period_end": item.report_period.isoformat(),
-            "period_type": "instant",
+            "period_type": item.period_type.value,
             "fiscal_calendar_regime_id": f"{item.reporting_entity_id}:calendar",
             "accounting_policy_regime_id": f"{item.reporting_entity_id}:us-gaap",
             "observation_state": ObservationState.REPORTED_ACTUAL.value,
@@ -752,7 +1106,7 @@ def _edgartools_semantic_digest(item: ValidatedFiling) -> str:
             "currency": "USD",
             "unit": item.unit,
             "scale": "1",
-            "dimensions": {},
+            "dimensions": dict(item.dimensions),
         }
     )
 
@@ -825,16 +1179,16 @@ def _edgartools_observation(  # noqa: PLR0913
 
     observation = MetricObservation(
         id=observation_id,
-        metric_version_id=_TOTAL_ASSETS_VERSION_ID,
+        metric_version_id=_metric_version_id(item),
         reporting_entity_id=item.reporting_entity_id,
         reporting_scope_id=item.reporting_scope_id,
         fiscal_calendar_regime_id=f"{item.reporting_entity_id}:calendar",
         accounting_policy_regime_id=f"{item.reporting_entity_id}:us-gaap",
-        period_start=None,
+        period_start=item.period_start,
         period_end=item.report_period,
         fiscal_year=item.fiscal_year,
         fiscal_quarter=0 if item.fiscal_quarter == "FY" else int(item.fiscal_quarter[1:]),
-        period_type="instant",
+        period_type=item.period_type.value,
         value=item.normalized_value,
         currency="USD",
         unit=item.unit,
@@ -843,13 +1197,16 @@ def _edgartools_observation(  # noqa: PLR0913
         reported_precision=item.source_precision or "ABSENT_IN_SOURCE",
         observation_state=ObservationState.REPORTED_ACTUAL.value,
         methodology=_EDGARTOOLS_METHOD,
-        dimensions={},
+        dimensions=dict(item.dimensions),
         evidence_locator=item.source_locators[0],
         extraction_method="deterministic_inline_xbrl",
         parser_metadata={
             "case_id": item.case_id,
             "mapping_version": item.mapping_version,
+            "mapping_id": item.mapping_id,
+            "metric_version": item.metric_version,
             "classification": item.classification.value,
+            "reporting_scope_category": item.reporting_scope_category,
             "reporting_scope_name": item.reporting_scope_name,
             "portfolio_population": item.portfolio_population,
             "scope_methodology": item.scope_methodology,
@@ -863,6 +1220,12 @@ def _edgartools_observation(  # noqa: PLR0913
             "primary_sequence": item.primary_sequence,
             "primary_document_type": item.primary_document_type,
             "primary_description": item.primary_description,
+            "primary_source_url": item.primary_source_url or item.source_url,
+            "source_document": item.source_document or item.primary_document,
+            "source_sequence": item.source_sequence or item.primary_sequence,
+            "source_document_type": (item.source_document_type or item.primary_document_type),
+            "source_description": item.source_description or item.primary_description,
+            "source_is_primary": item.source_is_primary,
             "qualified_concept": item.qualified_concept,
             "context_ref": item.context_ref,
             "source_scale": str(item.source_scale),
@@ -872,9 +1235,26 @@ def _edgartools_observation(  # noqa: PLR0913
             "source_element_ids": list(item.source_element_ids),
             "source_object_count": item.source_object_count,
             "source_locators": list(item.source_locators),
+            "period_type": item.period_type.value,
+            "period_start": (None if item.period_start is None else item.period_start.isoformat()),
+            "dimensions": dict(item.dimensions),
             "evidence_sha256": item.evidence_sha256,
             "evidence_representation": item.evidence_representation,
             "evidence_capture_method": item.evidence_capture_method,
+            "original_evidence_sha256": (item.original_evidence_sha256 or item.evidence_sha256),
+            "original_evidence_byte_length": (
+                item.original_evidence_byte_length or item.evidence_byte_length
+            ),
+            "original_evidence_representation": (
+                item.original_evidence_representation or item.evidence_representation
+            ),
+            "original_evidence_capture_method": (
+                item.original_evidence_capture_method or item.evidence_capture_method
+            ),
+            "original_source_locators": list(item.original_source_locators or item.source_locators),
+            "evidence_is_bounded_replay_excerpt": (
+                item.evidence_representation == "BOUNDED_DERIVED_REPLAY_EXCERPT"
+            ),
         },
         validation_summary="Exact approved golden filing fact and SHA-256 lineage validated.",
         publication_state=PublicationState.PUBLISHED.value,
@@ -1180,7 +1560,7 @@ def _metric_display_name(metric_id: str) -> str:
     return metric_id.replace("_", " ").title().replace("Msr", "MSR").replace("Upb", "UPB")
 
 
-def _seed_universe(  # noqa: C901
+def _seed_universe(  # noqa: C901, PLR0912
     session: Session,
     *,
     universe: dict[str, Any],
@@ -1219,11 +1599,13 @@ def _seed_universe(  # noqa: C901
                     entity_type="SEC_REGISTRANT",
                 )
             )
-            population = (
-                "residential_servicing_for_others_and_bank_owned"
-                if company_id == "tfc"
-                else "owned_msr_subservicing_and_held_for_sale"
-            )
+            configured_population = company.get("portfolio_population")
+            if configured_population is None:
+                configured_population = {
+                    "bank": "residential_servicing_for_others_and_bank_owned",
+                    "nonbank": "owned_msr_subservicing_and_held_for_sale",
+                }.get(str(company["classification"]))
+            population = str(configured_population or f"explicit_issuer_scope:{scope_id}")
             session.add(
                 ReportingScope(
                     id=scope_id,
@@ -2121,7 +2503,12 @@ def _seed_quarantine(
             )
 
 
-def _seed_comparability_assessments(session: Session, *, known_at: datetime) -> None:
+def _seed_comparability_assessments(
+    session: Session,
+    *,
+    known_at: datetime,
+    company_ids: Sequence[str],
+) -> None:
     """Retain pairwise Stage A assessments against exact observation revisions."""
     rows = session.execute(
         select(
@@ -2144,11 +2531,14 @@ def _seed_comparability_assessments(session: Session, *, known_at: datetime) -> 
         grouped.setdefault((metric_id, semantic_version, observation.period_end), {}).setdefault(
             company_id, []
         ).append((observation, semantic_version, population))
+    company_order = {company_id: index for index, company_id in enumerate(company_ids)}
     for (metric_id, _semantic_version, _period_end), by_company in grouped.items():
-        if set(by_company) != {"tfc", "pfsi"}:
+        ordered_company_ids = sorted(
+            by_company,
+            key=lambda company_id: (company_order.get(company_id, len(company_order)), company_id),
+        )
+        if len(ordered_company_ids) < _MIN_COMPARISON_COMPANY_COUNT:
             continue
-        left_rows = sorted(by_company["tfc"], key=lambda row: row[0].id)
-        right_rows = sorted(by_company["pfsi"], key=lambda row: row[0].id)
 
         def assessment_input(
             observation: MetricObservation,
@@ -2182,41 +2572,45 @@ def _seed_comparability_assessments(session: Session, *, known_at: datetime) -> 
                 cross_company_comparison=True,
             )
 
-        for left, left_version, left_population in left_rows:
-            for right, right_version, right_population in right_rows:
-                result = assess_comparability(
-                    assessment_input(left, left_version, left_population),
-                    assessment_input(right, right_version, right_population),
-                )
-                assessment_id = (
-                    "comparison:"
-                    + _stable_hash(
-                        {
-                            "left": left.id,
-                            "right": right.id,
-                            "policy_version": "1.0.0",
-                            "requested_operation": "cross_company_comparison",
-                        }
-                    )[:32]
-                )
-                if session.get(ComparabilityAssessment, assessment_id) is None:
-                    session.add(
-                        ComparabilityAssessment(
-                            id=assessment_id,
-                            left_observation_id=left.id,
-                            right_observation_id=right.id,
-                            policy_version="1.0.0",
-                            requested_operation="cross_company_comparison",
-                            status=result.status.value,
-                            reasons=list(result.reasons),
-                            permitted_calculations=(
-                                ["difference", "percentage_change"]
-                                if result.status.value in {"comparable", "comparable_with_caveats"}
-                                else []
-                            ),
-                            assessed_at=known_at,
-                        )
+        for left_company_id, right_company_id in combinations(ordered_company_ids, 2):
+            left_rows = sorted(by_company[left_company_id], key=lambda row: row[0].id)
+            right_rows = sorted(by_company[right_company_id], key=lambda row: row[0].id)
+            for left, left_version, left_population in left_rows:
+                for right, right_version, right_population in right_rows:
+                    result = assess_comparability(
+                        assessment_input(left, left_version, left_population),
+                        assessment_input(right, right_version, right_population),
                     )
+                    assessment_id = (
+                        "comparison:"
+                        + _stable_hash(
+                            {
+                                "left": left.id,
+                                "right": right.id,
+                                "policy_version": "1.0.0",
+                                "requested_operation": "cross_company_comparison",
+                            }
+                        )[:32]
+                    )
+                    if session.get(ComparabilityAssessment, assessment_id) is None:
+                        session.add(
+                            ComparabilityAssessment(
+                                id=assessment_id,
+                                left_observation_id=left.id,
+                                right_observation_id=right.id,
+                                policy_version="1.0.0",
+                                requested_operation="cross_company_comparison",
+                                status=result.status.value,
+                                reasons=list(result.reasons),
+                                permitted_calculations=(
+                                    ["difference", "percentage_change"]
+                                    if result.status.value
+                                    in {"comparable", "comparable_with_caveats"}
+                                    else []
+                                ),
+                                assessed_at=known_at,
+                            )
+                        )
 
 
 def _write_stage_a(
@@ -2334,7 +2728,11 @@ def _write_stage_a(
                 "QUARANTINED": quarantine_count,
                 "FAILED": 0,
             }
-            _seed_comparability_assessments(session, known_at=known_at)
+            _seed_comparability_assessments(
+                session,
+                known_at=known_at,
+                company_ids=[str(company["id"]) for company in companies],
+            )
         session.commit()
     return inserted
 
@@ -2430,31 +2828,27 @@ def _phase3_metric_payload(definition: EngineMetricDefinition) -> dict[str, obje
     }
 
 
-def _phase3_scope_population(scope_id: str) -> str:
-    """Return a stable population label without asserting scope equivalence."""
-    controlled = {
-        "tfc_consolidated_residential_mortgage_servicing": (
-            "residential_servicing_for_others_and_bank_owned"
+def _phase3_scope_population(scope_id: str, dimensions: Sequence[Any]) -> str:
+    """Return the declarative portfolio population carried by the candidate."""
+    population = next(
+        (
+            str(dimension.value)
+            for dimension in dimensions
+            if str(dimension.name) == "portfolio_population"
         ),
-        "tfc_owned_residential_msr": "owned_residential_msr",
-        "pfsi_owned_msr_portfolio": "owned_msr",
-        "pfsi_owned_msr_and_msl_portfolio": "owned_msr_and_msl",
-        "pfsi_servicing_segment": "servicing_segment",
-        "pfsi_subservicing_portfolio": "subservicing",
-        "pfsi_total_servicing_portfolio": "total_servicing",
-        "pfsi_interim_servicing_portfolio": "interim_servicing",
-    }
-    return controlled.get(scope_id, f"explicit_issuer_scope:{scope_id}")
+        None,
+    )
+    return population or f"explicit_issuer_scope:{scope_id}"
 
 
 def _ensure_phase3_scopes(session: Session, dataset: Phase3Dataset) -> None:
     candidates = tuple(
-        item.candidate
+        (item.candidate, item.dimensions)
         for item in (
             tuple(dataset.reported_candidates) + tuple(getattr(dataset, "support_candidates", ()))
         )
-    ) + tuple(dataset.derived_candidates)
-    for candidate in candidates:
+    ) + tuple((item, item.request.dimensions) for item in dataset.derived_candidates)
+    for candidate, dimensions in candidates:
         if session.get(ReportingEntity, candidate.reporting_entity_id) is None:
             msg = (
                 "Phase 3 reporting entity is not governed by the universe: "
@@ -2467,7 +2861,10 @@ def _ensure_phase3_scopes(session: Session, dataset: Phase3Dataset) -> None:
                     id=candidate.reporting_scope_id,
                     reporting_entity_id=candidate.reporting_entity_id,
                     name=_metric_display_name(candidate.reporting_scope_id),
-                    portfolio_population=_phase3_scope_population(candidate.reporting_scope_id),
+                    portfolio_population=_phase3_scope_population(
+                        candidate.reporting_scope_id,
+                        dimensions,
+                    ),
                     methodology=(
                         "Explicit issuer-disclosed Phase 3 reporting boundary; no cross-scope "
                         "equivalence is implied."
@@ -3770,6 +4167,10 @@ def seed_phase3(
         raise FileNotFoundError(msg)
     seed_stage_a(engine, config_dir=root)
     dataset = load_phase3_dataset(root)
+    phase3_universe, _, _ = load_stage_a_configuration(root)
+    phase3_company_ids = [
+        str(company["id"]) for company in cast("list[dict[str, Any]]", phase3_universe["companies"])
+    ]
     inserted = {
         "metrics": 0,
         "evidence": 0,
@@ -3845,7 +4246,11 @@ def seed_phase3(
         comparisons_before = int(
             session.scalar(select(func.count(ComparabilityAssessment.id))) or 0
         )
-        _seed_comparability_assessments(session, known_at=dataset.knowledge_at)
+        _seed_comparability_assessments(
+            session,
+            known_at=dataset.knowledge_at,
+            company_ids=phase3_company_ids,
+        )
         comparisons_after = int(session.scalar(select(func.count(ComparabilityAssessment.id))) or 0)
         inserted["comparability_assessments"] = comparisons_after - comparisons_before
         if is_new_run:
@@ -4072,7 +4477,7 @@ class IntelligenceRepository:
         return self._engine
 
     def companies(self) -> list[dict[str, object]]:
-        """Return the selected two-company universe."""
+        """Return the active governed company universe."""
         with Session(self._engine) as session:
             rows = session.scalars(
                 select(Company).where(Company.active.is_(True)).order_by(Company.id)
@@ -4087,6 +4492,58 @@ class IntelligenceRepository:
                 }
                 for row in rows
             ]
+
+    def comparison_company_ids(
+        self,
+        *,
+        as_of: datetime | date | None = None,
+    ) -> tuple[str, ...]:
+        """Return active issuer IDs having at least one exact published observation."""
+        instant = _as_of_instant(as_of)
+        statement = (
+            select(Company.id)
+            .join(ReportingEntity, ReportingEntity.company_id == Company.id)
+            .join(
+                MetricObservation,
+                MetricObservation.reporting_entity_id == ReportingEntity.id,
+            )
+            .where(
+                Company.active.is_(True),
+                MetricObservation.knowledge_from <= instant,
+                or_(
+                    MetricObservation.knowledge_to.is_(None),
+                    MetricObservation.knowledge_to > instant,
+                ),
+                MetricObservation.publication_state == PublicationState.PUBLISHED.value,
+                MetricObservation.quality_state == QualityState.VALIDATED.value,
+            )
+            .distinct()
+            .order_by(Company.id)
+            .limit(_MAX_REPOSITORY_RESULTS)
+        )
+        with Session(self._engine) as session:
+            return tuple(session.scalars(statement))
+
+    def _validated_comparison_selection(
+        self,
+        company_ids: Sequence[str],
+        *,
+        as_of: datetime | date | None,
+    ) -> tuple[str, ...]:
+        """Validate a bounded ordered issuer selection before observation reads."""
+        selected = tuple(company_ids)
+        if not _MIN_COMPARISON_COMPANY_COUNT <= len(selected) <= _MAX_COMPARISON_COMPANY_COUNT:
+            message = "comparison requires two or three issuer identifiers"
+            raise ValueError(message)
+        if len(set(selected)) != len(selected):
+            message = "comparison issuer identifiers must be distinct"
+            raise ValueError(message)
+        supported = set(self.comparison_company_ids(as_of=as_of))
+        unsupported = [company_id for company_id in selected if company_id not in supported]
+        if unsupported:
+            message = "comparison issuer is not an active published supported company"
+            raise ValueError(message)
+        return selected
 
     def metrics(self) -> list[dict[str, object]]:
         """Return one current metric definition while retaining history in storage."""
@@ -4188,8 +4645,23 @@ class IntelligenceRepository:
         instant = _as_of_instant(as_of)
         config_path = config_directory(config_dir) / "calendar" / "earnings_calendar.v1.yaml"
         companies = {str(item["id"]): item for item in self.companies()}
+        calendar_config = _load_yaml(config_path)
+        configured_company_ids = {
+            str(item["company_id"])
+            for item in cast("list[dict[str, Any]]", calendar_config["companies"])
+        }
         payload: list[dict[str, object]] = []
         for company_id in sorted(companies):
+            if company_id not in configured_company_ids:
+                payload.append(
+                    self._filing_only_calendar_row(
+                        company_id=company_id,
+                        ticker=str(companies[company_id]["ticker"]),
+                        as_of=instant,
+                        config_version=str(calendar_config["version"]),
+                    )
+                )
+                continue
             result = build_earnings_calendar_from_official_config(
                 config_path=config_path,
                 company_id=company_id,
@@ -4225,6 +4697,72 @@ class IntelligenceRepository:
                 }
             )
         return payload
+
+    def _filing_only_calendar_row(
+        self,
+        *,
+        company_id: str,
+        ticker: str,
+        as_of: datetime,
+        config_version: str,
+    ) -> dict[str, object]:
+        """Expose the latest actual filing without inventing an expected window."""
+        statement = (
+            select(Filing, FilingDocument)
+            .join(ReportingEntity, Filing.reporting_entity_id == ReportingEntity.id)
+            .join(FilingDocument, FilingDocument.filing_id == Filing.id)
+            .where(
+                ReportingEntity.company_id == company_id,
+                FilingDocument.is_primary.is_(True),
+                Filing.acceptance_timestamp <= as_of,
+            )
+            .order_by(
+                Filing.period_end.desc(),
+                Filing.acceptance_timestamp.desc(),
+                Filing.accession.desc(),
+            )
+            .limit(1)
+        )
+        with Session(self._engine) as session:
+            row = session.execute(statement).first()
+        if row is None:
+            message = "governed issuer has no actual filing for calendar exposure"
+            raise ValueError(message)
+        filing, document = row
+        accepted = _as_utc(filing.acceptance_timestamp)
+        if accepted is None:
+            message = "actual filing calendar row requires an acceptance timestamp"
+            raise ValueError(message)
+        return {
+            "company_id": company_id,
+            "ticker": ticker,
+            "as_of": as_of.isoformat(),
+            "last_reported_period": {
+                "period_end": filing.period_end.isoformat(),
+                "event_id": filing.id,
+                "accepted_at": accepted.isoformat(),
+                "accession": filing.accession,
+                "filing_url": document.source_url,
+                "exhibit_url": None,
+                "is_inferred": False,
+            },
+            "next_expected_report_window": {
+                "expected_period_end": None,
+                "window_start": None,
+                "window_end": None,
+                "is_inferred": False,
+                "method": "NOT_AVAILABLE_WITHOUT_REVIEWED_FILING_LAG_HISTORY",
+                "config_version": config_version,
+                "inference_basis": [
+                    (
+                        "No reviewed issuer-specific filing-lag history is configured; "
+                        "no date is inferred."
+                    )
+                ],
+            },
+            "freshness_state": "CALENDAR_NOT_CONFIGURED",
+            "next_announced_event": None,
+        }
 
     def freshness(self) -> dict[str, object]:
         """Return evidence, publication, pipeline, and quarantine freshness."""
@@ -4669,32 +5207,64 @@ class IntelligenceRepository:
         metric_id: str,
         period_end: date,
         as_of: datetime | date | None = None,
+        company_ids: Sequence[str] = ("tfc", "pfsi"),
     ) -> ComparisonRecord | None:
-        """Build a deterministic period-specific two-company comparison."""
-        rows = self.observations(as_of=as_of, metric_id=metric_id, period_end=period_end)
-        counts_by_company = {
-            company_id: sum(row.company_id == company_id for row in rows)
-            for company_id in {row.company_id for row in rows}
-        }
-        if any(count > 1 for count in counts_by_company.values()):
-            msg = "comparison selection is ambiguous across controlled dimensions or versions"
-            raise ValueError(msg)
-        by_company = {row.company_id: row for row in rows}
-        if set(by_company) != {"tfc", "pfsi"}:
-            return None
-        left = by_company["tfc"]
-        right = by_company["pfsi"]
-        result = assess_comparability(
-            _comparison_input(left, cross_company=True),
-            _comparison_input(right, cross_company=True),
-        )
-        return ComparisonRecord(
+        """Build a deterministic period-specific comparison for one ordered issuer pair."""
+        results = self.compare_pairs(
             metric_id=metric_id,
-            period_end=period_end.isoformat(),
-            left=left,
-            right=right,
-            status=result.status.value,
-            reasons=result.reasons,
+            period_end=period_end,
+            as_of=as_of,
+            company_ids=company_ids,
+        )
+        if results is None:
+            return None
+        if len(results) != 1:
+            message = "compare is pairwise; use compare_pairs for a three-issuer selection"
+            raise ValueError(message)
+        return results[0]
+
+    def compare_pairs(
+        self,
+        *,
+        metric_id: str,
+        period_end: date,
+        as_of: datetime | date | None = None,
+        company_ids: Sequence[str] = ("tfc", "pfsi"),
+    ) -> tuple[ComparisonRecord, ...] | None:
+        """Expand an ordered two- or three-issuer selection into bounded pairs."""
+        selected = self._validated_comparison_selection(company_ids, as_of=as_of)
+        selected_rows: list[ObservationRecord] = []
+        for company_id in selected:
+            rows = self.observations(
+                as_of=as_of,
+                company_id=company_id,
+                metric_id=metric_id,
+                period_end=period_end,
+                limit=2,
+            )
+            if len(rows) > 1:
+                message = (
+                    "comparison selection is ambiguous across controlled dimensions or versions"
+                )
+                raise ValueError(message)
+            if not rows:
+                return None
+            selected_rows.append(rows[0])
+        return tuple(
+            ComparisonRecord(
+                metric_id=metric_id,
+                period_end=period_end.isoformat(),
+                left=left,
+                right=right,
+                status=(
+                    result := assess_comparability(
+                        _comparison_input(left, cross_company=True),
+                        _comparison_input(right, cross_company=True),
+                    )
+                ).status.value,
+                reasons=result.reasons,
+            )
+            for left, right in combinations(selected_rows, 2)
         )
 
     def record_review_decision(

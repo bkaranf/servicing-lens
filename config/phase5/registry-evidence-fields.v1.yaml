@@ -1,0 +1,563 @@
+schema_version: '1'
+mapping_version: phase5-registry-evidence-fields-v1
+mappings:
+- issuer_id: c
+  mapping_id: c.registry.msr_fair_value.v1
+  evidence_case_id: c-2026-06-30-msr-fair-value
+  metric_kind: MSR_FAIR_VALUE
+  cik: 0000831001
+  metric_id: msr_fair_value
+  metric_version: 1.0.0
+  display_name: Msr Fair Value
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: us-gaap
+  concept: ServicingAssetAtFairValueAmount
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions:
+  - dimension: us-gaap:FairValueByFairValueHierarchyLevelAxis
+    member: us-gaap:FairValueInputsLevel3Member
+  - dimension: us-gaap:FairValueByMeasurementFrequencyAxis
+    member: us-gaap:FairValueMeasurementsRecurringMember
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: c_registrant
+  reporting_scope_id: c_msr_fair_value
+  reporting_scope_name: Consolidated registrant-owned MSR measured at recurring Level 3 fair value; not total loans serviced.
+  reporting_scope_category: MSR_ASSET
+  portfolio_population: c_msr_fair_value_as_disclosed
+  scope_methodology: Consolidated registrant-owned MSR measured at recurring Level 3 fair value; not total loans serviced.
+    No cross-population aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: pnc
+  mapping_id: pnc.registry.servicing_for_others_upb_commercial.v1
+  evidence_case_id: pnc-2026-06-30-commercial-servicing-upb
+  metric_kind: SERVICING_FOR_OTHERS_UPB_COMMERCIAL
+  cik: '0000713676'
+  metric_id: servicing_for_others_upb_commercial
+  metric_version: 1.0.0
+  display_name: Servicing For Others Upb Commercial
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: pnc
+  concept: UnpaidPrincipalBalanceOfLoansServicedForOthers
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions:
+  - dimension: us-gaap:FinancialInstrumentAxis
+    member: us-gaap:CommercialRealEstateMember
+  - dimension: us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis
+    member: us-gaap:ServicingContractsMember
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: pnc_registrant
+  reporting_scope_id: pnc_servicing_for_others_upb_commercial
+  reporting_scope_name: Separately disclosed commercial-real-estate and residential loans serviced for others.
+  reporting_scope_category: SERVICING_FOR_OTHERS
+  portfolio_population: pnc_servicing_for_others_upb_commercial_as_disclosed
+  scope_methodology: Separately disclosed commercial-real-estate and residential loans serviced for others. No cross-population
+    aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: pnc
+  mapping_id: pnc.registry.servicing_for_others_upb_residential.v1
+  evidence_case_id: pnc-2026-06-30-residential-servicing-upb
+  metric_kind: SERVICING_FOR_OTHERS_UPB_RESIDENTIAL
+  cik: '0000713676'
+  metric_id: servicing_for_others_upb_residential
+  metric_version: 1.0.0
+  display_name: Servicing For Others Upb Residential
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: pnc
+  concept: UnpaidPrincipalBalanceOfLoansServicedForOthers
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions:
+  - dimension: us-gaap:FinancialInstrumentAxis
+    member: us-gaap:ResidentialMortgageMember
+  - dimension: us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis
+    member: us-gaap:ServicingContractsMember
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: pnc_registrant
+  reporting_scope_id: pnc_servicing_for_others_upb_residential
+  reporting_scope_name: Separately disclosed commercial-real-estate and residential loans serviced for others.
+  reporting_scope_category: SERVICING_FOR_OTHERS
+  portfolio_population: pnc_servicing_for_others_upb_residential_as_disclosed
+  scope_methodology: Separately disclosed commercial-real-estate and residential loans serviced for others. No cross-population
+    aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: fitb
+  mapping_id: fitb.registry.servicing_for_others_upb_residential.v1
+  evidence_case_id: fitb-2026-06-30-residential-servicing-upb
+  metric_kind: SERVICING_FOR_OTHERS_UPB_RESIDENTIAL
+  cik: '0000035527'
+  metric_id: servicing_for_others_upb_residential
+  metric_version: 1.0.0
+  display_name: Servicing For Others Upb Residential
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: fitb
+  concept: LoansServicedForOthers
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions:
+  - dimension: us-gaap:FinancialInstrumentAxis
+    member: us-gaap:ResidentialMortgageMember
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: fitb_registrant
+  reporting_scope_id: fitb_servicing_for_others_upb_residential
+  reporting_scope_name: Residential loans serviced for others and a separately dimensioned delegated-underwriting-and-servicing
+    commercial population.
+  reporting_scope_category: SERVICING_FOR_OTHERS
+  portfolio_population: fitb_servicing_for_others_upb_residential_as_disclosed
+  scope_methodology: Residential loans serviced for others and a separately dimensioned delegated-underwriting-and-servicing
+    commercial population. No cross-population aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: fitb
+  mapping_id: fitb.registry.servicing_for_others_upb_dus_commercial.v1
+  evidence_case_id: fitb-2026-06-30-dus-commercial-servicing-upb
+  metric_kind: SERVICING_FOR_OTHERS_UPB_DUS_COMMERCIAL
+  cik: '0000035527'
+  metric_id: servicing_for_others_upb_dus_commercial
+  metric_version: 1.0.0
+  display_name: Servicing For Others Upb Dus Commercial
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: fitb
+  concept: LoansServicedForOthers
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions:
+  - dimension: us-gaap:FinancingReceivableRecordedInvestmentByClassOfFinancingReceivableAxis
+    member: fitb:CommercialMortgageLoansMember
+  - dimension: us-gaap:OtherCommitmentsAxis
+    member: fitb:DelegatedUnderwritingAndServicingMember
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: fitb_registrant
+  reporting_scope_id: fitb_servicing_for_others_upb_dus_commercial
+  reporting_scope_name: Residential loans serviced for others and a separately dimensioned delegated-underwriting-and-servicing
+    commercial population.
+  reporting_scope_category: SERVICING_FOR_OTHERS
+  portfolio_population: fitb_servicing_for_others_upb_dus_commercial_as_disclosed
+  scope_methodology: Residential loans serviced for others and a separately dimensioned delegated-underwriting-and-servicing
+    commercial population. No cross-population aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: cfg
+  mapping_id: cfg.registry.msr_fair_value_residential.v1
+  evidence_case_id: cfg-2026-06-30-residential-msr-fair-value
+  metric_kind: MSR_FAIR_VALUE_RESIDENTIAL
+  cik: 0000759944
+  metric_id: msr_fair_value_residential
+  metric_version: 1.0.0
+  display_name: Msr Fair Value Residential
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: us-gaap
+  concept: ServicingAssetAtFairValueAmount
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions: []
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: cfg_registrant
+  reporting_scope_id: cfg_msr_fair_value_residential
+  reporting_scope_name: Consolidated residential MSR fair-value population.
+  reporting_scope_category: MSR_ASSET
+  portfolio_population: cfg_msr_fair_value_residential_as_disclosed
+  scope_methodology: Consolidated residential MSR fair-value population. No cross-population aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: key
+  mapping_id: key.registry.msr_amortized_carrying_value_commercial.v1
+  evidence_case_id: key-2026-06-30-commercial-msr-carrying-value
+  metric_kind: MSR_AMORTIZED_CARRYING_VALUE_COMMERCIAL
+  cik: 0000091576
+  metric_id: msr_amortized_carrying_value_commercial
+  metric_version: 1.0.0
+  display_name: Msr Amortized Carrying Value Commercial
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: us-gaap
+  concept: ServicingAssetAtAmortizedValue
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions:
+  - dimension: us-gaap:FinancialInstrumentAxis
+    member: us-gaap:CommercialMortgageBackedSecuritiesMember
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: key_registrant
+  reporting_scope_id: key_msr_amortized_carrying_value_commercial
+  reporting_scope_name: Separately disclosed commercial and residential amortized-cost servicing assets.
+  reporting_scope_category: MSR_ASSET
+  portfolio_population: key_msr_amortized_carrying_value_commercial_as_disclosed
+  scope_methodology: Separately disclosed commercial and residential amortized-cost servicing assets. No cross-population
+    aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: key
+  mapping_id: key.registry.msr_amortized_carrying_value_residential.v1
+  evidence_case_id: key-2026-06-30-residential-msr-carrying-value
+  metric_kind: MSR_AMORTIZED_CARRYING_VALUE_RESIDENTIAL
+  cik: 0000091576
+  metric_id: msr_amortized_carrying_value_residential
+  metric_version: 1.0.0
+  display_name: Msr Amortized Carrying Value Residential
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: us-gaap
+  concept: ServicingAssetAtAmortizedValue
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions:
+  - dimension: us-gaap:FinancialInstrumentAxis
+    member: us-gaap:ResidentialMortgageBackedSecuritiesMember
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: key_registrant
+  reporting_scope_id: key_msr_amortized_carrying_value_residential
+  reporting_scope_name: Separately disclosed commercial and residential amortized-cost servicing assets.
+  reporting_scope_category: MSR_ASSET
+  portfolio_population: key_msr_amortized_carrying_value_residential_as_disclosed
+  scope_methodology: Separately disclosed commercial and residential amortized-cost servicing assets. No cross-population
+    aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: two
+  mapping_id: two.registry.msr_fair_value.v1
+  evidence_case_id: two-2026-06-30-msr-fair-value
+  metric_kind: MSR_FAIR_VALUE
+  cik: '0001465740'
+  metric_id: msr_fair_value
+  metric_version: 1.0.0
+  display_name: Msr Fair Value
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: us-gaap
+  concept: ServicingAssetAtFairValueAmount
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions: []
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: two_registrant
+  reporting_scope_id: two_msr_fair_value
+  reporting_scope_name: Consolidated owned-MSR fair-value asset; no servicing-operator population is asserted.
+  reporting_scope_category: MSR_ASSET
+  portfolio_population: two_msr_fair_value_as_disclosed
+  scope_methodology: Consolidated owned-MSR fair-value asset only. No servicing-operator population or cross-population aggregation
+    is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: chmi
+  mapping_id: chmi.registry.owned_msr_underlying_upb.v1
+  evidence_case_id: chmi-2026-06-30-msr-underlying-upb
+  metric_kind: OWNED_MSR_UNDERLYING_UPB
+  cik: '0001571776'
+  metric_id: owned_msr_underlying_upb
+  metric_version: 1.0.0
+  display_name: Owned Msr Underlying Upb
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: chmi
+  concept: ServicingAssetsUnpaidPrincipalBalance
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions: []
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: chmi_registrant
+  reporting_scope_id: chmi_owned_msr_underlying_upb
+  reporting_scope_name: UPB underlying consolidated servicing-related assets owned by the issuer.
+  reporting_scope_category: OWNED_MSR_PORTFOLIO
+  portfolio_population: chmi_owned_msr_underlying_upb_as_disclosed
+  scope_methodology: UPB underlying consolidated servicing-related assets owned by the issuer. No cross-population aggregation
+    is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: nly
+  mapping_id: nly.registry.msr_carrying_value.v1
+  evidence_case_id: nly-2026-06-30-msr-carrying-value
+  metric_kind: MSR_CARRYING_VALUE
+  cik: 0001043219
+  metric_id: msr_carrying_value
+  metric_version: 1.0.0
+  display_name: Msr Carrying Value
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: us-gaap
+  concept: ServicingAsset
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions: []
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: nly_registrant
+  reporting_scope_id: nly_msr_carrying_value
+  reporting_scope_name: Consolidated owned MSR asset and related MSR interests; selected value excludes separately reported
+    interests in MSR.
+  reporting_scope_category: MSR_ASSET
+  portfolio_population: nly_msr_carrying_value_as_disclosed
+  scope_methodology: Consolidated owned MSR asset and related MSR interests; selected value excludes separately reported interests
+    in MSR. No cross-population aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: foa
+  mapping_id: foa.registry.total_reverse_serviced_loan_portfolio_upb.v1
+  evidence_case_id: foa-2026-06-30-total-reverse-serviced-upb
+  metric_kind: TOTAL_REVERSE_SERVICED_LOAN_PORTFOLIO_UPB
+  cik: 0001828937
+  metric_id: total_reverse_serviced_loan_portfolio_upb
+  metric_version: 1.0.0
+  display_name: Total Reverse Serviced Loan Portfolio Upb
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: foa
+  concept: FairValueOptionServicingAssetUnpaidPrincipalBalance
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions:
+  - dimension: us-gaap:FinancialInstrumentAxis
+    member: foa:ReverseMortgageLoansMember
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: foa_registrant
+  reporting_scope_id: foa_total_reverse_serviced_loan_portfolio_upb
+  reporting_scope_name: Total reverse-mortgage serviced-loan portfolio, including owned loans and loans serviced for others,
+    at period end.
+  reporting_scope_category: TOTAL_SERVICING_PORTFOLIO
+  portfolio_population: foa_total_reverse_serviced_loan_portfolio_upb_as_disclosed
+  scope_methodology: Total reverse-mortgage serviced-loan portfolio, including owned loans and loans serviced for others,
+    at period end. No cross-population aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED
+- issuer_id: vel
+  mapping_id: vel.registry.owned_msr_underlying_upb.v1
+  evidence_case_id: vel-2026-06-30-msr-underlying-upb
+  metric_kind: OWNED_MSR_UNDERLYING_UPB
+  cik: 0001692376
+  metric_id: owned_msr_underlying_upb
+  metric_version: 1.0.0
+  display_name: Owned Msr Underlying Upb
+  classification: OPTIONAL_SERVICING
+  selection_decision: SELECTED
+  selection_reason: Material servicing evidence selected from the exact current filing through the bounded SEC filing-XBRL
+    replay contract.
+  source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+  taxonomy: vel
+  concept: ServicingAssetAtUnpaidPrincipalBalanceAmount
+  unit: USD
+  currency: USD
+  scale: '1'
+  decimals: null
+  period_type: instant
+  dimensions: []
+  effective_from: '2026-06-30'
+  effective_to: '2026-06-30'
+  reporting_entity_id: vel_registrant
+  reporting_scope_id: vel_owned_msr_underlying_upb
+  reporting_scope_name: Aggregate UPB underlying the recognized MSR asset serviced through the issuer's in-house platform.
+  reporting_scope_category: OWNED_MSR_PORTFOLIO
+  portfolio_population: vel_owned_msr_underlying_upb_as_disclosed
+  scope_methodology: Aggregate UPB underlying the recognized MSR asset serviced through the issuer's in-house platform. No
+    cross-population aggregation is inferred.
+  eligible_forms:
+  - 10-Q
+  eligible_sources:
+  - SEC_FILING_XBRL
+  directness: DIRECT_REPORTED
+  raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+  sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+  validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+  amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+  publication_state: CANDIDATE
+  review_status: REVIEW_REQUIRED

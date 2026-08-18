@@ -43,6 +43,7 @@ from mortgage_servicing_dashboard.ingestion import (
 )
 from mortgage_servicing_dashboard.repository import (
     AtomicEdgarToolsRepository,
+    EdgarToolsCompanyIdentity,
     IntelligenceRepository,
     config_directory,
     load_stage_a_configuration,
@@ -50,6 +51,20 @@ from mortgage_servicing_dashboard.repository import (
     seed_phase3,
     seed_stage_a,
 )
+
+
+def _add_phase5_cohort_arguments(parser: argparse.ArgumentParser) -> None:
+    cohort = parser.add_mutually_exclusive_group()
+    cohort.add_argument(
+        "--phase5-cohort-a",
+        action="store_true",
+        help="Use the exact four-issuer Phase 5 cohort A registry and manifest.",
+    )
+    cohort.add_argument(
+        "--phase5-cohort-b",
+        action="store_true",
+        help="Use the exact five-bank/five-nonbank Phase 5 cohort B registry and manifest.",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -82,7 +97,12 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--company", choices=("TFC", "PFSI"))
     discover.add_argument("--config-dir", type=Path)
     discover.add_argument("--live", action="store_true", help="Query official SEC filings.")
-    discover.add_argument("--runtime-dir", type=Path, default=Path(".msi"))
+    discover.add_argument(
+        "--runtime-dir",
+        type=Path,
+        default=Path(".msi"),
+        help="Application state root for edgartools cache and retained evidence.",
+    )
     for command in ("ingest", "validate"):
         child = subparsers.add_parser(command, help=f"{command} retained governed evidence.")
         child.add_argument("--database-url")
@@ -98,19 +118,33 @@ def build_parser() -> argparse.ArgumentParser:
                 action="store_true",
                 help="Publish the governed retained Phase 3 dataset without network access.",
             )
-            child.add_argument("--runtime-dir", type=Path, default=Path(".msi"))
+            child.add_argument(
+                "--runtime-dir",
+                type=Path,
+                default=Path(".msi"),
+                help="Application state root for edgartools cache and retained evidence.",
+            )
     sync = subparsers.add_parser(
         "sync",
         help="Validate selected filing evidence through the public edgartools library.",
     )
     sync_target = sync.add_mutually_exclusive_group(required=True)
-    sync_target.add_argument("--company", choices=("TFC", "PFSI"))
+    sync_target.add_argument(
+        "--company",
+        choices=("TFC", "WFC", "JPM", "BAC", "USB", "PFSI", "RKT", "UWMC", "RITM", "LDI"),
+    )
     sync_target.add_argument("--all", action="store_true", dest="all_companies")
     sync.add_argument("--since", help="Inclusive ISO filing date with a seven-day overlap.")
     sync.add_argument("--dry-run", action="store_true")
     sync.add_argument("--database-url")
     sync.add_argument("--config-dir", type=Path)
-    sync.add_argument("--runtime-dir", type=Path, default=Path(".msi"))
+    sync.add_argument(
+        "--runtime-dir",
+        type=Path,
+        default=Path(".msi"),
+        help="Application state root for edgartools cache and retained evidence.",
+    )
+    _add_phase5_cohort_arguments(sync)
     review = subparsers.add_parser("review", help="List or decide quarantined candidates.")
     review.add_argument("action", choices=("list", "approve", "reject"))
     review.add_argument("--database-url")
@@ -162,16 +196,138 @@ def _database_url(explicit: str | None) -> str:
     return explicit or os.environ.get("MSI_DATABASE_URL") or default_database_url()
 
 
-def _edgar_companies() -> tuple[EdgarToolsCompany, ...]:
+def _edgar_companies(
+    *,
+    phase5_cohort_a: bool = False,
+    phase5_cohort_b: bool = False,
+) -> tuple[EdgarToolsCompany, ...]:
     """Return the governed companies in the required deterministic order."""
-    return (
+    legacy = (
         EdgarToolsCompany("tfc", "TFC", "0000092230"),
         EdgarToolsCompany("pfsi", "PFSI", "0001745916"),
     )
+    if phase5_cohort_a and phase5_cohort_b:
+        message = "Phase 5 cohort selectors are mutually exclusive"
+        raise ValueError(message)
+    if phase5_cohort_b:
+        return (
+            EdgarToolsCompany("tfc", "TFC", "0000092230"),
+            EdgarToolsCompany("wfc", "WFC", "0000072971"),
+            EdgarToolsCompany("jpm", "JPM", "0000019617"),
+            EdgarToolsCompany("bac", "BAC", "0000070858"),
+            EdgarToolsCompany("usb", "USB", "0000036104"),
+            EdgarToolsCompany("pfsi", "PFSI", "0001745916"),
+            EdgarToolsCompany("rkt", "RKT", "0001805284"),
+            EdgarToolsCompany("uwmc", "UWMC", "0001783398"),
+            EdgarToolsCompany("ritm", "RITM", "0001556593"),
+            EdgarToolsCompany("ldi", "LDI", "0001831631"),
+        )
+    if not phase5_cohort_a:
+        return legacy
+    return (
+        EdgarToolsCompany("tfc", "TFC", "0000092230"),
+        EdgarToolsCompany("wfc", "WFC", "0000072971"),
+        EdgarToolsCompany("pfsi", "PFSI", "0001745916"),
+        EdgarToolsCompany("rkt", "RKT", "0001805284"),
+    )
 
 
-def _selected_edgar_companies(company: str | None) -> tuple[EdgarToolsCompany, ...]:
-    companies = _edgar_companies()
+def _phase5_company_identities(
+    *,
+    cohort_b: bool = False,
+) -> dict[str, EdgarToolsCompanyIdentity]:
+    """Return exact legal identities governed by the selected Phase 5 cohort."""
+    identities = {
+        "tfc": EdgarToolsCompanyIdentity(
+            "Truist Financial Corporation",
+            "TFC",
+            "bank",
+            "0000092230",
+            "tfc_registrant",
+        ),
+        "wfc": EdgarToolsCompanyIdentity(
+            "Wells Fargo & Company",
+            "WFC",
+            "bank",
+            "0000072971",
+            "wfc_registrant",
+        ),
+        "pfsi": EdgarToolsCompanyIdentity(
+            "PennyMac Financial Services, Inc.",
+            "PFSI",
+            "nonbank",
+            "0001745916",
+            "pfsi_registrant",
+        ),
+        "rkt": EdgarToolsCompanyIdentity(
+            "Rocket Companies, Inc.",
+            "RKT",
+            "nonbank",
+            "0001805284",
+            "rkt_registrant",
+        ),
+    }
+    if not cohort_b:
+        return identities
+    identities.update(
+        {
+            "jpm": EdgarToolsCompanyIdentity(
+                "JPMorgan Chase & Co.",
+                "JPM",
+                "bank",
+                "0000019617",
+                "jpm_registrant",
+            ),
+            "bac": EdgarToolsCompanyIdentity(
+                "Bank of America Corporation",
+                "BAC",
+                "bank",
+                "0000070858",
+                "bac_registrant",
+            ),
+            "usb": EdgarToolsCompanyIdentity(
+                "U.S. Bancorp",
+                "USB",
+                "bank",
+                "0000036104",
+                "usb_registrant",
+            ),
+            "uwmc": EdgarToolsCompanyIdentity(
+                "UWM Holdings Corp",
+                "UWMC",
+                "nonbank",
+                "0001783398",
+                "uwmc_registrant",
+            ),
+            "ritm": EdgarToolsCompanyIdentity(
+                "Rithm Capital Corp.",
+                "RITM",
+                "nonbank",
+                "0001556593",
+                "ritm_registrant",
+            ),
+            "ldi": EdgarToolsCompanyIdentity(
+                "loanDepot, Inc.",
+                "LDI",
+                "nonbank",
+                "0001831631",
+                "ldi_registrant",
+            ),
+        }
+    )
+    return identities
+
+
+def _selected_edgar_companies(
+    company: str | None,
+    *,
+    phase5_cohort_a: bool = False,
+    phase5_cohort_b: bool = False,
+) -> tuple[EdgarToolsCompany, ...]:
+    companies = _edgar_companies(
+        phase5_cohort_a=phase5_cohort_a,
+        phase5_cohort_b=phase5_cohort_b,
+    )
     if company is None:
         return companies
     selected = tuple(item for item in companies if item.ticker == company)
@@ -179,6 +335,24 @@ def _selected_edgar_companies(company: str | None) -> tuple[EdgarToolsCompany, .
         message = "company must be one of the governed issuers"
         raise ValueError(message)
     return selected
+
+
+def _edgartools_config_paths(
+    config_root: Path,
+    *,
+    phase5_cohort_a: bool,
+    phase5_cohort_b: bool,
+) -> tuple[Path, Path]:
+    if phase5_cohort_a or phase5_cohort_b:
+        cohort = "b" if phase5_cohort_b else "a"
+        return (
+            (config_root / "phase5" / f"cohort-{cohort}-sources.v1.yaml").resolve(),
+            (config_root / "phase5" / "financial_fields.v1.yaml").resolve(),
+        )
+    return (
+        (config_root / "golden-sources.v1.yaml").resolve(),
+        (config_root / "financial_fields.v1.yaml").resolve(),
+    )
 
 
 def _run_public_edgartools(  # noqa: PLR0913
@@ -191,6 +365,8 @@ def _run_public_edgartools(  # noqa: PLR0913
     runtime_dir: Path,
     since: date | None = None,
     require_explicit_database: bool = False,
+    phase5_cohort_a: bool = False,
+    phase5_cohort_b: bool = False,
 ) -> tuple[int, tuple[Any, ...]]:
     """Run one shared public-adapter preparation/persistence path."""
     try:
@@ -218,27 +394,40 @@ def _run_public_edgartools(  # noqa: PLR0913
 
     repository_root = Path.cwd().resolve()
     config_root = config_directory(config_dir)
-    manifest_path = config_root / "golden-sources.v1.yaml"
+    manifest_path, registry_path = _edgartools_config_paths(
+        config_root,
+        phase5_cohort_a=phase5_cohort_a,
+        phase5_cohort_b=phase5_cohort_b,
+    )
     if config_dir is None and not manifest_path.is_file():
         manifest_path = (
             repository_root / "tests" / "fixtures" / "edgartools" / "golden-sources.v1.yaml"
-        )
+        ).resolve()
     engine = None
     try:
-        registry = FinancialFieldRegistry.from_yaml(config_root / "financial_fields.v1.yaml")
+        registry = FinancialFieldRegistry.from_yaml(registry_path)
         manifest = _load_golden_manifest(manifest_path)
-        bootstrap = EdgarBootstrapConfig(identity=identity, repository_root=repository_root)
+        phase5_enabled = phase5_cohort_a or phase5_cohort_b
+        state_root = runtime_dir.resolve()
+        evidence_root = state_root / "evidence" / "edgartools"
+        bootstrap = EdgarBootstrapConfig(identity=identity, runtime_root=state_root)
         adapter = EdgarToolsAdapter.from_config(
             bootstrap,
-            evidence_store=GeneralEvidenceStore(
-                (runtime_dir / "evidence" / "edgartools").resolve()
-            ),
+            evidence_store=GeneralEvidenceStore(evidence_root),
         )
         persistence = None
         known_accessions: dict[str, frozenset[str]] = {}
         if not dry_run:
             engine = create_database_engine(cast("str", database_url))
-            persistence = AtomicEdgarToolsRepository(engine)
+            persistence = (
+                AtomicEdgarToolsRepository(
+                    engine,
+                    companies=_phase5_company_identities(cohort_b=phase5_cohort_b),
+                    registry=registry,
+                )
+                if phase5_enabled
+                else AtomicEdgarToolsRepository(engine)
+            )
             known_accessions = {
                 company.company_id: persistence.known_accessions(company.company_id)
                 for company in selected
@@ -328,8 +517,19 @@ def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
     """Run bounded public-edgartools validation and optional atomic publication."""
     try:
         since = date.fromisoformat(args.since) if args.since else None
+        phase5_cohort_a = bool(args.phase5_cohort_a)
+        phase5_cohort_b = bool(args.phase5_cohort_b)
         selected = (
-            _edgar_companies() if args.all_companies else _selected_edgar_companies(args.company)
+            _edgar_companies(
+                phase5_cohort_a=phase5_cohort_a,
+                phase5_cohort_b=phase5_cohort_b,
+            )
+            if args.all_companies
+            else _selected_edgar_companies(
+                args.company,
+                phase5_cohort_a=phase5_cohort_a,
+                phase5_cohort_b=phase5_cohort_b,
+            )
         )
     except ValueError as error:
         print(json.dumps({"error": str(error)}, sort_keys=True), file=sys.stderr)
@@ -352,6 +552,8 @@ def _edgar_tools_sync(args: argparse.Namespace, settings: AppSettings) -> int:
         config_dir=args.config_dir,
         runtime_dir=args.runtime_dir,
         since=since,
+        phase5_cohort_a=phase5_cohort_a,
+        phase5_cohort_b=phase5_cohort_b,
     )
     if exit_code == 0:
         _print_public_edgartools_results(summaries, mode="sync")

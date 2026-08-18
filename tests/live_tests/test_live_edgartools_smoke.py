@@ -65,7 +65,7 @@ def test_live_public_edgartools_tfc_then_pfsi_replays_exact_evidence(  # noqa: P
     adapter = EdgarToolsAdapter.from_config(
         EdgarBootstrapConfig(
             identity=settings.require_edgar_identity(),
-            repository_root=tmp_path,
+            runtime_root=tmp_path,
         ),
         evidence_store=store,
     )

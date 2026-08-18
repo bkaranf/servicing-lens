@@ -301,15 +301,38 @@ def _mix_semantics_align(total: ObservationRecord, numerator: ObservationRecord)
     )
 
 
-def _mix_metric(
-    company_id: str,
+def _mix_metric(  # noqa: PLR0911
+    classification: str,
     rows: list[ObservationRecord],
     total: ObservationRecord | None,
 ) -> PresentationMetric:
-    label = "Bank-owned share" if company_id == "tfc" else "Owned MSR mix"
+    contract = {
+        "bank": (
+            "Bank-owned share",
+            "bank_owned_loans_serviced_upb",
+            "Bank-owned loans serviced / total UPB; not an owned-MSR measure",
+        ),
+        "nonbank": (
+            "Owned MSR mix",
+            "owned_msr_upb",
+            "Owned MSR UPB / total UPB; exact Decimal",
+        ),
+    }.get(classification.casefold())
+    if contract is None:
+        return _unavailable(
+            "owned_mix",
+            "Ownership mix",
+            "A governed bank or nonbank classification is required",
+        )
+    label, numerator_id, note = contract
     if total is None:
         return _unavailable("owned_mix", label, "A current total UPB denominator is required")
-    numerator_id = "owned_msr_upb" if company_id == "pfsi" else "bank_owned_loans_serviced_upb"
+    if total.metric_id != "total_servicing_upb":
+        return _unavailable(
+            "owned_mix",
+            label,
+            "The selected servicing exposure is not a total-UPB denominator",
+        )
     numerator = _find_row(rows, numerator_id, period_end=total.period_end)
     if numerator is None:
         return _unavailable(
@@ -328,11 +351,6 @@ def _mix_metric(
     if total_value is None or total_value == 0 or numerator_value is None:
         return _unavailable("owned_mix", label, "A non-zero compatible denominator is required")
     mix = numerator_value / total_value * _HUNDRED
-    note = (
-        "Bank-owned loans serviced / total UPB; not an owned-MSR measure"
-        if company_id == "tfc"
-        else "Owned MSR UPB / total UPB; exact Decimal"
-    )
     return PresentationMetric(
         "owned_mix",
         label,
@@ -350,7 +368,18 @@ def _normalize_company(
     *,
     target_period: str | None,
 ) -> CompanyPresentation:
-    upb_row = _find_row(rows, "total_servicing_upb", period_end=target_period)
+    upb_row = next(
+        (
+            row
+            for metric_id in (
+                "total_servicing_upb",
+                "servicing_for_others_upb",
+                "owned_msr_upb",
+            )
+            if (row := _find_row(rows, metric_id, period_end=target_period)) is not None
+        ),
+        None,
+    )
     effective_period = target_period or (upb_row.period_end if upb_row else None)
     loan_row = _find_row(rows, "servicing_loan_count", period_end=effective_period)
     return CompanyPresentation(
@@ -363,10 +392,12 @@ def _normalize_company(
         period_end=upb_row.period_end if upb_row else effective_period,
         upb=_reported_metric(
             key="upb",
-            label="Servicing UPB",
+            label=upb_row.metric_name if upb_row else "Servicing UPB",
             row=upb_row,
             formatter=_format_upb,
-            unavailable_note="Total servicing UPB is not disclosed for the selected period",
+            unavailable_note=(
+                "No configured servicing portfolio metric is disclosed for the selected period"
+            ),
         ),
         customer_loans=_reported_metric(
             key="loans",
@@ -376,7 +407,7 @@ def _normalize_company(
             unavailable_note="Servicing loan count is not disclosed in the governed dataset",
         ),
         growth=_growth_metric(rows, upb_row),
-        owned_mix=_mix_metric(company["id"], rows, upb_row),
+        owned_mix=_mix_metric(company["classification"], rows, upb_row),
     )
 
 

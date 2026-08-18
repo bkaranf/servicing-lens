@@ -1,0 +1,847 @@
+schema_version: "1"
+mapping_version: "financial-fields-phase5-v1"
+
+# This is a deliberately small Phase 2 selection, not a financial ontology.
+# The file is directly loadable by XbrlMappingRegistry; the additional keys are
+# discovery and review metadata. A mapping identifies eligible source facts but
+# never approves a value. Every selected mapping remains CANDIDATE and every
+# proposed golden expectation remains REVIEW_REQUIRED until an independent exact
+# representation or attributable reviewer approval is recorded.
+metric_definitions:
+  - metric_id: total_assets
+    semantic_version: "1.0.0"
+    display_name: Total Assets
+    category: core_financial
+    business_meaning: Consolidated period-end total assets reported by the SEC registrant.
+    grain: reporting entity, reporting scope, fiscal period
+    unit: USD
+  - metric_id: servicing_for_others_upb
+    semantic_version: "1.0.0"
+    display_name: Servicing For Others UPB
+    category: portfolio
+    business_meaning: Period-end UPB serviced for third-party owners in the disclosed population.
+    grain: reporting entity, reporting scope, fiscal period
+    unit: USD
+  - metric_id: total_servicing_upb
+    semantic_version: "1.0.0"
+    display_name: Total Servicing UPB
+    category: portfolio
+    business_meaning: Issuer-defined period-end total servicing portfolio UPB.
+    grain: reporting entity, reporting scope, fiscal period
+    unit: USD
+  - metric_id: owned_msr_upb
+    semantic_version: "1.0.0"
+    display_name: Owned MSR UPB
+    category: portfolio
+    business_meaning: UPB underlying servicing rights owned by the reporting entity.
+    grain: reporting entity, reporting scope, fiscal period
+    unit: USD
+
+mappings:
+  - issuer_id: tfc
+    mapping_id: tfc.total_assets.consolidated.v1
+    cik: "0000092230"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained raw filing inline-XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: tfc_registrant
+    reporting_scope_id: tfc_consolidated_company
+    reporting_scope_name: Truist Financial Corporation consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio, reportable segment, bank holding-company regulatory scope, or depository scope.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: pfsi
+    mapping_id: pfsi.total_assets.consolidated.v1
+    cik: "0001745916"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained raw filing inline-XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: pfsi_registrant
+    reporting_scope_id: pfsi_consolidated_company
+    reporting_scope_name: PennyMac Financial Services, Inc. consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio or reportable segment.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: tfc
+    mapping_id: tfc.total_servicing_upb.residential.v1
+    cik: "0000092230"
+    metric_id: total_servicing_upb
+    metric_version: "1.0.0"
+    display_name: UPB of residential mortgage loan servicing portfolio
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Exact issuer-tagged residential mortgage servicing portfolio UPB in each retained filing-level XBRL document.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: tfc
+    concept: TotalResidentialMortgageServicingPortfolio
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions:
+      - dimension: us-gaap:FinancingReceivableRecordedInvestmentByClassOfFinancingReceivableAxis
+        member: us-gaap:ResidentialMortgageMember
+    reporting_entity_id: tfc_registrant
+    reporting_scope_id: tfc_consolidated_residential_mortgage_servicing
+    reporting_scope_name: Tfc Consolidated Residential Mortgage Servicing
+    reporting_scope_category: TOTAL_SERVICING_PORTFOLIO
+    portfolio_population: residential_servicing_for_others_and_bank_owned
+    scope_methodology: Issuer-defined public servicing disclosure scope.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: wfc
+    mapping_id: wfc.total_assets.consolidated.v1
+    cik: "0000072971"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor from retained filing-level XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: wfc_registrant
+    reporting_scope_id: wfc_consolidated_company
+    reporting_scope_name: Wells Fargo & Company consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing or bank-subsidiary scope.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: wfc
+    mapping_id: wfc.servicing_for_others_upb.residential.pre2026.v1
+    effective_to: "2025-12-31"
+    cik: "0000072971"
+    metric_id: servicing_for_others_upb
+    metric_version: "1.0.0"
+    display_name: Total serviced for others, excluding subserviced for others
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Exact residential component of the issuer-labeled serviced-for-others UPB, excluding subserviced loans, before the 2026 disclosure change.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: wfc
+    concept: LoansServicedforOthers
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -9
+    period_type: instant
+    dimensions:
+      - dimension: us-gaap:UnderlyingAssetClassAxis
+        member: wfc:ResidentialMortgageServicingMember
+    reporting_entity_id: wfc_registrant
+    reporting_scope_id: wfc_residential_servicing_for_others_excluding_subservicing
+    reporting_scope_name: Wells Fargo residential loans serviced for others excluding subservicing
+    reporting_scope_category: SERVICING_FOR_OTHERS
+    portfolio_population: residential_servicing_for_others_excluding_subservicing
+    scope_methodology: Issuer-reported residential UPB serviced for others with subserviced loans explicitly excluded.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: wfc
+    mapping_id: wfc.servicing_for_others_upb.residential.2026.v1
+    effective_from: "2026-01-01"
+    cik: "0000072971"
+    metric_id: servicing_for_others_upb
+    metric_version: "1.0.0"
+    display_name: Loans serviced for others, unpaid principal balance
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Exact residential component of the redesigned 2026 loans-serviced-for-others table; kept in a distinct effective-dated scope.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: wfc
+    concept: LoansServicedForOthers
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions:
+      - dimension: us-gaap:UnderlyingAssetClassAxis
+        member: wfc:ResidentialMortgageServicingMember
+    reporting_entity_id: wfc_registrant
+    reporting_scope_id: wfc_residential_servicing_for_others_2026
+    reporting_scope_name: Wells Fargo residential loans serviced for others under the 2026 disclosure
+    reporting_scope_category: SERVICING_FOR_OTHERS
+    portfolio_population: residential_servicing_for_others_source_defined_2026
+    scope_methodology: Issuer-reported residential UPB in the redesigned 2026 loans-serviced-for-others table; no pre-2026 subservicing exclusion is inferred.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: pfsi
+    mapping_id: pfsi.owned_msr_upb.fair_value.v1
+    cik: "0001745916"
+    metric_id: owned_msr_upb
+    metric_version: "1.0.0"
+    display_name: Unpaid principal balance
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Exact UPB underlying the issuer's owned fair-value mortgage servicing rights.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: pfsi
+    concept: ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions:
+      - dimension: us-gaap:FairValueByFairValueHierarchyLevelAxis
+        member: us-gaap:FairValueInputsLevel3Member
+      - dimension: us-gaap:FairValueByMeasurementBasisAxis
+        member: us-gaap:EstimateOfFairValueFairValueDisclosureMember
+      - dimension: us-gaap:FinancialInstrumentAxis
+        member: pfsi:MortgageServicingRightsMember
+    reporting_entity_id: pfsi_registrant
+    reporting_scope_id: pfsi_owned_msr_portfolio
+    reporting_scope_name: Pfsi Owned MSR Portfolio
+    reporting_scope_category: OWNED_MSR_PORTFOLIO
+    portfolio_population: owned_msr
+    scope_methodology: Explicit issuer-disclosed Phase 3 reporting boundary; no cross-scope equivalence is implied.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: rkt
+    mapping_id: rkt.total_assets.consolidated.v1
+    cik: "0001805284"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor from retained filing-level XBRL bytes; source-reported precision changes are preserved per filing.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: null
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: rkt_registrant
+    reporting_scope_id: rkt_consolidated_company
+    reporting_scope_name: Rocket Companies, Inc. consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio or operating-unit scope.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: rkt
+    mapping_id: rkt.total_servicing_upb.through_2025q3.v1
+    effective_to: "2025-09-30"
+    cik: "0001805284"
+    metric_id: total_servicing_upb
+    metric_version: "1.0.0"
+    display_name: Total UPB of mortgage loans serviced, excluding subserviced loans
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Exact source-reported servicing UPB for the mapping's earlier effective disclosure regime.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: rkt
+    concept: ServicingAssetsPrincipalValueOfLoansBeingServiced
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: null
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: rkt_registrant
+    reporting_scope_id: rkt_total_servicing_portfolio_through_2025q3
+    reporting_scope_name: Earlier effective total mortgage servicing disclosure scope
+    reporting_scope_category: TOTAL_SERVICING_PORTFOLIO
+    portfolio_population: mortgage_loans_serviced_excluding_subservicing_through_2025q3
+    scope_methodology: Period-end total UPB of mortgage loans serviced excluding subserviced loans in the earlier effective disclosure regime; no cross-regime continuity is inferred.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: rkt
+    mapping_id: rkt.total_servicing_upb.from_2025q4.v1
+    effective_from: "2025-10-01"
+    cik: "0001805284"
+    metric_id: total_servicing_upb
+    metric_version: "1.0.0"
+    display_name: Total UPB of mortgage loans serviced, excluding subserviced loans
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Exact source-reported servicing UPB for the mapping's later effective disclosure regime.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: rkt
+    concept: ServicingAssetsPrincipalValueOfLoansBeingServiced
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: null
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: rkt_registrant
+    reporting_scope_id: rkt_total_servicing_portfolio_from_2025q4
+    reporting_scope_name: Later effective total mortgage servicing disclosure scope
+    reporting_scope_category: TOTAL_SERVICING_PORTFOLIO
+    portfolio_population: mortgage_loans_serviced_excluding_subservicing_from_2025q4
+    scope_methodology: Period-end total UPB of mortgage loans serviced excluding subserviced loans in the later effective disclosure regime; earlier-regime values remain separate.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: jpm
+    mapping_id: jpm.total_assets.consolidated.v1
+    cik: "0000019617"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained filing-level XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: jpm_registrant
+    reporting_scope_id: jpm_consolidated_company
+    reporting_scope_name: JPMorgan Chase & Co. consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio, reportable segment, or bank subsidiary.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: jpm
+    mapping_id: jpm.servicing_for_others_upb.third_party_mortgage.v1
+    cik: "0000019617"
+    metric_id: servicing_for_others_upb
+    metric_version: "1.0.0"
+    display_name: Third-party mortgage loans serviced at period end
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Direct issuer-reported period-end balance of third-party mortgage loans serviced in the retained MSR disclosure.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: jpm
+    concept: MortgageLoansServicedThirdPartyAtPeriodEnd
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -9
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: jpm_registrant
+    reporting_scope_id: jpm_third_party_mortgage_servicing
+    reporting_scope_name: JPMorgan Chase third-party mortgage loans serviced
+    reporting_scope_category: SERVICING_FOR_OTHERS
+    portfolio_population: third_party_mortgage_loans_serviced
+    scope_methodology: Issuer-reported period-end mortgage loans serviced for third parties; no owned-loan or other asset population is inferred.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: bac
+    mapping_id: bac.total_assets.consolidated.v1
+    cik: "0000070858"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained filing-level XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: bac_registrant
+    reporting_scope_id: bac_consolidated_company
+    reporting_scope_name: Bank of America Corporation consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio, reportable segment, or bank subsidiary.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: bac
+    mapping_id: bac.servicing_for_others_upb.consumer_first_lien.v1
+    cik: "0000070858"
+    metric_id: servicing_for_others_upb
+    metric_version: "1.0.0"
+    display_name: Unpaid principal balance of loans serviced for investors
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Direct issuer-reported UPB of consumer loans serviced for investors in the exact first-lien mortgage context.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: bac
+    concept: ServicingAssetAtFairValueForInvestors
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -8
+    period_type: instant
+    dimensions:
+      - dimension: us-gaap:FinancialInstrumentAxis
+        member: bac:FirstLienMortgagesMember
+    reporting_entity_id: bac_registrant
+    reporting_scope_id: bac_consumer_first_lien_servicing_for_investors
+    reporting_scope_name: Bank of America consumer first-lien loans serviced for investors
+    reporting_scope_category: SERVICING_FOR_OTHERS
+    portfolio_population: consumer_first_lien_loans_serviced_for_investors
+    scope_methodology: Issuer-reported period-end UPB of loans serviced for investors in the first-lien mortgage context; the disclosure describes residential mortgage and home-equity servicing and is not treated as total company servicing.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: usb
+    mapping_id: usb.total_assets.consolidated.v1
+    cik: "0000036104"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained filing-level XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -6
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: usb_registrant
+    reporting_scope_id: usb_consolidated_company
+    reporting_scope_name: U.S. Bancorp consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio, reportable segment, or bank subsidiary.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: usb
+    mapping_id: usb.servicing_for_others_upb.residential_including_subservicing.v1
+    cik: "0000036104"
+    metric_id: servicing_for_others_upb
+    metric_version: "1.0.0"
+    display_name: Residential mortgage loans serviced for others
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Direct issuer-reported residential loans serviced for others, with the disclosure explicitly including subserviced mortgages that have no corresponding MSR asset.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: usb
+    concept: ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -8
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: usb_registrant
+    reporting_scope_id: usb_residential_servicing_for_others_including_subservicing
+    reporting_scope_name: U.S. Bancorp residential mortgage loans serviced for others including specified subservicing
+    reporting_scope_category: SERVICING_FOR_OTHERS
+    portfolio_population: residential_mortgage_loans_serviced_for_others_including_subserviced_without_msr
+    scope_methodology: Period-end residential mortgage loans serviced for others, including subserviced mortgages with no corresponding MSR asset, exactly as issuer-defined.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_OR_INSTANCE_XBRL_RAW_STRING_TO_EXACT_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: uwmc
+    mapping_id: uwmc.total_assets.consolidated.v1
+    cik: "0001783398"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained filing-level XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: uwmc_registrant
+    reporting_scope_id: uwmc_consolidated_company
+    reporting_scope_name: UWM Holdings Corporation consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not a servicing portfolio or reportable segment.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: uwmc
+    mapping_id: uwmc.servicing_for_others_upb.mortgage.v1
+    cik: "0001783398"
+    metric_id: servicing_for_others_upb
+    metric_version: "1.0.0"
+    display_name: Unpaid principal balance of mortgage loans serviced for others
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Direct period-end UPB from the issuer narrative, isolated by the exact mortgage-servicing-rights financial-instrument context.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: ServicingAsset
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -8
+    period_type: instant
+    dimensions:
+      - dimension: us-gaap:FinancialInstrumentAxis
+        member: uwmc:MortgageServicingRightsMember
+    reporting_entity_id: uwmc_registrant
+    reporting_scope_id: uwmc_mortgage_servicing_for_others
+    reporting_scope_name: UWM mortgage loans serviced for others
+    reporting_scope_category: SERVICING_FOR_OTHERS
+    portfolio_population: mortgage_loans_serviced_for_others
+    scope_methodology: Issuer-reported period-end UPB of mortgage loans serviced for others; the exact dimensional context distinguishes UPB from the undimensioned MSR asset balance sharing the same taxonomy concept.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: ritm
+    mapping_id: ritm.total_assets.consolidated.v1
+    cik: "0001556593"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained filing-level XBRL bytes acquired through edgartools.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: ritm_registrant
+    reporting_scope_id: ritm_consolidated_company
+    reporting_scope_name: Rithm Capital Corp. consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; not an operating entity, servicing portfolio, or reportable-segment scope.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: ritm
+    mapping_id: ritm.owned_msr_upb.msr_financing.pre_namespace_change.v1
+    effective_to: "2024-09-30"
+    cik: "0001556593"
+    metric_id: owned_msr_upb
+    metric_version: "1.0.0"
+    display_name: Principal balance of MSRs and MSR financing receivables
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Direct principal balance or notional amount for the issuer's MSRs and MSR financing receivables under the legacy ritm taxonomy prefix.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: ritm
+    concept: MortgageServicingRightsPrincipalBalance
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions:
+      - dimension: us-gaap:FairValueByMeasurementFrequencyAxis
+        member: us-gaap:FairValueMeasurementsRecurringMember
+    reporting_entity_id: ritm_registrant
+    reporting_scope_id: ritm_msr_and_msr_financing_receivables_portfolio
+    reporting_scope_name: Rithm MSRs and MSR financing receivables portfolio
+    reporting_scope_category: OWNED_MSR_PORTFOLIO
+    portfolio_population: msrs_and_msr_financing_receivables
+    scope_methodology: Period-end principal balance or notional amount of MSRs and MSR financing receivables measured on a recurring fair-value basis; taxonomy namespace changes do not create a new issuer or scope.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: ritm
+    mapping_id: ritm.owned_msr_upb.msr_financing.post_namespace_change.v1
+    effective_from: "2024-10-01"
+    cik: "0001556593"
+    metric_id: owned_msr_upb
+    metric_version: "1.0.0"
+    display_name: Principal balance of MSRs and MSR financing receivables
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Direct principal balance or notional amount for the issuer's MSRs and MSR financing receivables after the filing taxonomy namespace changed to nrz.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: nrz
+    concept: MortgageServicingRightsPrincipalBalance
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions:
+      - dimension: us-gaap:FairValueByMeasurementFrequencyAxis
+        member: us-gaap:FairValueMeasurementsRecurringMember
+    reporting_entity_id: ritm_registrant
+    reporting_scope_id: ritm_msr_and_msr_financing_receivables_portfolio
+    reporting_scope_name: Rithm MSRs and MSR financing receivables portfolio
+    reporting_scope_category: OWNED_MSR_PORTFOLIO
+    portfolio_population: msrs_and_msr_financing_receivables
+    scope_methodology: Period-end principal balance or notional amount of MSRs and MSR financing receivables measured on a recurring fair-value basis; taxonomy namespace changes do not create a new issuer or scope.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: ldi
+    mapping_id: ldi.total_assets.consolidated.v1
+    cik: "0001831631"
+    metric_id: total_assets
+    metric_version: "1.0.0"
+    display_name: Total assets
+    classification: CORE_FINANCIAL
+    selection_decision: SELECTED
+    selection_reason: Common consolidated balance-sheet anchor qualified from retained filing-level XBRL bytes acquired through edgartools at source-reported thousand-dollar precision.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: Assets
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: ldi_registrant
+    reporting_scope_id: ldi_consolidated_company
+    reporting_scope_name: loanDepot, Inc. consolidated SEC registrant
+    reporting_scope_category: CONSOLIDATED_COMPANY
+    portfolio_population: consolidated_sec_registrant
+    scope_methodology: Consolidated GAAP financial statements of the SEC registrant; exact reported precision excludes rounded narrative duplicates of the same concept.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED
+
+  - issuer_id: ldi
+    mapping_id: ldi.total_servicing_upb.servicing_portfolio.v1
+    cik: "0001831631"
+    metric_id: total_servicing_upb
+    metric_version: "1.0.0"
+    display_name: Total servicing portfolio outstanding principal balance
+    classification: OPTIONAL_SERVICING
+    selection_decision: SELECTED
+    selection_reason: Direct total row of the issuer's outstanding-principal-balance servicing portfolio table.
+    source_route: SEC_DOCUMENT_BYTES_VIA_EDGARTOOLS
+    taxonomy: us-gaap
+    concept: PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+    unit: USD
+    currency: USD
+    scale: "1"
+    decimals: -3
+    period_type: instant
+    dimensions: []
+    reporting_entity_id: ldi_registrant
+    reporting_scope_id: ldi_total_servicing_portfolio
+    reporting_scope_name: loanDepot total servicing portfolio
+    reporting_scope_category: TOTAL_SERVICING_PORTFOLIO
+    portfolio_population: total_servicing_portfolio_agency_government_and_other
+    scope_methodology: Period-end total outstanding principal balance of the issuer's servicing portfolio, comprising the source-labeled agency, government, and other categories without local recomputation.
+    eligible_forms: [10-K, 10-K/A, 10-Q, 10-Q/A]
+    eligible_sources: [SEC_FILING_XBRL]
+    directness: DIRECT_REPORTED
+    raw_string_to_decimal: INLINE_XBRL_DISPLAY_STRING_TRANSFORM_AND_INTEGER_SCALE_TO_DECIMAL
+    sign_convention: INLINE_XBRL_SIGN_ATTRIBUTE_THEN_EXACT_SCALE
+    validation_behavior: REQUIRE_EXACT_FILING_CONTEXT_UNIT_DIMENSIONS_SOURCE_ELEMENT_AND_COMPLETE_LINEAGE
+    amendment_behavior: RETAIN_ACCESSION_LINEAGE_AND_REVIEW_SUPERSESSION
+    publication_state: CANDIDATE
+    review_status: REVIEW_REQUIRED

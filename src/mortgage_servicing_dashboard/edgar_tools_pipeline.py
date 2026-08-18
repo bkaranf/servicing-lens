@@ -29,15 +29,23 @@ from mortgage_servicing_dashboard.financial_discovery import (
     FinancialClassification,
     FinancialDiscoveryError,
     FinancialFieldRegistry,
+    RawFieldDiscovery,
     RawFilingFactLocator,
     discover_retained_document_fields,
 )
 from mortgage_servicing_dashboard.xbrl import XbrlDataError, XbrlPeriodType
 
 _OVERLAP_DAYS = 7
-_MAX_APPROVED_CASES = 4
+_LEGACY_APPROVED_CASES = 4
+_MAX_APPROVED_CASES = 400
 _ELIGIBLE_FORMS = ("10-K", "10-K/A", "10-Q", "10-Q/A")
-_APPROVED_REVIEW_STATES = frozenset({"INDEPENDENTLY_CROSS_CHECKED", "REVIEWER_APPROVED"})
+_APPROVED_REVIEW_STATES = frozenset(
+    {
+        "FILING_XBRL_LINEAGE_VERIFIED",
+        "INDEPENDENTLY_CROSS_CHECKED",
+        "REVIEWER_APPROVED",
+    }
+)
 _QUARTER_MARKERS = frozenset({"Q1", "Q2", "Q3", "Q4"})
 EDGARTOOLS_VERSION = distribution_version("edgartools")
 
@@ -116,6 +124,24 @@ class ValidatedFiling:
     source_element_ids: tuple[str, ...]
     source_object_count: int
     source_locators: tuple[str, ...]
+    mapping_id: str = ""
+    source_document: str = ""
+    source_sequence: str = ""
+    source_document_type: str = ""
+    source_description: str = ""
+    source_is_primary: bool = True
+    period_type: XbrlPeriodType = XbrlPeriodType.INSTANT
+    period_start: date | None = None
+    dimensions: tuple[tuple[str, str], ...] = ()
+    metric_version: str = "1.0.0"
+    metric_display_name: str = ""
+    reporting_scope_category: str = ""
+    primary_source_url: str = ""
+    original_evidence_sha256: str = ""
+    original_evidence_byte_length: int = 0
+    original_evidence_representation: str = ""
+    original_evidence_capture_method: str = ""
+    original_source_locators: tuple[str, ...] = ()
 
 
 class CommittedCaseState(StrEnum):
@@ -338,12 +364,19 @@ class _MutableCallCounts:
         )
 
 
+_SourceCache: TypeAlias = dict[
+    tuple[str, str],
+    tuple[Attachment, AttachmentAcquisition, tuple[RawFieldDiscovery, ...]],
+]
+
+
 @dataclass(frozen=True, slots=True)
 class _GoldenCase:
     case_id: str
     issuer_id: str
     ticker: str
     cik: str
+    mapping_id: str
     field_id: str
     classification: FinancialClassification
     accession: str
@@ -358,11 +391,22 @@ class _GoldenCase:
     primary_sequence: str
     primary_document_type: str
     primary_description: str
+    primary_source_url: str
+    source_document: str
+    source_sequence: str
+    source_document_type: str
+    source_description: str
+    source_is_primary: bool
     source_url: str
     evidence_sha256: str
     evidence_byte_length: int
     evidence_representation: str
     evidence_capture_method: str | None
+    original_evidence_sha256: str
+    original_evidence_byte_length: int
+    original_evidence_representation: str
+    original_evidence_capture_method: str | None
+    original_source_locators: tuple[str, ...]
     qualified_concept: str
     original_label: str
     raw_display_string: str
@@ -383,15 +427,16 @@ class _GoldenCase:
 
 @dataclass(frozen=True, slots=True)
 class GoldenManifest:
-    """Validated four-case golden-source contract."""
+    """Validated bounded golden-source contract."""
 
     version: str
     mapping_version: str
     cases: tuple[_GoldenCase, ...]
+    allow_multiple_fields_per_filing: bool = False
 
     @classmethod
     def from_mapping(cls, payload: Mapping[str, object]) -> GoldenManifest:
-        """Validate and freeze an independently approved four-case manifest."""
+        """Validate and freeze an approved, exact-lineage source manifest."""
         version = _required_string(payload, "manifest_version", location="manifest")
         mapping_version = _required_string(payload, "mapping_version", location="manifest")
         status = _required_string(payload, "status", location="manifest")
@@ -406,8 +451,21 @@ class GoldenManifest:
                 location="manifest.approved_expectations",
             )
         )
-        if len(raw_cases) != _MAX_APPROVED_CASES or len(approved) != _MAX_APPROVED_CASES:
-            message = "golden manifest must contain exactly four approved cases"
+        configured_count = payload.get("expected_case_count")
+        expected_count = (
+            _LEGACY_APPROVED_CASES
+            if configured_count is None
+            else _positive_int(payload, "expected_case_count", location="manifest")
+        )
+        if expected_count > _MAX_APPROVED_CASES:
+            message = "golden manifest exceeds the bounded approved-case limit"
+            raise ValueError(message)
+        if len(raw_cases) != expected_count or len(approved) != expected_count:
+            message = (
+                "golden manifest must contain exactly four approved cases"
+                if expected_count == _LEGACY_APPROVED_CASES
+                else f"golden manifest must contain exactly {expected_count} approved cases"
+            )
             raise ValueError(message)
         cases = tuple(
             _golden_case(_mapping(value, location=f"manifest.cases[{index}]"))
@@ -415,16 +473,37 @@ class GoldenManifest:
         )
         case_ids = tuple(case.case_id for case in cases)
         if len(set(case_ids)) != len(case_ids) or set(approved) != set(case_ids):
-            message = "approved expectations must identify the four unique cases"
+            message = (
+                "approved expectations must identify the four unique cases"
+                if expected_count == _LEGACY_APPROVED_CASES
+                else "approved expectations must identify every unique case"
+            )
             raise ValueError(message)
-        if len({case.accession for case in cases}) != len(cases):
+        allow_multiple = _optional_boolean(
+            payload,
+            "allow_multiple_fields_per_filing",
+            default=False,
+            location="manifest",
+        )
+        if not allow_multiple and len({case.accession for case in cases}) != len(cases):
             message = "golden manifest accessions must be unique"
             raise ValueError(message)
-        return cls(version=version, mapping_version=mapping_version, cases=cases)
+        case_sources = {
+            (case.issuer_id, case.accession, case.mapping_id or case.field_id) for case in cases
+        }
+        if len(case_sources) != len(cases):
+            message = "golden manifest repeats an issuer/accession/mapping case"
+            raise ValueError(message)
+        return cls(
+            version=version,
+            mapping_version=mapping_version,
+            cases=cases,
+            allow_multiple_fields_per_filing=allow_multiple,
+        )
 
 
 class EdgarToolsSyncPipeline:
-    """Exact four-case coordinator over one injected public-edgartools adapter."""
+    """Exact bounded-case coordinator over one injected public-edgartools adapter."""
 
     def __init__(
         self,
@@ -546,6 +625,7 @@ class EdgarToolsSyncPipeline:
 
         results: list[FilingSyncResult] = []
         validated: list[ValidatedFiling] = []
+        source_cache: _SourceCache = {}
         for case in planned:
             matches = by_accession.get(case.accession, [])
             if len(matches) != 1:
@@ -570,6 +650,7 @@ class EdgarToolsSyncPipeline:
                 matches[0],
                 already_known=case.accession in known_accessions,
                 calls=calls,
+                source_cache=source_cache,
             )
             results.append(result)
             if qualified is not None:
@@ -666,13 +747,14 @@ class EdgarToolsSyncPipeline:
         outcomes = _validated_commit_outcomes(validated, committed)
         return tuple(_apply_commit_outcomes(summary, outcomes) for summary in summaries)
 
-    def _sync_filing(  # noqa: PLR0911 - every fail-closed gate returns immediately.
+    def _sync_filing(  # noqa: C901, PLR0911, PLR0912
         self,
         case: _GoldenCase,
         filing: Filing,
         *,
         already_known: bool,
         calls: _MutableCallCounts,
+        source_cache: _SourceCache,
     ) -> tuple[FilingSyncResult, ValidatedFiling | None]:
         identity_mismatches = _filing_mismatches(case, filing)
         if identity_mismatches:
@@ -685,51 +767,76 @@ class EdgarToolsSyncPipeline:
                 ),
                 None,
             )
+        cache_key = (case.accession, case.source_document)
+        cached = source_cache.get(cache_key)
         try:
-            calls.attachments += 1
-            attachments = self._adapter.attachments(
-                case.accession,
-                expected_cik=case.cik,
-            )
-            primary = _select_primary(case, attachments)
-            if isinstance(primary, tuple):
-                state, detail = primary
-                return _case_result(
+            if cached is None:
+                calls.attachments += 1
+                attachments = self._adapter.attachments(
+                    case.accession,
+                    expected_cik=case.cik,
+                )
+                source_attachment = _select_source_attachment(case, attachments)
+                if isinstance(source_attachment, tuple):
+                    state, detail = source_attachment
+                    return _case_result(
+                        case,
+                        already_known=already_known,
+                        state=state,
+                        detail=detail,
+                    ), None
+                calls.acquire_attachment += 1
+                acquisition = self._adapter.acquire_attachment(
+                    case.accession,
+                    case.source_document,
+                    expected_cik=case.cik,
+                    retain=True,
+                )
+                integrity_mismatches = _acquisition_mismatches(
                     case,
-                    already_known=already_known,
-                    state=state,
-                    detail=detail,
-                ), None
-            calls.acquire_attachment += 1
-            acquisition = self._adapter.acquire_attachment(
-                case.accession,
-                case.primary_document,
-                expected_cik=case.cik,
-                retain=True,
-            )
-            integrity_mismatches = _acquisition_mismatches(case, primary, acquisition)
-            if integrity_mismatches:
-                return _case_result(
+                    source_attachment,
+                    acquisition,
+                )
+                if integrity_mismatches:
+                    return _case_result(
+                        case,
+                        already_known=already_known,
+                        state=EdgarToolsSyncState.MISMATCH,
+                        detail="retained evidence mismatch: " + ",".join(integrity_mismatches),
+                        evidence_sha256=acquisition.content.sha256,
+                    ), None
+                retained = cast("RetainedContent", acquisition.retained)
+                calls.discover_retained_document_fields += 1
+                discoveries = discover_retained_document_fields(
+                    acquisition.content.content,
+                    issuer_id=case.issuer_id,
+                    cik=case.cik,
+                    evidence_id=retained.content_sha256,
+                    accession_number=case.accession,
+                    source_document=case.source_document,
+                    source_url=case.source_url,
+                    form=case.form,
+                    filed=case.filing_date,
+                    registry=self._registry,
+                )
+                source_cache[cache_key] = (source_attachment, acquisition, discoveries)
+            else:
+                source_attachment, acquisition, discoveries = cached
+            if cached is not None:
+                integrity_mismatches = _acquisition_mismatches(
                     case,
-                    already_known=already_known,
-                    state=EdgarToolsSyncState.MISMATCH,
-                    detail="retained evidence mismatch: " + ",".join(integrity_mismatches),
-                    evidence_sha256=acquisition.content.sha256,
-                ), None
+                    source_attachment,
+                    acquisition,
+                )
+                if integrity_mismatches:
+                    return _case_result(
+                        case,
+                        already_known=already_known,
+                        state=EdgarToolsSyncState.MISMATCH,
+                        detail="retained evidence mismatch: " + ",".join(integrity_mismatches),
+                        evidence_sha256=acquisition.content.sha256,
+                    ), None
             retained = cast("RetainedContent", acquisition.retained)
-            calls.discover_retained_document_fields += 1
-            discoveries = discover_retained_document_fields(
-                acquisition.content.content,
-                issuer_id=case.issuer_id,
-                cik=case.cik,
-                evidence_id=retained.content_sha256,
-                accession_number=case.accession,
-                source_document=case.primary_document,
-                source_url=case.source_url,
-                form=case.form,
-                filed=case.filing_date,
-                registry=self._registry,
-            )
         except EdgarToolsAdapterError:
             return _case_result(
                 case,
@@ -747,7 +854,12 @@ class EdgarToolsSyncPipeline:
             ), None
 
         matching = tuple(
-            discovery for discovery in discoveries if discovery.mapping.field_id == case.field_id
+            discovery
+            for discovery in discoveries
+            if discovery.mapping.field_id == case.field_id
+            and discovery.mapping.xbrl.qualified_concept == case.qualified_concept
+            and (not case.mapping_id or discovery.mapping.mapping_id == case.mapping_id)
+            and discovery.mapping.xbrl.applies_to(case.report_period)
         )
         if len(matching) != 1:
             return _case_result(
@@ -805,9 +917,9 @@ class EdgarToolsSyncPipeline:
             amendment=case.amendment,
             revision_of_accession=case.revision_of_accession,
             primary_document=case.primary_document,
-            primary_sequence=primary.sequence,
-            primary_document_type=primary.attachment_type,
-            primary_description=primary.description,
+            primary_sequence=case.primary_sequence,
+            primary_document_type=case.primary_document_type,
+            primary_description=case.primary_description,
             source_url=case.source_url,
             evidence_sha256=retained.content_sha256,
             evidence_byte_length=retained.byte_length,
@@ -838,6 +950,24 @@ class EdgarToolsSyncPipeline:
             source_element_ids=candidate.source_element_ids,
             source_object_count=candidate.source_object_count,
             source_locators=candidate.source_locators,
+            mapping_id=mapping.mapping_id,
+            source_document=case.source_document,
+            source_sequence=source_attachment.sequence,
+            source_document_type=source_attachment.attachment_type,
+            source_description=source_attachment.description,
+            source_is_primary=source_attachment.is_primary,
+            period_type=candidate.period_type,
+            period_start=candidate.period_start,
+            dimensions=tuple((item.dimension, item.member) for item in candidate.dimensions),
+            metric_version=mapping.xbrl.metric_version,
+            metric_display_name=mapping.display_name,
+            reporting_scope_category=mapping.reporting_scope_category.value,
+            primary_source_url=case.primary_source_url,
+            original_evidence_sha256=case.original_evidence_sha256,
+            original_evidence_byte_length=case.original_evidence_byte_length,
+            original_evidence_representation=case.original_evidence_representation,
+            original_evidence_capture_method=case.original_evidence_capture_method or "",
+            original_source_locators=case.original_source_locators or candidate.source_locators,
         )
         return _case_result(
             case,
@@ -1030,7 +1160,7 @@ def _filing_mismatches(case: _GoldenCase, filing: Filing) -> tuple[str, ...]:
     return tuple(name for matches, name in checks if not matches)
 
 
-def _select_primary(
+def _select_source_attachment(  # noqa: PLR0911
     case: _GoldenCase,
     attachments: Sequence[Attachment],
 ) -> Attachment | tuple[EdgarToolsSyncState, str]:
@@ -1040,33 +1170,57 @@ def _select_primary(
     if len(primaries) != 1:
         return EdgarToolsSyncState.AMBIGUOUS, "multiple primary attachments were returned"
     primary = primaries[0]
-    checks = (
+    primary_checks = (
         primary.cik == case.cik,
         primary.accession_number == case.accession,
         primary.document == case.primary_document,
-        primary.source_url == case.source_url,
+        primary.source_url == case.primary_source_url,
         primary.sequence == case.primary_sequence,
         primary.attachment_type == case.primary_document_type,
         primary.description == case.primary_description,
+        primary.is_primary is True,
+    )
+    if not all(primary_checks):
+        return EdgarToolsSyncState.MISMATCH, "primary attachment identity did not match"
+    selected = tuple(
+        attachment for attachment in attachments if attachment.document == case.source_document
+    )
+    if not selected:
+        return EdgarToolsSyncState.MISMATCH, "selected source attachment was not present"
+    if len(selected) != 1:
+        return (
+            EdgarToolsSyncState.AMBIGUOUS,
+            "selected source attachment was returned more than once",
+        )
+    source = selected[0]
+    checks = (
+        source.cik == case.cik,
+        source.accession_number == case.accession,
+        source.document == case.source_document,
+        source.source_url == case.source_url,
+        source.sequence == case.source_sequence,
+        source.attachment_type == case.source_document_type,
+        source.description == case.source_description,
+        source.is_primary is case.source_is_primary,
     )
     if not all(checks):
-        return EdgarToolsSyncState.MISMATCH, "primary attachment identity did not match"
-    return primary
+        return EdgarToolsSyncState.MISMATCH, "selected source attachment identity did not match"
+    return source
 
 
 def _acquisition_mismatches(
     case: _GoldenCase,
-    primary: Attachment,
+    source: Attachment,
     acquisition: AttachmentAcquisition,
 ) -> tuple[str, ...]:
     retained = acquisition.retained
     content = acquisition.content
     computed_hash = hashlib.sha256(content.content).hexdigest()
     checks = (
-        (acquisition.attachment == primary, "attachment"),
+        (acquisition.attachment == source, "attachment"),
         (content.cik == case.cik, "cik"),
         (content.accession_number == case.accession, "accession"),
-        (content.document == case.primary_document, "document"),
+        (content.document == case.source_document, "document"),
         (content.source_url == case.source_url, "source_url"),
         (content.sha256 == computed_hash, "content_hash"),
         (content.sha256 == case.evidence_sha256, "approved_hash"),
@@ -1106,7 +1260,7 @@ def _candidate_mismatches(
     dimensions = tuple((item.dimension, item.member) for item in candidate.dimensions)
     checks = (
         (candidate.accession_number == case.accession, "accession"),
-        (candidate.source_document == case.primary_document, "document"),
+        (candidate.source_document == case.source_document, "document"),
         (candidate.source_url == case.source_url, "source_url"),
         (candidate.qualified_concept == case.qualified_concept, "concept"),
         (candidate.raw_value == case.raw_display_string, "raw_display"),
@@ -1151,6 +1305,11 @@ def _validate_manifest_mappings(
             if mapping.issuer_id == case.issuer_id
             and mapping.xbrl.cik == case.cik
             and mapping.field_id == case.field_id
+            and mapping.xbrl.qualified_concept == case.qualified_concept
+            and tuple((item.dimension, item.member) for item in mapping.xbrl.dimensions)
+            == case.dimensions
+            and (not case.mapping_id or mapping.mapping_id == case.mapping_id)
+            and mapping.xbrl.applies_to(case.report_period)
         )
         if len(mappings) != 1:
             message = "each golden case requires one selected-field mapping"
@@ -1173,6 +1332,12 @@ def _golden_case(payload: Mapping[str, object]) -> _GoldenCase:
         message = "every golden case must be independently approved"
         raise ValueError(message)
     source = _mapping(payload.get("edgartools_source"), location="golden case source")
+    original_source_value = payload.get("original_edgartools_source")
+    original_source = (
+        source
+        if original_source_value is None
+        else _mapping(original_source_value, location="golden case original source")
+    )
     fact = _mapping(payload.get("approved_fact"), location="golden case approved_fact")
     form = _required_string(payload, "form", location=location)
     amendment = _boolean(payload, "amendment", location=location)
@@ -1198,11 +1363,25 @@ def _golden_case(payload: Mapping[str, object]) -> _GoldenCase:
     if "source_sign" not in fact or "source_precision" not in fact:
         message = "golden approved fact must explicitly retain source sign and precision"
         raise ValueError(message)
+    primary_document = _required_string(payload, "primary_document", location=location)
+    primary_sequence = _required_string(payload, "primary_sequence", location=location)
+    primary_document_type = _required_string(
+        payload,
+        "primary_document_type",
+        location=location,
+    )
+    primary_description = _required_string(
+        payload,
+        "primary_description",
+        location=location,
+    )
+    source_url = _required_string(payload, "source_url", location=location)
     return _GoldenCase(
         case_id=_required_string(payload, "case_id", location=location),
         issuer_id=_required_string(payload, "issuer_id", location=location),
         ticker=_required_string(payload, "ticker", location=location),
         cik=_required_string(payload, "cik", location=location),
+        mapping_id=_optional_string(payload.get("mapping_id")) or "",
         field_id=_required_string(payload, "field_id", location=location),
         classification=FinancialClassification(
             _required_string(payload, "classification", location=location)
@@ -1217,11 +1396,26 @@ def _golden_case(payload: Mapping[str, object]) -> _GoldenCase:
         revision_of_accession=(
             None if revision is None else _string_item(revision, location="revision accession")
         ),
-        primary_document=_required_string(payload, "primary_document", location=location),
-        primary_sequence=_required_string(payload, "primary_sequence", location=location),
-        primary_document_type=_required_string(payload, "primary_document_type", location=location),
-        primary_description=_required_string(payload, "primary_description", location=location),
-        source_url=_required_string(payload, "source_url", location=location),
+        primary_document=primary_document,
+        primary_sequence=primary_sequence,
+        primary_document_type=primary_document_type,
+        primary_description=primary_description,
+        primary_source_url=(_optional_string(payload.get("primary_source_url")) or source_url),
+        source_document=_optional_string(payload.get("source_document")) or primary_document,
+        source_sequence=_optional_string(payload.get("source_sequence")) or primary_sequence,
+        source_document_type=(
+            _optional_string(payload.get("source_document_type")) or primary_document_type
+        ),
+        source_description=(
+            _optional_string(payload.get("source_description")) or primary_description
+        ),
+        source_is_primary=_optional_boolean(
+            payload,
+            "source_is_primary",
+            default=True,
+            location=location,
+        ),
+        source_url=source_url,
         evidence_sha256=_required_string(source, "sha256", location="golden case source"),
         evidence_byte_length=_positive_int(
             source,
@@ -1234,6 +1428,29 @@ def _golden_case(payload: Mapping[str, object]) -> _GoldenCase:
             location="golden case source",
         ),
         evidence_capture_method=_optional_string(source.get("capture_method")),
+        original_evidence_sha256=_required_string(
+            original_source,
+            "sha256",
+            location="golden case original source",
+        ),
+        original_evidence_byte_length=_positive_int(
+            original_source,
+            "byte_length",
+            location="golden case original source",
+        ),
+        original_evidence_representation=_required_string(
+            original_source,
+            "representation",
+            location="golden case original source",
+        ),
+        original_evidence_capture_method=_optional_string(original_source.get("capture_method")),
+        original_source_locators=tuple(
+            _string_item(value, location="golden case original source locators")
+            for value in _sequence(
+                original_source.get("source_locators") or fact.get("source_locators") or (),
+                location="golden case original source locators",
+            )
+        ),
         qualified_concept=_required_string(
             fact,
             "qualified_concept",
@@ -1349,6 +1566,20 @@ def _optional_scalar_string(value: object) -> str | None:
 
 def _boolean(payload: Mapping[str, object], key: str, *, location: str) -> bool:
     value = payload.get(key)
+    if not isinstance(value, bool):
+        message = f"{location}.{key} must be boolean"
+        raise TypeError(message)
+    return value
+
+
+def _optional_boolean(
+    payload: Mapping[str, object],
+    key: str,
+    *,
+    default: bool,
+    location: str,
+) -> bool:
+    value = payload.get(key, default)
     if not isinstance(value, bool):
         message = f"{location}.{key} must be boolean"
         raise TypeError(message)

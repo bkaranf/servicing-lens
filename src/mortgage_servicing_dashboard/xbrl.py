@@ -210,6 +210,9 @@ class XbrlConceptMapping:
     reporting_entity_id: str
     reporting_scope_id: str
     eligible_sources: tuple[XbrlSource, ...]
+    mapping_id: str = ""
+    effective_from: date | None = None
+    effective_to: date | None = None
 
     def __post_init__(self) -> None:
         """Validate mapping semantics before any fact can qualify."""
@@ -238,6 +241,33 @@ class XbrlConceptMapping:
         if len(set(self.dimensions)) != len(self.dimensions):
             msg = "XBRL concept mappings cannot repeat dimension/member pairs"
             raise XbrlDataError(msg)
+        if (
+            self.effective_from is not None
+            and self.effective_to is not None
+            and self.effective_from > self.effective_to
+        ):
+            msg = "XBRL concept mapping effective dates are reversed"
+            raise XbrlDataError(msg)
+
+    @property
+    def stable_mapping_id(self) -> str:
+        """Return an explicit identity or a stable legacy-compatible identity."""
+        if self.mapping_id:
+            return self.mapping_id
+        dimension_key = ",".join(
+            f"{item.dimension}={item.member}" for item in sorted(self.dimensions)
+        )
+        return (
+            f"{self.issuer_id}|{self.metric_id}|{self.qualified_concept}|"
+            f"{dimension_key}|{self.reporting_scope_id}"
+        )
+
+    def applies_to(self, period_end: date) -> bool:
+        """Return whether this mapping is effective for an exact fact period."""
+        return not (
+            (self.effective_from is not None and period_end < self.effective_from)
+            or (self.effective_to is not None and period_end > self.effective_to)
+        )
 
     @property
     def qualified_concept(self) -> str:
@@ -257,17 +287,11 @@ class XbrlMappingRegistry:
         if not self.version.strip() or not self.mappings:
             msg = "XBRL mapping registry requires a version and mappings"
             raise XbrlDataError(msg)
-        identities: set[tuple[str, str, str, str, tuple[XbrlSource, ...]]] = set()
+        identities: set[str] = set()
         for mapping in self.mappings:
-            identity = (
-                mapping.issuer_id,
-                mapping.metric_id,
-                mapping.taxonomy,
-                mapping.concept,
-                mapping.eligible_sources,
-            )
+            identity = mapping.stable_mapping_id
             if identity in identities:
-                msg = f"duplicate XBRL concept mapping: {mapping.qualified_concept}"
+                msg = f"duplicate XBRL concept mapping identity: {identity}"
                 raise XbrlDataError(msg)
             identities.add(identity)
 
@@ -653,7 +677,7 @@ class SecFilingXbrlAdapter:
         return tuple(parsed)
 
 
-def apply_mapping(
+def apply_mapping(  # noqa: C901
     fact: XbrlFact,
     mapping: XbrlConceptMapping,
     *,
@@ -682,9 +706,15 @@ def apply_mapping(
         reasons.append("UNIT_MISMATCH")
     if fact.period_type is not mapping.period_type:
         reasons.append("PERIOD_TYPE_MISMATCH")
+    if not mapping.applies_to(fact.period_end):
+        reasons.append("MAPPING_NOT_EFFECTIVE_FOR_PERIOD")
     if tuple(sorted(fact.dimensions)) != tuple(sorted(mapping.dimensions)):
         reasons.append("DIMENSION_CONTEXT_MISMATCH")
-    if fact.decimals is not None and fact.decimals != mapping.decimals:
+    if (
+        mapping.decimals is not None
+        and fact.decimals is not None
+        and fact.decimals != mapping.decimals
+    ):
         reasons.append("DECIMALS_MISMATCH")
     if reasons:
         return MappingDecision(
@@ -926,7 +956,22 @@ def _mapping_from_payload(value: object, *, location: str) -> XbrlConceptMapping
             location=location,
         ),
         eligible_sources=eligible_sources,
+        mapping_id=_optional_string(payload.get("mapping_id")) or "",
+        effective_from=_optional_mapping_date(
+            payload.get("effective_from"),
+            location=f"{location}.effective_from",
+        ),
+        effective_to=_optional_mapping_date(
+            payload.get("effective_to"),
+            location=f"{location}.effective_to",
+        ),
     )
+
+
+def _optional_mapping_date(value: object, *, location: str) -> date | None:
+    if value is None:
+        return None
+    return _parse_date(value, location=location)
 
 
 def _load_exact_json(payload: bytes) -> Mapping[str, object]:

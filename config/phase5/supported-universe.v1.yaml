@@ -1,0 +1,464 @@
+schema_version: phase5-supported-universe-v1
+as_of: '2026-08-18'
+status: EVIDENCE_VETTED
+ranking_claim: NONE
+eligibility_basis: Tracked bounded SEC replay evidence supports the configured current filing and material servicing or MSR
+  field; untracked historical coverage is not asserted.
+supported_company_count: 20
+supported_bank_count: 10
+supported_nonbank_count: 10
+supported_bank_ids:
+- tfc
+- wfc
+- jpm
+- bac
+- usb
+- c
+- pnc
+- fitb
+- cfg
+- key
+supported_nonbank_ids:
+- pfsi
+- rkt
+- uwmc
+- ritm
+- ldi
+- two
+- chmi
+- nly
+- foa
+- vel
+base_registry:
+  path: cohort-b-universe.v1.yaml
+  company_count: 10
+  bank_count: 5
+  nonbank_count: 5
+  company_ids:
+  - tfc
+  - wfc
+  - jpm
+  - bac
+  - usb
+  - pfsi
+  - rkt
+  - uwmc
+  - ritm
+  - ldi
+  sha256: 5212aa8007ff80175bca7898271c575b2f336348da73503c7df925f30a4922c9
+phase_c_acquisition_audit:
+  retrieval_method: PUBLIC_EDGARTOOLS_5_48_CENTRALIZED_ADAPTER
+  parser: common_retained_filing_inline_xbrl
+  bounded_replay_fixture_count: 10
+  prior_seven_filing_coverage_status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+  company_facts_role: OPTIONAL_DISCOVERY_CROSS_CHECK_NOT_PUBLICATION_AUTHORITY
+  bounded_replay_representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+  bounded_replay_fixture_index_sha256: e9b984f54a3f47df60526a894f1cb103ac8856eb9bd21972dc098fb019b52b72
+expansion_companies:
+- id: c
+  legal_name: Citigroup Inc.
+  sec_resolved_name: CITIGROUP INC
+  ticker: C
+  cik: 0000831001
+  classification: bank
+  servicing_role: CONSOLIDATED_REGISTRANT_WITH_OWNED_MSR
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Consolidated registrant-owned MSR measured at recurring fair value; not total loans serviced.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: The filing supports an MSR asset value but not a comparable servicing UPB.
+  latest_servicing_kind: MSR_FAIR_VALUE
+  identity_evidence:
+    evidence_case_ids: &id001
+    - c-2026-06-30-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - c-2026-06-30-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - c-2026-06-30-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id001
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: MSR_FAIR_VALUE
+    evidence_case_ids: *id001
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: pnc
+  legal_name: The PNC Financial Services Group, Inc.
+  sec_resolved_name: PNC FINANCIAL SERVICES GROUP, INC.
+  ticker: PNC
+  cik: '0000713676'
+  classification: bank
+  servicing_role: CONSOLIDATED_REGISTRANT_WITH_COMMERCIAL_AND_RESIDENTIAL_SERVICING
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Separately disclosed commercial-real-estate and residential loans serviced for others.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: No total is derived; the two disclosed populations remain separate.
+  latest_servicing_kind: SERVICING_FOR_OTHERS_UPB_COMPONENTS
+  identity_evidence:
+    evidence_case_ids: &id002
+    - pnc-2026-06-30-commercial-servicing-upb
+    - pnc-2026-06-30-residential-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - pnc-2026-06-30-commercial-servicing-upb
+    - pnc-2026-06-30-residential-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - pnc-2026-06-30-commercial-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id002
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: SERVICING_FOR_OTHERS_UPB_COMMERCIAL+SERVICING_FOR_OTHERS_UPB_RESIDENTIAL
+    evidence_case_ids: *id002
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: fitb
+  legal_name: Fifth Third Bancorp
+  sec_resolved_name: FIFTH THIRD BANCORP
+  ticker: FITB
+  cik: '0000035527'
+  classification: bank
+  servicing_role: CONSOLIDATED_REGISTRANT_WITH_RESIDENTIAL_AND_DUS_SERVICING
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Residential loans serviced for others and a separately dimensioned delegated-underwriting-and-servicing
+    commercial population.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: No aggregate is inferred across residential and DUS commercial scopes.
+  latest_servicing_kind: SERVICING_FOR_OTHERS_UPB_COMPONENTS
+  identity_evidence:
+    evidence_case_ids: &id003
+    - fitb-2026-06-30-residential-servicing-upb
+    - fitb-2026-06-30-dus-commercial-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - fitb-2026-06-30-dus-commercial-servicing-upb
+    - fitb-2026-06-30-residential-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - fitb-2026-06-30-dus-commercial-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id003
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: SERVICING_FOR_OTHERS_UPB_DUS_COMMERCIAL+SERVICING_FOR_OTHERS_UPB_RESIDENTIAL
+    evidence_case_ids: *id003
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: cfg
+  legal_name: Citizens Financial Group, Inc.
+  sec_resolved_name: CITIZENS FINANCIAL GROUP INC/RI
+  ticker: CFG
+  cik: 0000759944
+  classification: bank
+  servicing_role: CONSOLIDATED_REGISTRANT_WITH_RESIDENTIAL_MSR
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Consolidated residential MSR fair-value population.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: The value is an MSR fair-value asset, not serviced-loan UPB.
+  latest_servicing_kind: MSR_FAIR_VALUE_RESIDENTIAL
+  identity_evidence:
+    evidence_case_ids: &id004
+    - cfg-2026-06-30-residential-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - cfg-2026-06-30-residential-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - cfg-2026-06-30-residential-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id004
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: MSR_FAIR_VALUE_RESIDENTIAL
+    evidence_case_ids: *id004
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: key
+  legal_name: KeyCorp
+  sec_resolved_name: KEYCORP /NEW/
+  ticker: KEY
+  cik: 0000091576
+  classification: bank
+  servicing_role: CONSOLIDATED_REGISTRANT_WITH_COMMERCIAL_AND_RESIDENTIAL_MSR
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Separately disclosed commercial and residential amortized-cost servicing assets.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: No aggregate is derived and carrying value is not servicing UPB or fair value.
+  latest_servicing_kind: MSR_AMORTIZED_CARRYING_VALUE_COMPONENTS
+  identity_evidence:
+    evidence_case_ids: &id005
+    - key-2026-06-30-commercial-msr-carrying-value
+    - key-2026-06-30-residential-msr-carrying-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - key-2026-06-30-commercial-msr-carrying-value
+    - key-2026-06-30-residential-msr-carrying-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - key-2026-06-30-commercial-msr-carrying-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id005
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: MSR_AMORTIZED_CARRYING_VALUE_COMMERCIAL+MSR_AMORTIZED_CARRYING_VALUE_RESIDENTIAL
+    evidence_case_ids: *id005
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: two
+  legal_name: Two Harbors Investment Corp.
+  sec_resolved_name: TWO HARBORS INVESTMENT CORP.
+  ticker: TWO
+  cik: '0001465740'
+  classification: nonbank
+  servicing_role: PUBLIC_MSR_OWNER_NOT_ASSERTED_AS_DIRECT_OPERATOR
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Consolidated owned-MSR fair-value asset; no servicing-operator population is asserted.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: The selected MSR asset is not represented as total servicing UPB.
+  latest_servicing_kind: MSR_FAIR_VALUE
+  identity_evidence:
+    evidence_case_ids: &id006
+    - two-2026-06-30-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - two-2026-06-30-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - two-2026-06-30-msr-fair-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id006
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: MSR_FAIR_VALUE
+    evidence_case_ids: *id006
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: chmi
+  legal_name: Cherry Hill Mortgage Investment Corporation
+  sec_resolved_name: Cherry Hill Mortgage Investment Corp
+  ticker: CHMI
+  cik: '0001571776'
+  classification: nonbank
+  servicing_role: PUBLIC_MSR_OWNER_NOT_ASSERTED_AS_DIRECT_OPERATOR
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: UPB underlying consolidated servicing-related assets owned by the issuer.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: Material MSR exposure is supported, but direct operator status is not asserted.
+  latest_servicing_kind: OWNED_MSR_UNDERLYING_UPB
+  identity_evidence:
+    evidence_case_ids: &id007
+    - chmi-2026-06-30-msr-underlying-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - chmi-2026-06-30-msr-underlying-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - chmi-2026-06-30-msr-underlying-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id007
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: OWNED_MSR_UNDERLYING_UPB
+    evidence_case_ids: *id007
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: nly
+  legal_name: Annaly Capital Management, Inc.
+  sec_resolved_name: ANNALY CAPITAL MANAGEMENT INC
+  ticker: NLY
+  cik: 0001043219
+  classification: nonbank
+  servicing_role: PUBLIC_MSR_OWNER_NOT_ASSERTED_AS_DIRECT_OPERATOR
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Consolidated owned MSR asset; separately reported MSR interests are excluded.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: Direct servicing-operator status and total serviced UPB are not asserted.
+  latest_servicing_kind: MSR_CARRYING_VALUE
+  identity_evidence:
+    evidence_case_ids: &id008
+    - nly-2026-06-30-msr-carrying-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - nly-2026-06-30-msr-carrying-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - nly-2026-06-30-msr-carrying-value
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id008
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: MSR_CARRYING_VALUE
+    evidence_case_ids: *id008
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: foa
+  legal_name: Finance of America Companies Inc.
+  sec_resolved_name: Finance of America Companies Inc.
+  ticker: FOA
+  cik: 0001828937
+  classification: nonbank
+  servicing_role: REVERSE_MORTGAGE_OWNER_AND_SERVICING_PLATFORM
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Total reverse-mortgage serviced-loan portfolio, including owned loans and loans serviced for others, at
+    period end.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: No earlier or external operator scope is blended into the current-period observation.
+  latest_servicing_kind: TOTAL_REVERSE_SERVICED_LOAN_PORTFOLIO_UPB
+  identity_evidence:
+    evidence_case_ids: &id009
+    - foa-2026-06-30-total-reverse-serviced-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - foa-2026-06-30-total-reverse-serviced-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - foa-2026-06-30-total-reverse-serviced-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id009
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: TOTAL_REVERSE_SERVICED_LOAN_PORTFOLIO_UPB
+    evidence_case_ids: *id009
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: vel
+  legal_name: Velocity Financial, Inc.
+  sec_resolved_name: Velocity Financial, Inc.
+  ticker: VEL
+  cik: 0001692376
+  classification: nonbank
+  servicing_role: SPECIALTY_MORTGAGE_LENDER_WITH_IN_HOUSE_SERVICING
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Aggregate UPB underlying the recognized MSR asset serviced through the issuer's disclosed platform.
+  corporate_actions: []
+  onboarding_status: C_REGISTRY_EVIDENCE_VERIFIED_NOT_PUBLISHED
+  exclusion_or_risk_notes: The disclosed MSR-underlying UPB is not the entire on-balance-sheet loan portfolio.
+  latest_servicing_kind: OWNED_MSR_UNDERLYING_UPB
+  identity_evidence:
+    evidence_case_ids: &id010
+    - vel-2026-06-30-msr-underlying-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - vel-2026-06-30-msr-underlying-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    status: NOT_TRACKED_FOR_BOUNDED_REPLAY
+    evidence_case_ids: []
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - vel-2026-06-30-msr-underlying-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id010
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: OWNED_MSR_UNDERLYING_UPB
+    evidence_case_ids: *id010
+    evidence_cases_path: evidence-cases.v1.yaml
+unsupported_corporate_action_notes:
+  status: NOT_DISCLOSED
+  issuer_ids:
+  - two
+  - foa
+  - rkt
+  - ritm
+  - ldi
+  - onit
+  - ghld
+  reason: Corporate-action dates, relationships, and continuity claims are omitted because the tracked bounded replay locators
+    support the configured financial facts, not those narratives.
+generation_target: supported-universe.v1.yaml
+generation: SEC_ONLY_METADATA_PLUS_PARSER_DERIVED_EVIDENCE_CASE_REFERENCES
+evidence_cases:
+  path: evidence-cases.v1.yaml
+  sha256: e03f350aea4dee6f56669b78ae71fc129e8423258a8dd5b2c234cd7a6747b06e
+  record_count: 173
+  phase_c_record_count: 13

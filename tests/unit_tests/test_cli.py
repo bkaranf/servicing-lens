@@ -10,13 +10,20 @@ from typing import ClassVar
 
 import pytest
 
+import mortgage_servicing_dashboard.cli as cli_module
 from mortgage_servicing_dashboard.cli import main
+from mortgage_servicing_dashboard.database import default_database_url
 from mortgage_servicing_dashboard.edgar_tools_pipeline import (
     EdgarToolsCompany,
     EdgarToolsSyncState,
     EdgarToolsSyncSummary,
     PreparedEdgarToolsSync,
 )
+from mortgage_servicing_dashboard.edgartools_adapter import (
+    EdgarBootstrapConfig,
+    EdgarToolsAdapter,
+)
+from mortgage_servicing_dashboard.financial_discovery import FinancialFieldRegistry
 
 
 def test_doctor_json_contains_only_safe_readiness_data(
@@ -212,6 +219,72 @@ def test_public_discovery_commands_have_safe_bounded_ordered_output(
         _StubPipeline.state = EdgarToolsSyncState.MISMATCH
         assert main(["sync", "--company", "TFC", "--dry-run"]) == 1
         assert json.loads(capsys.readouterr().out)["results"][0]["terminal_state"] == ("MISMATCH")
+
+
+@pytest.mark.parametrize("runtime_name", [None, "custom-state"])
+def test_phase5_runtime_dir_is_one_state_root_before_lazy_import(
+    runtime_name: str | None,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delitem(sys.modules, "edgar", raising=False)
+    monkeypatch.setenv("EDGAR_IDENTITY", "Synthetic Operator operator@example.test")
+    captured: dict[str, object] = {}
+
+    def evidence_store(root: Path) -> object:
+        captured["evidence_root"] = root
+        return object()
+
+    def adapter_from_config(config: object, *, evidence_store: object) -> object:
+        captured["bootstrap"] = config
+        captured["evidence_store"] = evidence_store
+        return object()
+
+    real_manifest_loader = cli_module._load_golden_manifest
+
+    def manifest_loader(path: Path) -> dict[str, object]:
+        captured["manifest_path"] = path
+        return real_manifest_loader(path)
+
+    real_registry_loader = FinancialFieldRegistry.from_yaml
+
+    def registry_loader(_cls: type[FinancialFieldRegistry], path: Path) -> FinancialFieldRegistry:
+        captured["registry_path"] = path
+        return real_registry_loader(path)
+
+    monkeypatch.setattr(cli_module, "GeneralEvidenceStore", evidence_store)
+    monkeypatch.setattr(EdgarToolsAdapter, "from_config", adapter_from_config)
+    monkeypatch.setattr(cli_module, "_load_golden_manifest", manifest_loader)
+    monkeypatch.setattr(
+        FinancialFieldRegistry,
+        "from_yaml",
+        classmethod(registry_loader),
+    )
+    monkeypatch.setattr(cli_module, "EdgarToolsSyncPipeline", _StubPipeline)
+
+    runtime = tmp_path / runtime_name if runtime_name is not None else tmp_path / ".msi"
+    arguments = ["sync", "--phase5-cohort-b", "--company", "TFC", "--dry-run"]
+    if runtime_name is not None:
+        arguments.extend(("--runtime-dir", str(runtime)))
+    assert main(arguments) == 0
+    assert capsys.readouterr().err == ""
+
+    bootstrap = captured["bootstrap"]
+    assert isinstance(bootstrap, EdgarBootstrapConfig)
+    assert bootstrap.runtime_root == runtime.resolve()
+    assert bootstrap.local_data_root == (runtime.resolve() / "edgartools" / "data")
+    assert captured["evidence_root"] == runtime.resolve() / "evidence" / "edgartools"
+    assert Path(str(captured["manifest_path"])).is_absolute()
+    assert Path(str(captured["manifest_path"])).name == "cohort-b-sources.v1.yaml"
+    assert Path(str(captured["registry_path"])).is_absolute()
+    assert Path(str(captured["registry_path"])).name == "financial_fields.v1.yaml"
+    assert ".msi\\.msi" not in str(captured)
+    assert default_database_url(runtime) == (
+        f"sqlite:///{(runtime.resolve() / 'msi.db').as_posix()}"
+    )
+    assert "edgar" not in sys.modules
 
 
 def test_sync_reports_safe_retention_failure(

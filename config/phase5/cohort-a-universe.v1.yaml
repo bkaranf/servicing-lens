@@ -1,0 +1,206 @@
+schema_version: phase5-cohort-a-universe-v1
+as_of: '2026-08-18'
+status: END_TO_END_PUBLISHED_FROM_BOUNDED_REPLAY
+issuer_count: 4
+bank_count: 2
+nonbank_count: 2
+source_manifest: cohort-b-replay.v1.yaml
+source_manifest_case_count: 64
+latest_value_policy: Resolve only parser-derived generated evidence-case IDs; this registry contains no raw, normalized, or
+  exact financial value.
+evidence_cases:
+  path: evidence-cases.v1.yaml
+  sha256: e03f350aea4dee6f56669b78ae71fc129e8423258a8dd5b2c234cd7a6747b06e
+  phase_a_reference_count: 64
+companies:
+- id: tfc
+  legal_name: Truist Financial Corporation
+  sec_resolved_name: TRUIST FINANCIAL CORP
+  ticker: TFC
+  cik: 0000092230
+  classification: bank
+  reporting_entity_id: tfc_registrant
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Residential mortgage servicing portfolio; commercial servicing excluded.
+  corporate_actions: []
+  onboarding_status: A_END_TO_END_PUBLISHED
+  exclusion_or_risk_notes: Residential servicing UPB is not every serviced asset class.
+  identity_evidence:
+    evidence_case_ids: &id001
+    - tfc-2026-06-30-total-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - tfc-2026-06-30-total-assets
+    - tfc-2026-06-30-total-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    evidence_case_ids:
+    - tfc-2025-12-31-total-assets
+    - tfc-2025-12-31-total-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-K
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - tfc-2024-09-30-total-servicing-upb
+    - tfc-2024-12-31-total-servicing-upb
+    - tfc-2025-03-31-total-servicing-upb
+    - tfc-2025-06-30-total-servicing-upb
+    - tfc-2025-09-30-total-servicing-upb
+    - tfc-2025-12-31-total-servicing-upb
+    - tfc-2026-03-31-total-servicing-upb
+    - tfc-2026-06-30-total-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id001
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: TOTAL_SERVICING_UPB
+    evidence_case_ids: *id001
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: wfc
+  legal_name: Wells Fargo & Company
+  sec_resolved_name: WELLS FARGO & COMPANY/MN
+  ticker: WFC
+  cik: 0000072971
+  classification: bank
+  reporting_entity_id: wfc_registrant
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Residential loans serviced for others under the effective source-defined disclosure scope.
+  corporate_actions: []
+  onboarding_status: A_END_TO_END_PUBLISHED
+  exclusion_or_risk_notes: Distinct effective disclosure scopes are not treated as automatically comparable.
+  identity_evidence:
+    evidence_case_ids: &id002
+    - wfc-2026-06-30-servicing-for-others-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - wfc-2026-06-30-servicing-for-others-upb
+    - wfc-2026-06-30-total-assets
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    evidence_case_ids:
+    - wfc-2025-12-31-servicing-for-others-upb
+    - wfc-2025-12-31-total-assets
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-K
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - wfc-2024-09-30-servicing-for-others-upb
+    - wfc-2024-12-31-servicing-for-others-upb
+    - wfc-2025-03-31-servicing-for-others-upb
+    - wfc-2025-06-30-servicing-for-others-upb
+    - wfc-2025-09-30-servicing-for-others-upb
+    - wfc-2025-12-31-servicing-for-others-upb
+    - wfc-2026-03-31-servicing-for-others-upb
+    - wfc-2026-06-30-servicing-for-others-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id002
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: SERVICING_FOR_OTHERS_UPB
+    evidence_case_ids: *id002
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: pfsi
+  legal_name: PennyMac Financial Services, Inc.
+  sec_resolved_name: PennyMac Financial Services, Inc.
+  ticker: PFSI
+  cik: 0001745916
+  classification: nonbank
+  reporting_entity_id: pfsi_registrant
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: UPB underlying owned fair-value MSRs; not total servicing or subservicing UPB.
+  corporate_actions: []
+  onboarding_status: A_END_TO_END_PUBLISHED
+  exclusion_or_risk_notes: Owned-MSR UPB is not presented as total servicing UPB.
+  identity_evidence:
+    evidence_case_ids: &id003
+    - pfsi-2026-06-30-owned-msr-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - pfsi-2026-06-30-owned-msr-upb
+    - pfsi-2026-06-30-total-assets
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    evidence_case_ids:
+    - pfsi-2025-12-31-owned-msr-upb
+    - pfsi-2025-12-31-total-assets
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-K
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - pfsi-2024-09-30-owned-msr-upb
+    - pfsi-2024-12-31-owned-msr-upb
+    - pfsi-2025-03-31-owned-msr-upb
+    - pfsi-2025-06-30-owned-msr-upb
+    - pfsi-2025-09-30-owned-msr-upb
+    - pfsi-2025-12-31-owned-msr-upb
+    - pfsi-2026-03-31-owned-msr-upb
+    - pfsi-2026-06-30-owned-msr-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id003
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: OWNED_MSR_UPB
+    evidence_case_ids: *id003
+    evidence_cases_path: evidence-cases.v1.yaml
+- id: rkt
+  legal_name: Rocket Companies, Inc.
+  sec_resolved_name: Rocket Companies, Inc.
+  ticker: RKT
+  cik: 0001805284
+  classification: nonbank
+  reporting_entity_id: rkt_registrant
+  current_sec_status: ACTIVE_CURRENT_REGISTRANT
+  expected_scope: Mortgage loans serviced, excluding subserviced loans, under the effective source-defined disclosure scope.
+  corporate_actions: []
+  onboarding_status: A_END_TO_END_PUBLISHED
+  exclusion_or_risk_notes: Distinct effective disclosure scopes remain separate; no continuity is inferred.
+  identity_evidence:
+    evidence_case_ids: &id004
+    - rkt-2026-06-30-total-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  most_recent_filing:
+    evidence_case_ids:
+    - rkt-2026-06-30-total-assets
+    - rkt-2026-06-30-total-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_annual:
+    evidence_case_ids:
+    - rkt-2025-12-31-total-assets
+    - rkt-2025-12-31-total-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  qualifying_forms:
+  - 10-K
+  - 10-Q
+  filing_coverage_evidence:
+    evidence_case_ids:
+    - rkt-2024-09-30-total-servicing-upb
+    - rkt-2024-12-31-total-servicing-upb
+    - rkt-2025-03-31-total-servicing-upb
+    - rkt-2025-06-30-total-servicing-upb
+    - rkt-2025-09-30-total-servicing-upb
+    - rkt-2025-12-31-total-servicing-upb
+    - rkt-2026-03-31-total-servicing-upb
+    - rkt-2026-06-30-total-servicing-upb
+    evidence_cases_path: evidence-cases.v1.yaml
+  material_servicing_evidence:
+    evidence_case_ids: *id004
+    evidence_cases_path: evidence-cases.v1.yaml
+  latest_servicing_upb_or_msr:
+    kind: TOTAL_SERVICING_UPB
+    evidence_case_ids: *id004
+    evidence_cases_path: evidence-cases.v1.yaml
+unsupported_corporate_action_notes:
+  status: NOT_DISCLOSED
+  reason: No corporate-action narrative is retained without an exact tracked evidence-case locator.

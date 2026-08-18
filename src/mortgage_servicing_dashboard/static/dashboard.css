@@ -78,7 +78,7 @@ h1, h2, h3, p { overflow-wrap: anywhere; }
 .selection-status { min-height: 25px; margin: 24px 0 8px; padding: 0 3px; color: var(--muted); font-size: 12px; }
 .selection-status.limit { color: var(--red); font-weight: 700; }
 .company-table { overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: 0 16px 50px rgb(40 30 80 / 6%); }
-.table-head > div, .company-row { display: grid; grid-template-columns: minmax(270px, 1.7fr) minmax(150px, .8fr) minmax(150px, .8fr) minmax(190px, 1fr) 80px 64px; align-items: center; }
+.table-head > div, .company-row { display: grid; grid-template-columns: minmax(270px, 1.7fr) minmax(150px, .8fr) minmax(150px, .8fr) minmax(190px, 1fr) 80px; align-items: center; }
 .table-head { background: #fafafe; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .table-head > div { padding: 13px 20px; }
 .table-head .center { text-align: center; }
@@ -104,8 +104,6 @@ h1, h2, h3, p { overflow-wrap: anywhere; }
 .metric-inputs ul { margin: 5px 0 0; padding-left: 14px; }
 .metric-inputs li { margin-top: 4px; overflow-wrap: anywhere; }
 .metric-inputs a, .metric-inputs code { display: block; overflow-wrap: anywhere; word-break: break-word; }
-.select-cell { display: grid; place-items: center; }
-.compare-checkbox { width: 21px; height: 21px; margin: 0; accent-color: var(--violet-dark); cursor: pointer; }
 .mobile-label { display: none; }
 .empty { padding: 45px 24px; text-align: center; color: var(--muted); }
 .empty strong { color: var(--ink); font-size: 18px; }
@@ -136,7 +134,8 @@ thead th { color: var(--muted); font-size: 9px; letter-spacing: .08em; text-tran
 .kpi-controls > span { padding-right: 10px; color: var(--muted); font-size: 11px; font-weight: 700; }
 .kpi-controls label { display: grid; gap: 4px; }
 .kpi-controls small { color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
-.compare-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.issuer-controls { margin-bottom: 12px; }
+.compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .scale-blocked { margin: 12px 0 18px; padding: 14px 17px; display: grid; gap: 3px; border: 1px solid #c4b5fd; border-left: 4px solid var(--violet); border-radius: 12px; background: #f5f3ff; color: var(--ink-soft); }
 .scale-blocked strong { color: var(--violet-dark); }
 .scale-blocked ul { margin: 6px 0 0; padding-left: 18px; font-size: 10px; }
@@ -145,7 +144,6 @@ thead th { color: var(--muted); font-size: 9px; letter-spacing: .08em; text-tran
 .compare-card header h2, .compare-card header p { margin: 0; }
 .compare-card header h2 { font-size: 17px; }
 .compare-card header p { color: var(--muted); font-size: 10px; }
-.remove-company { width: 36px; height: 36px; margin-left: auto; border: 1px solid var(--line); border-radius: 50%; background: #fff; cursor: pointer; font-size: 20px; }
 .compare-primary { margin: 26px 0 16px; display: grid; }
 .compare-primary .metric-value { font-size: 37px; letter-spacing: -.05em; }
 .compare-primary span, .bar-label { color: var(--muted); font-size: 9px; }
@@ -251,7 +249,7 @@ dialog::backdrop { background: rgb(20 16 45 / 58%); backdrop-filter: blur(4px); 
 @media (max-width: 1050px) {
   .data-stamp { display: none; }
   .hero-grid { gap: 40px; }
-  .table-head > div, .company-row { grid-template-columns: minmax(230px, 1.5fr) repeat(3, minmax(130px, .8fr)) 65px 55px; }
+  .table-head > div, .company-row { grid-template-columns: minmax(230px, 1.5fr) repeat(3, minmax(130px, .8fr)) 65px; }
   .observation-grid { grid-template-columns: repeat(3, 1fr); }
   .quality-grid, .method-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -271,7 +269,6 @@ dialog::backdrop { background: rgb(20 16 45 / 58%); backdrop-filter: blur(4px); 
   .table-head { display: none; }
   .company-row { grid-template-columns: 1fr 1fr; gap: 18px; padding: 20px; }
   .company-cell { grid-column: 1 / -1; }
-  .select-cell { grid-column: 2; grid-row: 1; justify-content: end; }
   .mobile-label { display: block; color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
   .kpi-controls { grid-template-columns: 1fr; }
   .compare-grid { grid-template-columns: repeat(2, 1fr); }
@@ -288,9 +285,7 @@ dialog::backdrop { background: rgb(20 16 45 / 58%); backdrop-filter: blur(4px); 
   .hero-actions, .universe-tools, .company-row, .compare-grid, .observation-grid, .quality-grid, .method-grid, .footer-grid, .evidence-value-grid, .evidence-grid { grid-template-columns: 1fr; }
   .hero-actions { display: grid; }
   .company-row { display: grid; }
-  .company-cell, .select-cell { grid-column: auto; grid-row: auto; }
-  .select-cell { position: absolute; right: 22px; }
-  .company-row { position: relative; }
+  .company-cell { grid-column: auto; grid-row: auto; }
   .comparison-workspace { margin-top: -45px; }
   .compare-hero { padding-bottom: 90px; }
   .earnings-main { padding: 25px; gap: 30px; }

@@ -619,7 +619,7 @@ def default_database_url(data_dir: Path | None = None) -> str:
     Returns:
         SQLite URL used only for local/demo/test operation.
     """
-    root = data_dir or Path.cwd() / ".msi"
+    root = (data_dir or Path.cwd() / ".msi").resolve()
     root.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{(root / 'msi.db').as_posix()}"
 

@@ -88,7 +88,7 @@ def test_live_normalization_uses_exact_derived_values_and_honest_gaps(
     assert all(company.platform is None for company in companies)
 
 
-def test_four_company_presentation_fixture_executes_three_company_ui_contract(
+def test_four_company_presentation_fixture_has_no_client_selection_state(
     tmp_path: Path,
 ) -> None:
     repository = _repository(tmp_path)
@@ -126,44 +126,13 @@ def test_four_company_presentation_fixture_executes_three_company_ui_contract(
         normalize_companies(synthetic_companies, synthetic_rows),
         scale_assessment=ScaleAssessment("insufficient_information", ("Synthetic fixture",)),
     )
-    state_module = (
-        Path(__file__).parents[2]
-        / "src"
-        / "mortgage_servicing_dashboard"
-        / "static"
-        / "servicing_lens_state.js"
-    )
-    node = shutil.which("node")
-    assert node is not None, "Node is required to execute the browser-state regression"
-    script = (
-        f"const state = require({json.dumps(str(state_module))});\n"
-        """
-let selected = [];
-const outcomes = [];
-for (const id of ["synthetic-1", "synthetic-2", "synthetic-3", "synthetic-4"]) {
-  const result = state.toggleCompany(selected, id);
-  selected = result.selected;
-  outcomes.push(result);
-}
-process.stdout.write(JSON.stringify({ selected, outcomes }));
-"""
-    )
-    completed = subprocess.run(  # noqa: S603
-        [node, "-e", script],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    result = json.loads(completed.stdout)
-
     assert len(cards) == 4
     assert len({card["id"] for card in cards}) == 4
-    assert result["selected"] == ["synthetic-1", "synthetic-2", "synthetic-3"]
-    assert result["outcomes"][3]["accepted"] is False
-    assert result["outcomes"][3]["selected"] == result["outcomes"][2]["selected"]
-    assert result["outcomes"][3]["status"] == (
-        "Selection limit reached. Compare up to 3 companies at a time."
-    )
+    package = Path(__file__).parents[2] / "src" / "mortgage_servicing_dashboard"
+    state_source = (package / "static" / "servicing_lens_state.js").read_text(encoding="utf-8")
+    dashboard_source = (package / "static" / "dashboard.js").read_text(encoding="utf-8")
+    assert "toggleCompany" not in state_source
+    assert "sessionStorage" not in dashboard_source
 
 
 def test_growth_and_mix_fail_closed_for_period_and_semantic_mismatches(
@@ -301,7 +270,15 @@ def test_servicing_lens_template_has_search_sort_kpis_earnings_and_social_contra
     assert all(f'<option value="{key}"' in template for key in ("upb", "loans", "growth", "owned"))
     assert template.count('class="kpi-selector"') == 1  # One loop, rendered three times.
     assert "range(3)" in template
-    assert 'class="compare-checkbox"' in template
+    assert 'class="compare-checkbox"' not in template
+    assert 'class="remove-company"' not in template
+    assert 'method="get" action="/comparison"' in template
+    assert 'name="company_id"' in template
+    assert 'name="third_company_id"' in template
+    assert "{{ company.upb.label }} · {{ company.period_label }}" in template
+    assert "Total servicing UPB · {{ company.period_label }}" not in template
+    assert "sessionStorage" not in javascript
+    assert "toggleCompany" not in javascript
     assert "Earnings brief" in template
     assert 'id="earnings-search"' in template
     assert 'data-company-id="{{ brief.company_id }}"' in template
@@ -328,8 +305,8 @@ def test_rendered_routes_preserve_specific_governed_content_and_table_semantics(
     earnings = _rendered_route(repository, "/earnings")
 
     assert overview.count('role="rowgroup"') >= 2
-    assert overview.count('role="columnheader"') == 6
-    assert overview.count('role="cell"') == 12
+    assert overview.count('role="columnheader"') == 5
+    assert overview.count('role="cell"') == 10
     assert "2 evidence inputs" in overview
     assert "observation%3Apfsi" in overview
     assert "TFC disclosure profile" in company

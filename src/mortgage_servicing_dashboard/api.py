@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Annotated, cast
 from urllib.parse import quote, urlsplit
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -64,7 +64,11 @@ _MAX_OFFSET = 10_000
 _STALE_AFTER_DAYS = 120
 _IDENTIFIER_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")
 _DEFAULT_METRIC = "total_servicing_upb"
+_DEFAULT_COMPARISON_COMPANY_IDS = ("tfc", "pfsi")
+_MIN_COMPARISON_COMPANY_COUNT = 2
+_MAX_COMPARISON_COMPANY_COUNT = 3
 _EXECUTIVE_METRICS = (
+    "total_assets",
     "total_servicing_upb",
     "servicing_for_others_upb",
     "owned_msr_upb",
@@ -76,21 +80,17 @@ _EXECUTIVE_METRICS = (
     "weighted_average_servicing_fee_bps",
     "delinquency_30_plus_count_rate",
 )
-_HIGHLIGHT_PRIORITY = {
-    "tfc": (
-        "total_servicing_upb",
-        "servicing_for_others_upb",
-        "servicing_revenue",
-        "weighted_average_servicing_fee_bps",
-    ),
-    "pfsi": (
-        "total_servicing_upb",
-        "owned_msr_upb",
-        "servicing_fee_income",
-        "servicing_operating_expense",
-        "servicing_pretax_income",
-    ),
-}
+_HIGHLIGHT_PRIORITY = (
+    "total_servicing_upb",
+    "servicing_for_others_upb",
+    "owned_msr_upb",
+    "servicing_revenue",
+    "servicing_fee_income",
+    "servicing_operating_expense",
+    "servicing_pretax_income",
+    "weighted_average_servicing_fee_bps",
+    "total_assets",
+)
 
 
 class HealthResponse(BaseModel):
@@ -337,6 +337,35 @@ def _validate_page(limit: int, offset: int) -> tuple[int, int]:
     return limit, offset
 
 
+def _comparison_selection(
+    repo: IntelligenceRepository,
+    values: list[str] | None,
+    *,
+    as_of: datetime | date | None = None,
+) -> tuple[str, ...]:
+    """Validate two or three ordered active companies before observation reads."""
+    selected = tuple(values) if values is not None else _DEFAULT_COMPARISON_COMPANY_IDS
+    if not _MIN_COMPARISON_COMPANY_COUNT <= len(selected) <= _MAX_COMPARISON_COMPANY_COUNT:
+        raise HTTPException(
+            status_code=422,
+            detail="comparison requires two or three company_id query values",
+        )
+    for company_id in selected:
+        _validate_identifier(company_id, label="company identifier")
+    if len(set(selected)) != len(selected):
+        raise HTTPException(
+            status_code=422,
+            detail="comparison company identifiers must be distinct",
+        )
+    supported = set(repo.comparison_company_ids(as_of=as_of))
+    if any(company_id not in supported for company_id in selected):
+        raise HTTPException(
+            status_code=422,
+            detail="comparison company is not active, supported, and published",
+        )
+    return selected
+
+
 def _page(items: list[dict[str, object]], *, limit: int, offset: int) -> list[dict[str, object]]:
     bounded_limit, bounded_offset = _validate_page(limit, offset)
     return items[bounded_offset : bounded_offset + bounded_limit]
@@ -436,7 +465,7 @@ def _highlight_rows(
     company_rows = [row for row in rows if row.company_id == company_id]
     current_by_metric = {row.metric_id: row for row in company_rows if row.period_end == period_end}
     result: list[dict[str, object]] = []
-    for metric_id in _HIGHLIGHT_PRIORITY[company_id]:
+    for metric_id in _HIGHLIGHT_PRIORITY:
         current = current_by_metric.get(metric_id)
         if current is None:
             continue
@@ -787,7 +816,7 @@ def create_app(  # noqa: C901, PLR0915
         title="Servicing Lens",
         version="0.1.0",
         description=(
-            "Bounded, source-traceable public financial intelligence for two selected "
+            "Bounded, source-traceable public financial intelligence for governed "
             "U.S. mortgage servicers. Every public operation is read-only."
         ),
         lifespan=lifespan,
@@ -906,7 +935,7 @@ def create_app(  # noqa: C901, PLR0915
 
     @app.get(
         "/api/v1/comparisons",
-        response_model=ComparisonResponse,
+        response_model=ComparisonResponse | list[ComparisonResponse],
         tags=["analysis"],
     )
     def comparison(
@@ -914,12 +943,23 @@ def create_app(  # noqa: C901, PLR0915
         metric_id: str,
         period_end: date,
         as_of: datetime | None = None,
-    ) -> dict[str, object]:
+        company_id: Annotated[list[str] | None, Query()] = None,
+    ) -> dict[str, object] | list[dict[str, object]]:
         _validate_identifier(metric_id, label="metric identifier")
-        result = repo.compare(metric_id=metric_id, period_end=period_end, as_of=as_of)
-        if result is None:
+        selected = _comparison_selection(repo, company_id, as_of=as_of)
+        try:
+            results = repo.compare_pairs(
+                metric_id=metric_id,
+                period_end=period_end,
+                as_of=as_of,
+                company_ids=selected,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        if results is None:
             raise HTTPException(status_code=404, detail="comparison inputs not found")
-        return result.as_dict()
+        payloads = [result.as_dict() for result in results]
+        return payloads[0] if len(selected) == _MIN_COMPARISON_COMPANY_COUNT else payloads
 
     @app.get(
         "/api/v1/coverage",
@@ -1026,8 +1066,13 @@ def create_app(  # noqa: C901, PLR0915
         company_id: str | None = None,
         metric_id: str = _DEFAULT_METRIC,
         period_end: date | None = None,
+        comparison_company_ids: tuple[str, ...] = _DEFAULT_COMPARISON_COMPANY_IDS,
     ) -> HTMLResponse:
         companies_payload = repo.companies()
+        comparison_supported = set(repo.comparison_company_ids())
+        comparison_companies = [
+            item for item in companies_payload if str(item["id"]) in comparison_supported
+        ]
         metrics_payload = repo.metrics()
         known_metrics = {str(item["id"]) for item in metrics_payload}
         if known_metrics and metric_id not in known_metrics:
@@ -1039,24 +1084,28 @@ def create_app(  # noqa: C901, PLR0915
         periods = sorted({row.period_end for row in all_rows})
         page_rows = [row for row in all_rows if company_id is None or row.company_id == company_id]
         featured = [row for row in page_rows if row.metric_id in _EXECUTIVE_METRICS]
-        comparisons = []
+        comparisons: list[dict[str, object]] = []
         if selected_period is not None:
-            selected_comparison = repo.compare(
+            selected_comparisons = repo.compare_pairs(
                 metric_id=metric_id,
                 period_end=date.fromisoformat(selected_period),
+                company_ids=comparison_company_ids,
             )
-            if selected_comparison is not None:
-                comparisons.append(
-                    _with_comparison_locators(repo, selected_comparison.as_dict()),
+            if selected_comparisons is not None:
+                comparisons.extend(
+                    _with_comparison_locators(repo, comparison.as_dict())
+                    for comparison in selected_comparisons
                 )
             if metric_id != "servicing_revenue":
-                economics_comparison = repo.compare(
+                economics_comparisons = repo.compare_pairs(
                     metric_id="servicing_revenue",
                     period_end=date.fromisoformat(selected_period),
+                    company_ids=comparison_company_ids,
                 )
-                if economics_comparison is not None:
-                    comparisons.append(
-                        _with_comparison_locators(repo, economics_comparison.as_dict()),
+                if economics_comparisons is not None:
+                    comparisons.extend(
+                        _with_comparison_locators(repo, comparison.as_dict())
+                        for comparison in economics_comparisons
                     )
         highlights = {
             company["id"]: _highlight_rows(
@@ -1069,13 +1118,17 @@ def create_app(  # noqa: C901, PLR0915
         quality = _quality_summary(repo)
         chart = _chart_model(page_rows, metric_id=metric_id, company_id=company_id)
         presentation_companies = cast("list[CompanyIdentity]", companies_payload)
+        card_companies = presentation_companies
+        if page == "comparison":
+            company_by_id = {item["id"]: item for item in presentation_companies}
+            card_companies = [company_by_id[item] for item in comparison_company_ids]
         presentation_periods = (
-            {company["id"]: selected_period for company in presentation_companies}
+            {company["id"]: selected_period for company in card_companies}
             if selected_period is not None
             else None
         )
         cards = normalize_companies(
-            presentation_companies,
+            card_companies,
             all_rows,
             target_periods=presentation_periods,
         )
@@ -1085,22 +1138,30 @@ def create_app(  # noqa: C901, PLR0915
             all_rows,
             earnings_events_payload,
         )
-        scale_comparison = (
-            repo.compare(
+        scale_comparisons = (
+            repo.compare_pairs(
                 metric_id="total_servicing_upb",
                 period_end=date.fromisoformat(selected_period),
+                company_ids=comparison_company_ids,
             )
             if selected_period is not None
             else None
         )
-        scale_assessment = ScaleAssessment(
-            status=scale_comparison.status if scale_comparison else "insufficient_information",
-            reasons=(
-                scale_comparison.reasons
-                if scale_comparison
-                else ("A governed same-period servicing UPB comparison is unavailable",)
-            ),
-        )
+        if scale_comparisons is None:
+            scale_assessment = ScaleAssessment(
+                status="insufficient_information",
+                reasons=("A governed same-period servicing UPB comparison is unavailable",),
+            )
+        else:
+            blocked = [
+                comparison for comparison in scale_comparisons if comparison.status != "comparable"
+            ]
+            scale_assessment = ScaleAssessment(
+                status=blocked[0].status if blocked else "comparable",
+                reasons=tuple(
+                    dict.fromkeys(reason for comparison in blocked for reason in comparison.reasons)
+                ),
+            )
         serialized_cards = serialize_cards(cards, scale_assessment=scale_assessment)
         active_company = next(
             (item for item in serialized_cards if item["id"] == company_id),
@@ -1117,6 +1178,7 @@ def create_app(  # noqa: C901, PLR0915
                 "page": page,
                 "title": title,
                 "companies": companies_payload,
+                "comparison_companies": comparison_companies,
                 "metrics": metrics_payload,
                 "metric_groups": _metric_groups(metrics_payload),
                 "rows": [_row_view(row) for row in page_rows],
@@ -1128,6 +1190,7 @@ def create_app(  # noqa: C901, PLR0915
                 "selected_period": selected_period,
                 "selected_metric": metric_id,
                 "selected_company": company_id,
+                "selected_comparison_companies": comparison_company_ids,
                 "highlights": highlights,
                 "chart": chart,
                 "quality": quality,
@@ -1200,19 +1263,27 @@ def create_app(  # noqa: C901, PLR0915
         )
 
     @app.get("/comparison", response_class=HTMLResponse, include_in_schema=False)
-    def comparison_page(
+    def comparison_page(  # noqa: PLR0913, PLR0917
         request: Request,
         repo: RepositoryDependency,
         metric_id: str = _DEFAULT_METRIC,
         period_end: date | None = None,
+        company_id: Annotated[list[str] | None, Query()] = None,
+        third_company_id: str | None = None,
     ) -> HTMLResponse:
+        requested = list(company_id) if company_id is not None else None
+        if third_company_id:
+            requested = list(requested or _DEFAULT_COMPARISON_COMPANY_IDS)
+            requested.append(third_company_id)
+        selected = _comparison_selection(repo, requested)
         return render(
             request,
             repo,
             page="comparison",
-            title="Pairwise comparison",
+            title="Pairwise comparisons",
             metric_id=metric_id,
             period_end=period_end,
+            comparison_company_ids=selected,
         )
 
     @app.get("/earnings", response_class=HTMLResponse, include_in_schema=False)

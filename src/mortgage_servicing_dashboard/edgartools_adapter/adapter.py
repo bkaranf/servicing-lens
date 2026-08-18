@@ -33,7 +33,7 @@ from mortgage_servicing_dashboard.edgartools_adapter.retention import (
     GeneralEvidenceStore,
 )
 
-_DEFAULT_EVIDENCE_PATH = Path(".msi") / "evidence" / "edgartools"
+_DEFAULT_EVIDENCE_PATH = Path("evidence") / "edgartools"
 
 
 class EdgarToolsAdapter:
@@ -62,7 +62,7 @@ class EdgarToolsAdapter:
         store = (
             evidence_store
             if evidence_store is not None
-            else GeneralEvidenceStore((config.repository_root / _DEFAULT_EVIDENCE_PATH).resolve())
+            else GeneralEvidenceStore(config.runtime_root.resolve() / _DEFAULT_EVIDENCE_PATH)
         )
         return cls(backend, evidence_store=store)
 

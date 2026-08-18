@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- BOUNDED DERIVED REPLAY EXCERPT; NOT ORIGINAL SEC DOCUMENT BYTES; fixture=b-wfc-2024-12-31; accession=0000072971-25-000066; document=wfc-20241231_htm.xml; original_sha256=84e724ecbc72632941d07ce8b2638b023e238a852bcb268fd796357106c1072a -->
+<phase5Replay xmlns:country="http://xbrl.sec.gov/country/2024" xmlns:cyd="http://xbrl.sec.gov/cyd/2024" xmlns:dei="http://xbrl.sec.gov/dei/2024" xmlns:ecd="http://xbrl.sec.gov/ecd/2024" xmlns:iso4217="http://www.xbrl.org/2003/iso4217" xmlns:link="http://www.xbrl.org/2003/linkbase" xmlns:srt="http://fasb.org/srt/2024" xmlns:stpr="http://xbrl.sec.gov/stpr/2024" xmlns:us-gaap="http://fasb.org/us-gaap/2024" xmlns:wfc="http://www.wellsfargo.com/20241231" xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xlink="http://www.w3.org/1999/xlink">
+<xbrli:context xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-24">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-25">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-26">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:PledgedStatusAxis">us-gaap:AssetPledgedAsCollateralWithRightMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-27">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:PledgedStatusAxis">us-gaap:AssetPledgedAsCollateralWithRightMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-34">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">us-gaap:VariableInterestEntityPrimaryBeneficiaryMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:FairValueByMeasurementBasisAxis">us-gaap:CarryingReportedAmountFairValueDisclosureMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-35">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">us-gaap:VariableInterestEntityPrimaryBeneficiaryMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:FairValueByMeasurementBasisAxis">us-gaap:CarryingReportedAmountFairValueDisclosureMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-535">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:UnderlyingAssetClassAxis">wfc:ResidentialMortgageServicingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-553">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:UnderlyingAssetClassAxis">wfc:ResidentialMortgageServicingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-554">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:UnderlyingAssetClassAxis">wfc:CommercialMortgageServicingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-555">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:UnderlyingAssetClassAxis">wfc:CommercialMortgageServicingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-577">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">wfc:ConsumerBankingAndLendingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-578">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">wfc:CommercialBankingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-579">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">wfc:CorporateAndInvestmentBankingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-580">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">wfc:WealthAndInvestmentManagementMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-581">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:CorporateNonSegmentMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-587">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">wfc:ConsumerBankingAndLendingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-588">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">wfc:CommercialBankingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-589">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">wfc:CorporateAndInvestmentBankingMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-590">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:OperatingSegmentsMember</xbrldi:explicitMember>
+                <xbrldi:explicitMember dimension="us-gaap:StatementBusinessSegmentsAxis">wfc:WealthAndInvestmentManagementMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-591">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:CorporateNonSegmentMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-632">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">srt:ParentCompanyMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-633">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidatedEntitiesAxis">srt:ParentCompanyMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-1543">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:PledgedStatusAxis">us-gaap:AssetPledgedAsCollateralWithoutRightMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-1544">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:PledgedStatusAxis">us-gaap:AssetPledgedAsCollateralWithoutRightMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-1545">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:PledgedStatusAxis">us-gaap:AssetPledgedAsCollateralMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-1546">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="us-gaap:PledgedStatusAxis">us-gaap:AssetPledgedAsCollateralMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-1556">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:IntersegmentEliminationMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2024-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:context xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrli="http://www.xbrl.org/2003/instance" id="c-1557">
+        <xbrli:entity>
+            <xbrli:identifier scheme="http://www.sec.gov/CIK">0000072971</xbrli:identifier>
+            <xbrli:segment>
+                <xbrldi:explicitMember dimension="srt:ConsolidationItemsAxis">us-gaap:IntersegmentEliminationMember</xbrldi:explicitMember>
+            </xbrli:segment>
+        </xbrli:entity>
+        <xbrli:period>
+            <xbrli:instant>2023-12-31</xbrli:instant>
+        </xbrli:period>
+    </xbrli:context>
+
+<xbrli:unit xmlns:xbrli="http://www.xbrl.org/2003/instance" id="usd">
+        <xbrli:measure>iso4217:USD</xbrli:measure>
+    </xbrli:unit>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-24" decimals="-6" id="f-288" unitRef="usd">1929845000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-25" decimals="-6" id="f-289" unitRef="usd">1932468000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-34" decimals="-8" id="f-346" unitRef="usd">11900000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-35" decimals="-8" id="f-347" unitRef="usd">5300000000</us-gaap:Assets>
+
+<wfc:LoansServicedforOthers xmlns:wfc="http://www.wellsfargo.com/20241231" contextRef="c-553" decimals="-9" id="f-3042" unitRef="usd">487000000000</wfc:LoansServicedforOthers>
+
+<wfc:LoansServicedforOthers xmlns:wfc="http://www.wellsfargo.com/20241231" contextRef="c-554" decimals="-9" id="f-3043" unitRef="usd">522000000000</wfc:LoansServicedforOthers>
+
+<wfc:LoansServicedforOthers xmlns:wfc="http://www.wellsfargo.com/20241231" contextRef="c-535" decimals="-9" id="f-3044" unitRef="usd">560000000000</wfc:LoansServicedforOthers>
+
+<wfc:LoansServicedforOthers xmlns:wfc="http://www.wellsfargo.com/20241231" contextRef="c-555" decimals="-9" id="f-3045" unitRef="usd">539000000000</wfc:LoansServicedforOthers>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-26" decimals="-6" id="f-5721" unitRef="usd">99455000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-27" decimals="-6" id="f-5722" unitRef="usd">70770000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-1543" decimals="-6" id="f-5735" unitRef="usd">804679000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-1544" decimals="-6" id="f-5736" unitRef="usd">761275000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-1545" decimals="-6" id="f-5737" unitRef="usd">904134000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-1546" decimals="-6" id="f-5738" unitRef="usd">832045000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-587" decimals="-6" id="f-6027" unitRef="usd">361663000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-588" decimals="-6" id="f-6028" unitRef="usd">246569000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-589" decimals="-6" id="f-6029" unitRef="usd">597278000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-590" decimals="-6" id="f-6030" unitRef="usd">90536000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-591" decimals="-6" id="f-6031" unitRef="usd">633799000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-1556" decimals="-6" id="f-6032" unitRef="usd">0</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-24" decimals="-6" id="f-6033" unitRef="usd">1929845000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-577" decimals="-6" id="f-6069" unitRef="usd">375484000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-578" decimals="-6" id="f-6070" unitRef="usd">245568000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-579" decimals="-6" id="f-6071" unitRef="usd">547203000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-580" decimals="-6" id="f-6072" unitRef="usd">90138000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-581" decimals="-6" id="f-6073" unitRef="usd">674075000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-1557" decimals="-6" id="f-6074" unitRef="usd">0</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-25" decimals="-6" id="f-6075" unitRef="usd">1932468000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-632" decimals="-6" id="f-7549" unitRef="usd">379504000000</us-gaap:Assets>
+
+<us-gaap:Assets xmlns:us-gaap="http://fasb.org/us-gaap/2024" contextRef="c-633" decimals="-6" id="f-7550" unitRef="usd">376187000000</us-gaap:Assets>
+
+</phase5Replay>

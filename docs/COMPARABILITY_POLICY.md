@@ -103,14 +103,25 @@ issuer's source-defined total population.
 
 No portfolio metric substitutes for another merely to populate a chart.
 
-## Cross-company rules for TFC and PFSI
+## Cross-company issuer selection
 
-TFC and PFSI are compared as different corporate subjects. A comparison can still
+The public comparison surface accepts two or three ordered, distinct issuer IDs
+from active companies that already have published observations. The default pair
+remains TFC/PFSI for compatibility. A three-issuer selection expands deterministically
+into the three ordered pairwise combinations; every result remains a governed
+`ComparisonRecord` evaluated independently by `assess_comparability`.
+
+Every selected pair uses the same validation and strict semantic policy below;
+bank/bank, nonbank/nonbank, and mixed pairs receive no class-specific shortcut.
+
+## Cross-company rules
+
+Selected issuers are compared as different corporate subjects. A comparison can still
 be \`COMPARABLE\` when both values use the same metric version and equivalent
 portfolio/reporting roles. The following remain distinct:
 
-- a TFC bank holding-company regulatory fact and a PFSI SEC consolidated fact;
-- a TFC depository-institution fact and a PFSI servicing-segment fact;
+- a bank holding-company regulatory fact and a nonbank SEC consolidated fact;
+- a depository-institution fact and an issuer servicing-segment fact;
 - a combined mortgage-banking segment and a servicing-only segment;
 - servicing for others, owned-MSR, total, interim, and subservicing populations;
   and

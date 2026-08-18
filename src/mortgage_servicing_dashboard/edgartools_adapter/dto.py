@@ -8,10 +8,11 @@ from enum import StrEnum
 
 
 class ContentRepresentation(StrEnum):
-    """Honest descriptions of content exposed by edgartools 5.48."""
+    """Honest descriptions of live-library content and bounded offline replay bytes."""
 
     LIBRARY_BINARY = "EDGARTOOLS_LIBRARY_BINARY"
     LIBRARY_TEXT_UTF8 = "EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8"
+    BOUNDED_REPLAY_EXCERPT = "BOUNDED_DERIVED_REPLAY_EXCERPT"
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,0 +1,3131 @@
+schema_version: phase5-bounded-replay-index-v1
+as_of: '2026-08-18'
+label: BOUNDED_DERIVED_REPLAY_EXCERPTS_NOT_ORIGINAL_SEC_DOCUMENT_BYTES
+original_bytes_policy: Original full SEC filing bytes remain omitted and externally content-addressed; every fixture is a
+  deterministic selected-concept XML replay excerpt with a distinct fixture hash.
+source_snapshots:
+  phase_b_sha256: 4494c97fa6cd8dfe6bffcf9f8fdc55eaf8211ac0ef0c81106299d60868c5dae2
+  phase_c_coverage_sha256: 061fe052354fd95fc950247fb37b8c40c18f4fa0ca558426a77924be9bda2bb2
+fixture_count: 90
+phase_b_fixture_count: 80
+phase_c_fixture_count: 10
+fixtures:
+- fixture_id: b-bac-2024-09-30
+  cohort: B
+  issuer_id: bac
+  ticker: BAC
+  cik: 0000070858
+  accession: 0000070858-24-000280
+  form: 10-Q
+  filed: '2024-10-29'
+  report_period: '2024-09-30'
+  original:
+    document: bac-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085824000280/bac-20240930.htm
+    sha256: b8cc66da74afaccaeec448c2565290933f856a56d9d12f41c4c7beba88cf4611
+    byte_length: 11168624
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: bac-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085824000280/bac-20240930.htm
+    locators:
+    - xbrl:bac:ServicingAssetAtFairValueForInvestors;context=c-1118;unit=usd;element_id=f-3711;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-268;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-6500;occurrence=52
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-6608;occurrence=64
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-7121;occurrence=84
+  fixture:
+    path: tests/fixtures/phase5/replay/b-bac-2024-09-30.xml
+    sha256: 80b74cf359e9e63118928f414d4291b05c3fe8585a053bf863d09f2d7414dc6a
+    byte_length: 61843
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - bac:ServicingAssetAtFairValueForInvestors
+    - us-gaap:Assets
+  evidence_case_ids:
+  - bac-2024-09-30-servicing-for-others-upb
+  - bac-2024-09-30-total-assets
+- fixture_id: b-bac-2024-12-31
+  cohort: B
+  issuer_id: bac
+  ticker: BAC
+  cik: 0000070858
+  accession: 0000070858-25-000139
+  form: 10-K
+  filed: '2025-02-25'
+  report_period: '2024-12-31'
+  original:
+    document: bac-20241231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085825000139/bac-20241231.htm
+    sha256: 9e29673fdf8e0f19ea44bf574680043ce3abcc062bfc817253e723ea1068892b
+    byte_length: 12899521
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: bac-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085825000139/bac-20241231.htm
+    locators:
+    - xbrl:bac:ServicingAssetAtFairValueForInvestors;context=c-1004;unit=usd;element_id=f-3577;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-258;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-7573;occurrence=52
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-8216;occurrence=76
+  fixture:
+    path: tests/fixtures/phase5/replay/b-bac-2024-12-31.xml
+    sha256: f3d051321d445694482498766cec9c8ff7e5bc687c8a902d8df778fcdc6a6997
+    byte_length: 65418
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - bac:ServicingAssetAtFairValueForInvestors
+    - us-gaap:Assets
+  evidence_case_ids:
+  - bac-2024-12-31-servicing-for-others-upb
+  - bac-2024-12-31-total-assets
+- fixture_id: b-bac-2025-03-31
+  cohort: B
+  issuer_id: bac
+  ticker: BAC
+  cik: 0000070858
+  accession: 0000070858-25-000200
+  form: 10-Q
+  filed: '2025-04-30'
+  report_period: '2025-03-31'
+  original:
+    document: bac-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085825000200/bac-20250331.htm
+    sha256: 988220ecef90ca84140eb53f35a39ef602f48792e047e8cef87808b4dd7a6d31
+    byte_length: 9150400
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: bac-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085825000200/bac-20250331.htm
+    locators:
+    - xbrl:bac:ServicingAssetAtFairValueForInvestors;context=c-909;unit=usd;element_id=f-3166;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-23;unit=usd;element_id=f-200;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-23;unit=usd;element_id=f-5356;occurrence=52
+  fixture:
+    path: tests/fixtures/phase5/replay/b-bac-2025-03-31.xml
+    sha256: 122debc919d65a5bf62b382432456d81cf0f8be4575cd9002d317b3e1ccf71c4
+    byte_length: 52458
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - bac:ServicingAssetAtFairValueForInvestors
+    - us-gaap:Assets
+  evidence_case_ids:
+  - bac-2025-03-31-servicing-for-others-upb
+  - bac-2025-03-31-total-assets
+- fixture_id: b-bac-2025-06-30
+  cohort: B
+  issuer_id: bac
+  ticker: BAC
+  cik: 0000070858
+  accession: 0000070858-25-000268
+  form: 10-Q
+  filed: '2025-07-31'
+  report_period: '2025-06-30'
+  original:
+    document: bac-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085825000268/bac-20250630.htm
+    sha256: 55a3d4e641873f26c3873c5b1cb1718843bd04447e3bfbccfd1ac98fece60acf
+    byte_length: 10988115
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: bac-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085825000268/bac-20250630.htm
+    locators:
+    - xbrl:bac:ServicingAssetAtFairValueForInvestors;context=c-1116;unit=usd;element_id=f-3704;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-268;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-6467;occurrence=52
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-6601;occurrence=64
+  fixture:
+    path: tests/fixtures/phase5/replay/b-bac-2025-06-30.xml
+    sha256: 4d53f7f97ea5bcb0b99faea09adf7d0f5976dc87dc36a644b3ce4cc38cefcbf4
+    byte_length: 55087
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - bac:ServicingAssetAtFairValueForInvestors
+    - us-gaap:Assets
+  evidence_case_ids:
+  - bac-2025-06-30-servicing-for-others-upb
+  - bac-2025-06-30-total-assets
+- fixture_id: b-bac-2025-09-30
+  cohort: B
+  issuer_id: bac
+  ticker: BAC
+  cik: 0000070858
+  accession: 0000070858-25-000405
+  form: 10-Q
+  filed: '2025-10-31'
+  report_period: '2025-09-30'
+  original:
+    document: bac-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085825000405/bac-20250930.htm
+    sha256: bd6eca6c7f39daf5e66b6cf03da65d38bc28faa6eb8c4093cc94408b94372e9c
+    byte_length: 11003124
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: bac-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085825000405/bac-20250930.htm
+    locators:
+    - xbrl:bac:ServicingAssetAtFairValueForInvestors;context=c-1115;unit=usd;element_id=f-3708;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-268;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-6510;occurrence=52
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-6644;occurrence=64
+  fixture:
+    path: tests/fixtures/phase5/replay/b-bac-2025-09-30.xml
+    sha256: 3b589e2e7842642cacfa103ed35ddd723c3fbd27bd95ddfb8b5133a95eb53fc4
+    byte_length: 55098
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - bac:ServicingAssetAtFairValueForInvestors
+    - us-gaap:Assets
+  evidence_case_ids:
+  - bac-2025-09-30-servicing-for-others-upb
+  - bac-2025-09-30-total-assets
+- fixture_id: b-bac-2025-12-31
+  cohort: B
+  issuer_id: bac
+  ticker: BAC
+  cik: 0000070858
+  accession: 0000070858-26-000157
+  form: 10-K
+  filed: '2026-02-25'
+  report_period: '2025-12-31'
+  original:
+    document: bac-20251231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085826000157/bac-20251231.htm
+    sha256: 038a7626af991a6a26187aaa30442868c90ed83dd6c274c95e7e98d49ead4f3a
+    byte_length: 12819059
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: bac-20251231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085826000157/bac-20251231.htm
+    locators:
+    - xbrl:bac:ServicingAssetAtFairValueForInvestors;context=c-992;unit=usd;element_id=f-3535;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-258;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-7595;occurrence=52
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-8241;occurrence=76
+  fixture:
+    path: tests/fixtures/phase5/replay/b-bac-2025-12-31.xml
+    sha256: d3d928dbd4dc20717d1308652d793da101668258e3046da2810d3391407aa8e9
+    byte_length: 64511
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - bac:ServicingAssetAtFairValueForInvestors
+    - us-gaap:Assets
+  evidence_case_ids:
+  - bac-2025-12-31-servicing-for-others-upb
+  - bac-2025-12-31-total-assets
+- fixture_id: b-bac-2026-03-31
+  cohort: B
+  issuer_id: bac
+  ticker: BAC
+  cik: 0000070858
+  accession: 0000070858-26-000249
+  form: 10-Q
+  filed: '2026-05-01'
+  report_period: '2026-03-31'
+  original:
+    document: bac-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085826000249/bac-20260331.htm
+    sha256: fde597130db97603917f76cad797cbc83b29d3eadc3a93bcaddfa8fa4c5c483f
+    byte_length: 9055122
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: bac-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085826000249/bac-20260331.htm
+    locators:
+    - xbrl:bac:ServicingAssetAtFairValueForInvestors;context=c-912;unit=usd;element_id=f-3177;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-23;unit=usd;element_id=f-200;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-23;unit=usd;element_id=f-5348;occurrence=52
+  fixture:
+    path: tests/fixtures/phase5/replay/b-bac-2026-03-31.xml
+    sha256: ffe0dca079e7e957178ab0b29de1dbc7c73a14ee323a06221ed964a09e633a6d
+    byte_length: 52381
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - bac:ServicingAssetAtFairValueForInvestors
+    - us-gaap:Assets
+  evidence_case_ids:
+  - bac-2026-03-31-servicing-for-others-upb
+  - bac-2026-03-31-total-assets
+- fixture_id: b-bac-2026-06-30
+  cohort: B
+  issuer_id: bac
+  ticker: BAC
+  cik: 0000070858
+  accession: 0000070858-26-000394
+  form: 10-Q
+  filed: '2026-07-31'
+  report_period: '2026-06-30'
+  original:
+    document: bac-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085826000394/bac-20260630.htm
+    sha256: ba52792dbe1758d5ed9b30910b964be395a54aec1119e6a094ab71161aac6572
+    byte_length: 10917313
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: bac-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/70858/000007085826000394/bac-20260630.htm
+    locators:
+    - xbrl:bac:ServicingAssetAtFairValueForInvestors;context=c-1114;unit=usd;element_id=f-3715;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-268;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-6443;occurrence=52
+    - xbrl:us-gaap:Assets;context=c-25;unit=usd;element_id=f-6577;occurrence=64
+  fixture:
+    path: tests/fixtures/phase5/replay/b-bac-2026-06-30.xml
+    sha256: beb1259f3430a3f41ae085d02229fc56508accaa8ff97b9ed947c0decc2cf6f0
+    byte_length: 54982
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - bac:ServicingAssetAtFairValueForInvestors
+    - us-gaap:Assets
+  evidence_case_ids:
+  - bac-2026-06-30-servicing-for-others-upb
+  - bac-2026-06-30-total-assets
+- fixture_id: b-jpm-2024-09-30
+  cohort: B
+  issuer_id: jpm
+  ticker: JPM
+  cik: 0000019617
+  accession: 0000019617-24-000611
+  form: 10-Q
+  filed: '2024-10-30'
+  report_period: '2024-09-30'
+  original:
+    document: jpm-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/19617/000001961724000611/jpm-20240930.htm
+    sha256: 994f37fec23e11172b15cd32071f1756477c477acb786749e598a090c2c385c7
+    byte_length: 11717559
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: jpm-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/19617/000001961724000611/jpm-20240930.htm
+    locators:
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-11;unit=usd;element_id=f-6287;occurrence=18
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-11;unit=usd;element_id=f-6289;occurrence=20
+    - xbrl:us-gaap:Assets;context=c-11;unit=usd;element_id=f-260;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-11;unit=usd;element_id=f-7458;occurrence=38
+    - xbrl:us-gaap:Assets;context=c-11;unit=usd;element_id=f-7592;occurrence=48
+  fixture:
+    path: tests/fixtures/phase5/replay/b-jpm-2024-09-30.xml
+    sha256: d179f0af5987b1685e833a3a99031c35f4d2de64d064f14c4e80312fe2f5a46e
+    byte_length: 29065
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - jpm:MortgageLoansServicedThirdPartyAtPeriodEnd
+    - us-gaap:Assets
+  evidence_case_ids:
+  - jpm-2024-09-30-servicing-for-others-upb
+  - jpm-2024-09-30-total-assets
+- fixture_id: b-jpm-2024-12-31
+  cohort: B
+  issuer_id: jpm
+  ticker: JPM
+  cik: 0000019617
+  accession: 0000019617-25-000270
+  form: 10-K
+  filed: '2025-02-14'
+  report_period: '2024-12-31'
+  original:
+    document: jpm-20241231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/19617/000001961725000270/jpm-20241231.htm
+    sha256: aeb4744c0facbbe3ede1ec30f94ebb40af38ea7943520d30965835d877dd00ab
+    byte_length: 12849179
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: jpm-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/19617/000001961725000270/jpm-20241231.htm
+    locators:
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-26;unit=usd;element_id=f-6332;occurrence=18
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-284;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-7752;occurrence=36
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-8030;occurrence=64
+  fixture:
+    path: tests/fixtures/phase5/replay/b-jpm-2024-12-31.xml
+    sha256: 9514c72209f1e30eb310eace98713c5a53b6400f283c3608b8e244985bb378f9
+    byte_length: 44525
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - jpm:MortgageLoansServicedThirdPartyAtPeriodEnd
+    - us-gaap:Assets
+  evidence_case_ids:
+  - jpm-2024-12-31-servicing-for-others-upb
+  - jpm-2024-12-31-total-assets
+- fixture_id: b-jpm-2025-03-31
+  cohort: B
+  issuer_id: jpm
+  ticker: JPM
+  cik: 0000019617
+  accession: 0000019617-25-000421
+  form: 10-Q
+  filed: '2025-05-01'
+  report_period: '2025-03-31'
+  original:
+    document: jpm-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/19617/000001961725000421/jpm-20250331.htm
+    sha256: c7286d1178951eee383da709c30d0dd6f7eb8b2ea8e923ff13423e8e38aa7413
+    byte_length: 9229579
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: jpm-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/19617/000001961725000421/jpm-20250331.htm
+    locators:
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-12;unit=usd;element_id=f-4997;occurrence=18
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-183;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-5954;occurrence=36
+  fixture:
+    path: tests/fixtures/phase5/replay/b-jpm-2025-03-31.xml
+    sha256: 1ed02b2cdac1afdc5ebf6db8afdc366029bf0a70378d053c24fc547b0a59c78b
+    byte_length: 26587
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - jpm:MortgageLoansServicedThirdPartyAtPeriodEnd
+    - us-gaap:Assets
+  evidence_case_ids:
+  - jpm-2025-03-31-servicing-for-others-upb
+  - jpm-2025-03-31-total-assets
+- fixture_id: b-jpm-2025-06-30
+  cohort: B
+  issuer_id: jpm
+  ticker: JPM
+  cik: 0000019617
+  accession: 0000019617-25-000615
+  form: 10-Q
+  filed: '2025-08-05'
+  report_period: '2025-06-30'
+  original:
+    document: jpm-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/19617/000001961725000615/jpm-20250630.htm
+    sha256: 76474f74effa8cedd67df0c45bb738d2335d5d1f95c45ee5a88f77e091538a3b
+    byte_length: 11426734
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: jpm-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/19617/000001961725000615/jpm-20250630.htm
+    locators:
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-12;unit=usd;element_id=f-6289;occurrence=18
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-12;unit=usd;element_id=f-6291;occurrence=20
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-263;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-7462;occurrence=38
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-7606;occurrence=48
+  fixture:
+    path: tests/fixtures/phase5/replay/b-jpm-2025-06-30.xml
+    sha256: bd97f9c1ee70111c5c8a9bee9a0b0581f8ea1410ea5f7cb442c230c6d6e97064
+    byte_length: 29099
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - jpm:MortgageLoansServicedThirdPartyAtPeriodEnd
+    - us-gaap:Assets
+  evidence_case_ids:
+  - jpm-2025-06-30-servicing-for-others-upb
+  - jpm-2025-06-30-total-assets
+- fixture_id: b-jpm-2025-09-30
+  cohort: B
+  issuer_id: jpm
+  ticker: JPM
+  cik: 0000019617
+  accession: 0001628280-25-048859
+  form: 10-Q
+  filed: '2025-11-04'
+  report_period: '2025-09-30'
+  original:
+    document: jpm-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/19617/000162828025048859/jpm-20250930.htm
+    sha256: 6e80b2989f1f79541f0e202d67260911bff894f221124c1b3c2f934e71e75275
+    byte_length: 11495264
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: jpm-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/19617/000162828025048859/jpm-20250930.htm
+    locators:
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-12;unit=usd;element_id=f-6303;occurrence=18
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-12;unit=usd;element_id=f-6305;occurrence=20
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-263;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-7479;occurrence=38
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-7623;occurrence=48
+  fixture:
+    path: tests/fixtures/phase5/replay/b-jpm-2025-09-30.xml
+    sha256: 994bb0b7921d5c1c1b34ce0db183807ad5cd1dec67db5f5755e8600d9dc29f05
+    byte_length: 29099
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - jpm:MortgageLoansServicedThirdPartyAtPeriodEnd
+    - us-gaap:Assets
+  evidence_case_ids:
+  - jpm-2025-09-30-servicing-for-others-upb
+  - jpm-2025-09-30-total-assets
+- fixture_id: b-jpm-2025-12-31
+  cohort: B
+  issuer_id: jpm
+  ticker: JPM
+  cik: 0000019617
+  accession: 0001628280-26-008131
+  form: 10-K
+  filed: '2026-02-13'
+  report_period: '2025-12-31'
+  original:
+    document: jpm-20251231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm
+    sha256: 5a9032f264f8c0b3473e75dc0c38ec1d725988ec1ca88ed62e9b7c05e3b7c978
+    byte_length: 12927324
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: jpm-20251231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm
+    locators:
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-30;unit=usd;element_id=f-6424;occurrence=18
+    - xbrl:us-gaap:Assets;context=c-30;unit=usd;element_id=f-315;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-30;unit=usd;element_id=f-7912;occurrence=36
+    - xbrl:us-gaap:Assets;context=c-30;unit=usd;element_id=f-8187;occurrence=64
+  fixture:
+    path: tests/fixtures/phase5/replay/b-jpm-2025-12-31.xml
+    sha256: 49a2147de6d14e98c6898ccd35b8c9ed300730b57b14c3dbb2cb017cab22325a
+    byte_length: 44560
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - jpm:MortgageLoansServicedThirdPartyAtPeriodEnd
+    - us-gaap:Assets
+  evidence_case_ids:
+  - jpm-2025-12-31-servicing-for-others-upb
+  - jpm-2025-12-31-total-assets
+- fixture_id: b-jpm-2026-03-31
+  cohort: B
+  issuer_id: jpm
+  ticker: JPM
+  cik: 0000019617
+  accession: 0001628280-26-029344
+  form: 10-Q
+  filed: '2026-05-01'
+  report_period: '2026-03-31'
+  original:
+    document: jpm-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/19617/000162828026029344/jpm-20260331.htm
+    sha256: 06836238a79d9e4866ddcce4ce13b18f9f72a9e3eb3687c2440bd40cabec1229
+    byte_length: 9164609
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: jpm-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/19617/000162828026029344/jpm-20260331.htm
+    locators:
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-12;unit=usd;element_id=f-4997;occurrence=18
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-183;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-5874;occurrence=36
+  fixture:
+    path: tests/fixtures/phase5/replay/b-jpm-2026-03-31.xml
+    sha256: 276e4d95c7ab90ab8de2073006dc5d9e53ad0e243439437f6e6fb1c8df13c1c6
+    byte_length: 26589
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - jpm:MortgageLoansServicedThirdPartyAtPeriodEnd
+    - us-gaap:Assets
+  evidence_case_ids:
+  - jpm-2026-03-31-servicing-for-others-upb
+  - jpm-2026-03-31-total-assets
+- fixture_id: b-jpm-2026-06-30
+  cohort: B
+  issuer_id: jpm
+  ticker: JPM
+  cik: 0000019617
+  accession: 0001628280-26-054343
+  form: 10-Q
+  filed: '2026-08-06'
+  report_period: '2026-06-30'
+  original:
+    document: jpm-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/19617/000162828026054343/jpm-20260630.htm
+    sha256: b66fb1cead72c0945edd145091fd14aa121bbe290864da8cafc12c44666ccdfc
+    byte_length: 11513873
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: jpm-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/19617/000162828026054343/jpm-20260630.htm
+    locators:
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-12;unit=usd;element_id=f-6353;occurrence=18
+    - xbrl:jpm:MortgageLoansServicedThirdPartyAtPeriodEnd;context=c-12;unit=usd;element_id=f-6355;occurrence=20
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-263;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-7444;occurrence=38
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-7588;occurrence=48
+  fixture:
+    path: tests/fixtures/phase5/replay/b-jpm-2026-06-30.xml
+    sha256: 4e185700d6246f0cfce9e7c5809d0eafb76c9c1fbc728e544969b9d8e23b50e5
+    byte_length: 29021
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - jpm:MortgageLoansServicedThirdPartyAtPeriodEnd
+    - us-gaap:Assets
+  evidence_case_ids:
+  - jpm-2026-06-30-servicing-for-others-upb
+  - jpm-2026-06-30-total-assets
+- fixture_id: b-ldi-2024-09-30
+  cohort: B
+  issuer_id: ldi
+  ticker: LDI
+  cik: 0001831631
+  accession: 0001831631-24-000285
+  form: 10-Q
+  filed: '2024-11-12'
+  report_period: '2024-09-30'
+  original:
+    document: ldi-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163124000285/ldi-20240930.htm
+    sha256: ab12b6a59e7311e9f211105305702c52b91282539198557c528e25979daa858c
+    byte_length: 2439579
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ldi-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163124000285/ldi-20240930.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-61;occurrence=0
+    - xbrl:us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized;context=c-6;unit=usd;element_id=f-907;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ldi-2024-09-30.xml
+    sha256: 4829db4524c97f3521679d49faf719a8784d32e80950e47b7b4f62c5f5ea3d21
+    byte_length: 10969
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+  evidence_case_ids:
+  - ldi-2024-09-30-total-assets
+  - ldi-2024-09-30-total-servicing-upb
+- fixture_id: b-ldi-2024-12-31
+  cohort: B
+  issuer_id: ldi
+  ticker: LDI
+  cik: 0001831631
+  accession: 0001831631-25-000023
+  form: 10-K
+  filed: '2025-03-13'
+  report_period: '2024-12-31'
+  original:
+    document: ldi-20241231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163125000023/ldi-20241231.htm
+    sha256: aac270556178a1c00721ee9e83f32d4267945567e232f66bfbb7ade511d1ffc6
+    byte_length: 3297011
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ldi-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163125000023/ldi-20241231.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-8;unit=usd;element_id=f-88;occurrence=0
+    - xbrl:us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized;context=c-8;unit=usd;element_id=f-900;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ldi-2024-12-31.xml
+    sha256: b939833adbed63e51684639d3ea43856d7d3eadeec6765cfa47868576eb9c1b7
+    byte_length: 10811
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+  evidence_case_ids:
+  - ldi-2024-12-31-total-assets
+  - ldi-2024-12-31-total-servicing-upb
+- fixture_id: b-ldi-2025-03-31
+  cohort: B
+  issuer_id: ldi
+  ticker: LDI
+  cik: 0001831631
+  accession: 0001831631-25-000083
+  form: 10-Q
+  filed: '2025-05-08'
+  report_period: '2025-03-31'
+  original:
+    document: ldi-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163125000083/ldi-20250331.htm
+    sha256: 60c4c1480af7f8cc088693054f1655695ad190dadf329cd89448929ccb35e402
+    byte_length: 1858172
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ldi-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163125000083/ldi-20250331.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-61;occurrence=0
+    - xbrl:us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized;context=c-6;unit=usd;element_id=f-683;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ldi-2025-03-31.xml
+    sha256: 1ff156c37ca2d69136b358064cb7d96ccfad236aa808ff4307c6d24f486297bc
+    byte_length: 10766
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+  evidence_case_ids:
+  - ldi-2025-03-31-total-assets
+  - ldi-2025-03-31-total-servicing-upb
+- fixture_id: b-ldi-2025-06-30
+  cohort: B
+  issuer_id: ldi
+  ticker: LDI
+  cik: 0001831631
+  accession: 0001831631-25-000154
+  form: 10-Q
+  filed: '2025-08-08'
+  report_period: '2025-06-30'
+  original:
+    document: ldi-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163125000154/ldi-20250630.htm
+    sha256: 55f79c85289810bdf72f2e82b6e9c9fd13b75ac1caf149253a1b33f85f7f2357
+    byte_length: 2345089
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ldi-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163125000154/ldi-20250630.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-61;occurrence=0
+    - xbrl:us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized;context=c-6;unit=usd;element_id=f-908;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ldi-2025-06-30.xml
+    sha256: 0c931d1853a959d72194967b0654f1234655d0356c152d595684113b2fba02a9
+    byte_length: 11239
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+  evidence_case_ids:
+  - ldi-2025-06-30-total-assets
+  - ldi-2025-06-30-total-servicing-upb
+- fixture_id: b-ldi-2025-09-30
+  cohort: B
+  issuer_id: ldi
+  ticker: LDI
+  cik: 0001831631
+  accession: 0001831631-25-000221
+  form: 10-Q
+  filed: '2025-11-07'
+  report_period: '2025-09-30'
+  original:
+    document: ldi-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163125000221/ldi-20250930.htm
+    sha256: 832791e1e1dedc8390762212c543318c78670366d1b85c9721ea2eb26698263f
+    byte_length: 2321011
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ldi-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163125000221/ldi-20250930.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-61;occurrence=0
+    - xbrl:us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized;context=c-6;unit=usd;element_id=f-910;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ldi-2025-09-30.xml
+    sha256: 57470c445b58e94a5c6620995b6d29ec0c80bb65039e549a0ca39f2e55678ef4
+    byte_length: 11239
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+  evidence_case_ids:
+  - ldi-2025-09-30-total-assets
+  - ldi-2025-09-30-total-servicing-upb
+- fixture_id: b-ldi-2025-12-31
+  cohort: B
+  issuer_id: ldi
+  ticker: LDI
+  cik: 0001831631
+  accession: 0001831631-26-000028
+  form: 10-K
+  filed: '2026-03-12'
+  report_period: '2025-12-31'
+  original:
+    document: ldi-20251231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163126000028/ldi-20251231.htm
+    sha256: 2af177b5f439d3e5b4ee0508d9e83e906f7e93ab15d12f928f9888a85a225a48
+    byte_length: 3515588
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ldi-20251231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163126000028/ldi-20251231.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-7;unit=usd;element_id=f-85;occurrence=0
+    - xbrl:us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized;context=c-7;unit=usd;element_id=f-879;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ldi-2025-12-31.xml
+    sha256: 085d22ff4b675f5c0d8d5ebfabea5a89693b798a3be00064352885ebba864141
+    byte_length: 10811
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+  evidence_case_ids:
+  - ldi-2025-12-31-total-assets
+  - ldi-2025-12-31-total-servicing-upb
+- fixture_id: b-ldi-2026-03-31
+  cohort: B
+  issuer_id: ldi
+  ticker: LDI
+  cik: 0001831631
+  accession: 0001831631-26-000061
+  form: 10-Q
+  filed: '2026-05-07'
+  report_period: '2026-03-31'
+  original:
+    document: ldi-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163126000061/ldi-20260331.htm
+    sha256: ff23ece18df77d508af5f3c07c038cd4236cb8acdd754559b52d5ed33f664f5b
+    byte_length: 1856422
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ldi-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163126000061/ldi-20260331.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-61;occurrence=0
+    - xbrl:us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized;context=c-6;unit=usd;element_id=f-691;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ldi-2026-03-31.xml
+    sha256: d34dc8f44cabc71899014f375b39ed0e05d70dbe7661da5a3858051d4e0fb661
+    byte_length: 11235
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+  evidence_case_ids:
+  - ldi-2026-03-31-total-assets
+  - ldi-2026-03-31-total-servicing-upb
+- fixture_id: b-ldi-2026-06-30
+  cohort: B
+  issuer_id: ldi
+  ticker: LDI
+  cik: 0001831631
+  accession: 0001831631-26-000086
+  form: 10-Q
+  filed: '2026-08-06'
+  report_period: '2026-06-30'
+  original:
+    document: ldi-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163126000086/ldi-20260630.htm
+    sha256: 4869c4468be02f6505da249c6578bed6c681ee0da4669ddcd9333978c669b4ea
+    byte_length: 2381582
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ldi-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1831631/000183163126000086/ldi-20260630.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-61;occurrence=0
+    - xbrl:us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized;context=c-6;unit=usd;element_id=f-904;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ldi-2026-06-30.xml
+    sha256: f5cc979bd3211288175f5deabf3aeb5e5933fa58b8fef75a32e0f104d41311a2
+    byte_length: 11239
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:PrincipalAmountOutstandingOnLoansManagedAndSecuritized
+  evidence_case_ids:
+  - ldi-2026-06-30-total-assets
+  - ldi-2026-06-30-total-servicing-upb
+- fixture_id: b-pfsi-2025-09-30
+  cohort: B
+  issuer_id: pfsi
+  ticker: PFSI
+  cik: 0001745916
+  accession: 0001104659-25-103162
+  form: 10-Q
+  filed: '2025-10-28'
+  report_period: '2025-09-30'
+  original:
+    document: pfsi-20250930x10q.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465925103162/pfsi-20250930x10q.htm
+    sha256: 7a684ddafd818dee6aad64ce810a96d4fe76ca40295a31cfa13f2a5e4334a71a
+    byte_length: 7409518
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pfsi-20250930x10q.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465925103162/pfsi-20250930x10q.htm
+    locators:
+    - xbrl:pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans;context=As_Of_9_30_2025_us-gaap_FairValueByFairValueHierarchyLevelAxis_us-gaap_FairValueInputsLevel3Member_us-gaap_FairValueByMeasurementBasisAxis_us-gaap_EstimateOfFairValueFairValueDisclosureMember_us-gaap_FinancialInstrumentAxis_pfsi_MortgageServicingRightsMember_5zBja5i8yESjlriLVZDeUQ;unit=Unit_Standard_USD_ZWRkh-SdoUG8US1p8N_3Xw;element_id=Tc_2YEe3Z-CN0W1eaJq0SWlvA_6_2;occurrence=2
+    - xbrl:us-gaap:Assets;context=As_Of_9_30_2025_CcDXNlUh40ymK0XB1PZINg;unit=Unit_Standard_USD_ZWRkh-SdoUG8US1p8N_3Xw;element_id=Tc_0rwOsxASiEGa5pgeVYuQUg_27_15;occurrence=8
+    - xbrl:us-gaap:Assets;context=As_Of_9_30_2025_CcDXNlUh40ymK0XB1PZINg;unit=Unit_Standard_USD_ZWRkh-SdoUG8US1p8N_3Xw;element_id=Tc_D15MKa1LvEa77RLwNHyOQg_27_15;occurrence=18
+    - xbrl:us-gaap:Assets;context=As_Of_9_30_2025_CcDXNlUh40ymK0XB1PZINg;unit=Unit_Standard_USD_ZWRkh-SdoUG8US1p8N_3Xw;element_id=Tc_mxXlcT9D1kOP0cRi6TJX_Q_17_3;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-pfsi-2025-09-30.xml
+    sha256: 0272337f821c103a310c38e06d7add29425501dd26e7cba8656a815156139b03
+    byte_length: 19135
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    - us-gaap:Assets
+  evidence_case_ids:
+  - pfsi-2025-09-30-owned-msr-upb
+  - pfsi-2025-09-30-total-assets
+- fixture_id: b-pfsi-2025-12-31
+  cohort: B
+  issuer_id: pfsi
+  ticker: PFSI
+  cik: 0001745916
+  accession: 0001104659-26-018142
+  form: 10-K
+  filed: '2026-02-20'
+  report_period: '2025-12-31'
+  original:
+    document: pfsi-20251231x10k.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926018142/pfsi-20251231x10k.htm
+    sha256: bc2ebcde63126b5bd400a4c415dafcaf00adb1ded456f309dc2cb558af291921
+    byte_length: 8621464
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pfsi-20251231x10k.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926018142/pfsi-20251231x10k.htm
+    locators:
+    - xbrl:pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans;context=As_Of_12_31_2025_us-gaap_FairValueByFairValueHierarchyLevelAxis_us-gaap_FairValueInputsLevel3Member_us-gaap_FairValueByMeasurementBasisAxis_us-gaap_EstimateOfFairValueFairValueDisclosureMember_us-gaap_FinancialInstrumentAxis_pfsi_MortgageServicingRightsMember_3etm6NHh90KQWgtScsO2vA;unit=Unit_Standard_USD_bxeAm1EeJ02llIkshAel6Q;element_id=Tc_JP22cf7OCUSiaQL83WOTMQ_7_2;occurrence=2
+    - xbrl:us-gaap:Assets;context=As_Of_12_31_2025_D00IjvwWXkWdyn_KACv6dg;unit=Unit_Standard_USD_bxeAm1EeJ02llIkshAel6Q;element_id=Tc_T7kNitcRm0GADCypj79R9Q_17_3;occurrence=0
+    - xbrl:us-gaap:Assets;context=As_Of_12_31_2025_D00IjvwWXkWdyn_KACv6dg;unit=Unit_Standard_USD_bxeAm1EeJ02llIkshAel6Q;element_id=Tc_Y3tY-h0i00CIU18EUGXYLQ_27_15;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-pfsi-2025-12-31.xml
+    sha256: e1211f9ea0e476728800e823b34a2f3e26420cf7718d9b054b6c3dec8bdcfcf4
+    byte_length: 22212
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    - us-gaap:Assets
+  evidence_case_ids:
+  - pfsi-2025-12-31-owned-msr-upb
+  - pfsi-2025-12-31-total-assets
+- fixture_id: b-pfsi-2026-03-31
+  cohort: B
+  issuer_id: pfsi
+  ticker: PFSI
+  cik: 0001745916
+  accession: 0001104659-26-055690
+  form: 10-Q
+  filed: '2026-05-05'
+  report_period: '2026-03-31'
+  original:
+    document: pfsi-20260331x10q.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926055690/pfsi-20260331x10q.htm
+    sha256: 317b7a5591e3f0a4df63693b3282cd381cac7d4531e336e85aeb5e24ff4f985f
+    byte_length: 5515503
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pfsi-20260331x10q.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926055690/pfsi-20260331x10q.htm
+    locators:
+    - xbrl:pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans;context=As_Of_3_31_2026_us-gaap_FairValueByFairValueHierarchyLevelAxis_us-gaap_FairValueInputsLevel3Member_us-gaap_FairValueByMeasurementBasisAxis_us-gaap_EstimateOfFairValueFairValueDisclosureMember_us-gaap_FinancialInstrumentAxis_pfsi_MortgageServicingRightsMember_ETkUTmZAFUeARY73ZCQwlA;unit=Unit_Standard_USD_RkUDBXTBW06b01Pdax96zQ;element_id=Tc_AsOTbTvdvkmqS2rNWY3Cqw_6_2;occurrence=2
+    - xbrl:us-gaap:Assets;context=As_Of_3_31_2026_Pj_h0mQeI0Gw9Wvenf4J9Q;unit=Unit_Standard_USD_RkUDBXTBW06b01Pdax96zQ;element_id=Tc_Pzeu0crTG0OdBWxbBNSPBQ_27_15;occurrence=8
+    - xbrl:us-gaap:Assets;context=As_Of_3_31_2026_Pj_h0mQeI0Gw9Wvenf4J9Q;unit=Unit_Standard_USD_RkUDBXTBW06b01Pdax96zQ;element_id=Tc_muVqOAbbCkKvnIvxObBoEA_17_3;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-pfsi-2026-03-31.xml
+    sha256: 927f162fc68ea097f3e9c3ddb1577aae7dba3a6b3c95e0553f55587b974f17c7
+    byte_length: 15286
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    - us-gaap:Assets
+  evidence_case_ids:
+  - pfsi-2026-03-31-owned-msr-upb
+  - pfsi-2026-03-31-total-assets
+- fixture_id: b-pfsi-2026-06-30
+  cohort: B
+  issuer_id: pfsi
+  ticker: PFSI
+  cik: 0001745916
+  accession: 0001104659-26-090486
+  form: 10-Q
+  filed: '2026-08-04'
+  report_period: '2026-06-30'
+  original:
+    document: pfsi-20260630x10q.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm
+    sha256: 9b0062e5c2d62e2abe50a89a5b6f606140d6eaee6e3ef27ee824529292642155
+    byte_length: 7492215
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pfsi-20260630x10q.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1745916/000110465926090486/pfsi-20260630x10q.htm
+    locators:
+    - xbrl:pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans;context=As_Of_6_30_2026_us-gaap_FairValueByFairValueHierarchyLevelAxis_us-gaap_FairValueInputsLevel3Member_us-gaap_FairValueByMeasurementBasisAxis_us-gaap_EstimateOfFairValueFairValueDisclosureMember_us-gaap_FinancialInstrumentAxis_pfsi_MortgageServicingRightsMember_MfkRx55Ep0q7-3yISU-2gA;unit=Unit_Standard_USD_NN6ds-BRukSjOLNv-5Sbpw;element_id=Tc_Muw5qYfCx0WnaNwv0oK2Wg_6_2;occurrence=2
+    - xbrl:us-gaap:Assets;context=As_Of_6_30_2026_M-Qt3Tcb1U2-DTbB1aDe0w;unit=Unit_Standard_USD_NN6ds-BRukSjOLNv-5Sbpw;element_id=Tc_XglUmlD4G0igXiMTsWT6LQ_17_3;occurrence=0
+    - xbrl:us-gaap:Assets;context=As_Of_6_30_2026_M-Qt3Tcb1U2-DTbB1aDe0w;unit=Unit_Standard_USD_NN6ds-BRukSjOLNv-5Sbpw;element_id=Tc_iWMDhcd0yUuM6iqlUu36zw_27_15;occurrence=8
+    - xbrl:us-gaap:Assets;context=As_Of_6_30_2026_M-Qt3Tcb1U2-DTbB1aDe0w;unit=Unit_Standard_USD_NN6ds-BRukSjOLNv-5Sbpw;element_id=Tc_ty2rEtHg00eWyLxjg0__qg_27_15;occurrence=18
+  fixture:
+    path: tests/fixtures/phase5/replay/b-pfsi-2026-06-30.xml
+    sha256: e8826721f47c3788eca11061250708891576fafd3c00bca3e2e43499b7b86893
+    byte_length: 19135
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    - us-gaap:Assets
+  evidence_case_ids:
+  - pfsi-2026-06-30-owned-msr-upb
+  - pfsi-2026-06-30-total-assets
+- fixture_id: b-pfsi-2024-09-30
+  cohort: B
+  issuer_id: pfsi
+  ticker: PFSI
+  cik: 0001745916
+  accession: 0001558370-24-013853
+  form: 10-Q
+  filed: '2024-10-29'
+  report_period: '2024-09-30'
+  original:
+    document: pfsi-20240930x10q.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000155837024013853/pfsi-20240930x10q.htm
+    sha256: 31de4516991e4578760de58760b8131277e1325b3ee6da04d943f077170dc50f
+    byte_length: 6713115
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pfsi-20240930x10q.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1745916/000155837024013853/pfsi-20240930x10q.htm
+    locators:
+    - xbrl:pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans;context=As_Of_9_30_2024_us-gaap_FairValueByFairValueHierarchyLevelAxis_us-gaap_FairValueInputsLevel3Member_us-gaap_FairValueByMeasurementBasisAxis_us-gaap_EstimateOfFairValueFairValueDisclosureMember_us-gaap_FinancialInstrumentAxis_pfsi_MortgageServicingRightsMember_ccpSyxnL406DRy5HcbDciw;unit=Unit_Standard_USD_yzC_cJ6D-k2XRz25ZNJfGA;element_id=Tc_GZEH64Vdm0qjZloum1jf4g_6_2;occurrence=2
+    - xbrl:us-gaap:Assets;context=As_Of_9_30_2024_GcsldTd77kivcMnkoygXgw;unit=Unit_Standard_USD_yzC_cJ6D-k2XRz25ZNJfGA;element_id=Tc_0x8AcbMEGUSRBehKH0SUgg_19_15;occurrence=18
+    - xbrl:us-gaap:Assets;context=As_Of_9_30_2024_GcsldTd77kivcMnkoygXgw;unit=Unit_Standard_USD_yzC_cJ6D-k2XRz25ZNJfGA;element_id=Tc_EXKcAfz020iQp1GW9hoRJQ_16_3;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-pfsi-2024-09-30.xml
+    sha256: c60f9d35c5785478da793dab9f30e6ebf560988029f4c4c800193652a1714140
+    byte_length: 21563
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    - us-gaap:Assets
+  evidence_case_ids:
+  - pfsi-2024-09-30-owned-msr-upb
+  - pfsi-2024-09-30-total-assets
+- fixture_id: b-pfsi-2024-12-31
+  cohort: B
+  issuer_id: pfsi
+  ticker: PFSI
+  cik: 0001745916
+  accession: 0001558370-25-001148
+  form: 10-K
+  filed: '2025-02-19'
+  report_period: '2024-12-31'
+  original:
+    document: pfsi-20241231x10k.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000155837025001148/pfsi-20241231x10k.htm
+    sha256: 70758cdf322cca8250e108df7e12f2bad04906cec94fa0f82dae7d9cbaa0aeba
+    byte_length: 8509709
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pfsi-20241231x10k.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1745916/000155837025001148/pfsi-20241231x10k.htm
+    locators:
+    - xbrl:pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans;context=As_Of_12_31_2024_us-gaap_FairValueByFairValueHierarchyLevelAxis_us-gaap_FairValueInputsLevel3Member_us-gaap_FairValueByMeasurementBasisAxis_us-gaap_EstimateOfFairValueFairValueDisclosureMember_us-gaap_FinancialInstrumentAxis_pfsi_MortgageServicingRightsMember_xH1dI39ejkGYog8v2HwoOA;unit=Unit_Standard_USD_iobpimYmOE2MYXmK0QNq6Q;element_id=Tc_x5bcAWFUcUmr6PXMk8TcJA_7_2;occurrence=2
+    - xbrl:us-gaap:Assets;context=As_Of_12_31_2024_9au_zxTOH0aLx9x6w2O-Nw;unit=Unit_Standard_USD_iobpimYmOE2MYXmK0QNq6Q;element_id=Tc_1ulx41H3D0um1svAKSWBOg_16_3;occurrence=0
+    - xbrl:us-gaap:Assets;context=As_Of_12_31_2024_9au_zxTOH0aLx9x6w2O-Nw;unit=Unit_Standard_USD_iobpimYmOE2MYXmK0QNq6Q;element_id=Tc_ksSsEcqfIUuBKUZtiRyRyw_28_15;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-pfsi-2024-12-31.xml
+    sha256: bd6f125648651c9894a4d09bd7b29cf2dec9a3158b7bb9ddb5d1dba256348973
+    byte_length: 22212
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    - us-gaap:Assets
+  evidence_case_ids:
+  - pfsi-2024-12-31-owned-msr-upb
+  - pfsi-2024-12-31-total-assets
+- fixture_id: b-pfsi-2025-03-31
+  cohort: B
+  issuer_id: pfsi
+  ticker: PFSI
+  cik: 0001745916
+  accession: 0001558370-25-005840
+  form: 10-Q
+  filed: '2025-04-29'
+  report_period: '2025-03-31'
+  original:
+    document: pfsi-20250331x10q.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000155837025005840/pfsi-20250331x10q.htm
+    sha256: 473a16669fc8d05d525f861d133af2d6addf34d8b9cdcba84a8e5391871cd29f
+    byte_length: 5250133
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pfsi-20250331x10q.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1745916/000155837025005840/pfsi-20250331x10q.htm
+    locators:
+    - xbrl:pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans;context=As_Of_3_31_2025_us-gaap_FairValueByFairValueHierarchyLevelAxis_us-gaap_FairValueInputsLevel3Member_us-gaap_FairValueByMeasurementBasisAxis_us-gaap_EstimateOfFairValueFairValueDisclosureMember_us-gaap_FinancialInstrumentAxis_pfsi_MortgageServicingRightsMember_1TYCUZQNSESkLqmCC2rIjw;unit=Unit_Standard_USD_jpYhuwQ7zU-IL5HQ96Ys8A;element_id=Tc_yOasCX_4W0KobLkEz9Ckzg_6_2;occurrence=2
+    - xbrl:us-gaap:Assets;context=As_Of_3_31_2025_CiErRLjWokWFoU8lBxVCKg;unit=Unit_Standard_USD_jpYhuwQ7zU-IL5HQ96Ys8A;element_id=Tc_f5GgMPbMqE6QFo0m3-Neuw_16_3;occurrence=0
+    - xbrl:us-gaap:Assets;context=As_Of_3_31_2025_CiErRLjWokWFoU8lBxVCKg;unit=Unit_Standard_USD_jpYhuwQ7zU-IL5HQ96Ys8A;element_id=Tc_oZ3RspklkUCBNZckXiXRzw_27_15;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-pfsi-2025-03-31.xml
+    sha256: c59c4bcd77ffa87c599d0890b10bb91b59222b43c5ce9dccacfe00e7f387564e
+    byte_length: 15285
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    - us-gaap:Assets
+  evidence_case_ids:
+  - pfsi-2025-03-31-owned-msr-upb
+  - pfsi-2025-03-31-total-assets
+- fixture_id: b-pfsi-2025-06-30
+  cohort: B
+  issuer_id: pfsi
+  ticker: PFSI
+  cik: 0001745916
+  accession: 0001558370-25-009736
+  form: 10-Q
+  filed: '2025-07-29'
+  report_period: '2025-06-30'
+  original:
+    document: pfsi-20250630x10q.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1745916/000155837025009736/pfsi-20250630x10q.htm
+    sha256: 5a974b2dd9bb5bf3e3dde3b1fad57a74ab6e8be74af283af5da2c91c711b7aa7
+    byte_length: 7111578
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pfsi-20250630x10q.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1745916/000155837025009736/pfsi-20250630x10q.htm
+    locators:
+    - xbrl:pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans;context=As_Of_6_30_2025_us-gaap_FairValueByFairValueHierarchyLevelAxis_us-gaap_FairValueInputsLevel3Member_us-gaap_FairValueByMeasurementBasisAxis_us-gaap_EstimateOfFairValueFairValueDisclosureMember_us-gaap_FinancialInstrumentAxis_pfsi_MortgageServicingRightsMember_pFfy1lKhjkKCsQOb5dneSA;unit=Unit_Standard_USD_3XnYE9p9zEWYPfMK7qyBbQ;element_id=Tc_AUtz8ghkYEmBt1QtZen89g_6_2;occurrence=2
+    - xbrl:us-gaap:Assets;context=As_Of_6_30_2025_5ZPUpiE5SkK4GCR-HKdAyg;unit=Unit_Standard_USD_3XnYE9p9zEWYPfMK7qyBbQ;element_id=Tc_De38mR3l30yWnd6WfoouQg_27_15;occurrence=18
+    - xbrl:us-gaap:Assets;context=As_Of_6_30_2025_5ZPUpiE5SkK4GCR-HKdAyg;unit=Unit_Standard_USD_3XnYE9p9zEWYPfMK7qyBbQ;element_id=Tc_QEyAGia8i0OJSzC84cxyUg_27_15;occurrence=8
+    - xbrl:us-gaap:Assets;context=As_Of_6_30_2025_5ZPUpiE5SkK4GCR-HKdAyg;unit=Unit_Standard_USD_3XnYE9p9zEWYPfMK7qyBbQ;element_id=Tc_ptyKIDVd_kK80bvP_fGr0g_16_3;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-pfsi-2025-06-30.xml
+    sha256: f218553eac267f16c981b1a1228b4836bb28a9811cbcd8b043211984bffcc24a
+    byte_length: 19133
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pfsi:ServicingAssetUnpaidPrincipalBalanceOfUnderlyingLoans
+    - us-gaap:Assets
+  evidence_case_ids:
+  - pfsi-2025-06-30-owned-msr-upb
+  - pfsi-2025-06-30-total-assets
+- fixture_id: b-ritm-2024-09-30
+  cohort: B
+  issuer_id: ritm
+  ticker: RITM
+  cik: 0001556593
+  accession: 0001556593-24-000041
+  form: 10-Q
+  filed: '2024-11-05'
+  report_period: '2024-09-30'
+  original:
+    document: ritm-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659324000041/ritm-20240930.htm
+    sha256: 61d56aa598b6b6fa10ff53de97cff8fbbfa2f4f065a91f8fa5b2caa60ca6dc91
+    byte_length: 6293416
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ritm-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659324000041/ritm-20240930.htm
+    locators:
+    - xbrl:ritm:MortgageServicingRightsPrincipalBalance;context=c-831;unit=usd;element_id=f-2873;occurrence=16
+    - xbrl:us-gaap:Assets;context=c-8;unit=usd;element_id=f-1036;occurrence=9
+    - xbrl:us-gaap:Assets;context=c-8;unit=usd;element_id=f-76;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ritm-2024-09-30.xml
+    sha256: c167425e0735ceaf07c1c995acc4aea36735968f1f4ee4b004bf8a85e533a045
+    byte_length: 27643
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - nrz:MortgageServicingRightsPrincipalBalance
+    - ritm:MortgageServicingRightsPrincipalBalance
+    - us-gaap:Assets
+  evidence_case_ids:
+  - ritm-2024-09-30-owned-msr-upb
+  - ritm-2024-09-30-total-assets
+- fixture_id: b-ritm-2024-12-31
+  cohort: B
+  issuer_id: ritm
+  ticker: RITM
+  cik: 0001556593
+  accession: 0001556593-25-000007
+  form: 10-K
+  filed: '2025-02-18'
+  report_period: '2024-12-31'
+  original:
+    document: nrz-20241231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659325000007/nrz-20241231.htm
+    sha256: 580a4666608c737eed2257cf9d187ec11ce80f70c49f323a70c246d72fd1d67a
+    byte_length: 8312619
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: nrz-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659325000007/nrz-20241231.htm
+    locators:
+    - xbrl:nrz:MortgageServicingRightsPrincipalBalance;context=c-889;unit=usd;element_id=f-3463;occurrence=22
+    - xbrl:us-gaap:Assets;context=c-9;unit=usd;element_id=f-100;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-9;unit=usd;element_id=f-1058;occurrence=9
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ritm-2024-12-31.xml
+    sha256: fb4da4939d2a290ccf2a39a44b3836b00cc6b4dbf4ca7444c64fae0a0ca82a16
+    byte_length: 33044
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - nrz:MortgageServicingRightsPrincipalBalance
+    - ritm:MortgageServicingRightsPrincipalBalance
+    - us-gaap:Assets
+  evidence_case_ids:
+  - ritm-2024-12-31-owned-msr-upb
+  - ritm-2024-12-31-total-assets
+- fixture_id: b-ritm-2025-03-31
+  cohort: B
+  issuer_id: ritm
+  ticker: RITM
+  cik: 0001556593
+  accession: 0001556593-25-000016
+  form: 10-Q
+  filed: '2025-05-02'
+  report_period: '2025-03-31'
+  original:
+    document: nrz-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659325000016/nrz-20250331.htm
+    sha256: fbda860d39e8d573a0340cb505cf4ffc76ecff9d0c295ad98147b3f7021c31e5
+    byte_length: 6392009
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: nrz-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659325000016/nrz-20250331.htm
+    locators:
+    - xbrl:nrz:MortgageServicingRightsPrincipalBalance;context=c-699;unit=usd;element_id=f-2395;occurrence=16
+    - xbrl:us-gaap:Assets;context=c-8;unit=usd;element_id=f-744;occurrence=9
+    - xbrl:us-gaap:Assets;context=c-8;unit=usd;element_id=f-74;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ritm-2025-03-31.xml
+    sha256: c2039e65867e7f02945c96de7f1a014ddb45b5da4d1dc7b691e443f734c974d5
+    byte_length: 28487
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - nrz:MortgageServicingRightsPrincipalBalance
+    - ritm:MortgageServicingRightsPrincipalBalance
+    - us-gaap:Assets
+  evidence_case_ids:
+  - ritm-2025-03-31-owned-msr-upb
+  - ritm-2025-03-31-total-assets
+- fixture_id: b-ritm-2025-06-30
+  cohort: B
+  issuer_id: ritm
+  ticker: RITM
+  cik: 0001556593
+  accession: 0001556593-25-000024
+  form: 10-Q
+  filed: '2025-08-01'
+  report_period: '2025-06-30'
+  original:
+    document: nrz-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659325000024/nrz-20250630.htm
+    sha256: 2270052997b09d9e0172a426e9ddbf7eadbec942ab9242d86f23801689d3b749
+    byte_length: 7513427
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: nrz-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659325000024/nrz-20250630.htm
+    locators:
+    - xbrl:nrz:MortgageServicingRightsPrincipalBalance;context=c-883;unit=usd;element_id=f-3019;occurrence=16
+    - xbrl:us-gaap:Assets;context=c-8;unit=usd;element_id=f-1088;occurrence=9
+    - xbrl:us-gaap:Assets;context=c-8;unit=usd;element_id=f-74;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ritm-2025-06-30.xml
+    sha256: 7fa264a2b92cbaff0796ef1a3f0e33d52b3dacff2c844679f0c8f647d14734a7
+    byte_length: 28499
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - nrz:MortgageServicingRightsPrincipalBalance
+    - ritm:MortgageServicingRightsPrincipalBalance
+    - us-gaap:Assets
+  evidence_case_ids:
+  - ritm-2025-06-30-owned-msr-upb
+  - ritm-2025-06-30-total-assets
+- fixture_id: b-ritm-2025-09-30
+  cohort: B
+  issuer_id: ritm
+  ticker: RITM
+  cik: 0001556593
+  accession: 0001556593-25-000033
+  form: 10-Q
+  filed: '2025-10-31'
+  report_period: '2025-09-30'
+  original:
+    document: nrz-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659325000033/nrz-20250930.htm
+    sha256: faa663a5619733af7e3b91627eb546178de5461cd9f63f1e1cc537747e74d3ba
+    byte_length: 7713093
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: nrz-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659325000033/nrz-20250930.htm
+    locators:
+    - xbrl:nrz:MortgageServicingRightsPrincipalBalance;context=c-911;unit=usd;element_id=f-3085;occurrence=16
+    - xbrl:us-gaap:Assets;context=c-9;unit=usd;element_id=f-1116;occurrence=9
+    - xbrl:us-gaap:Assets;context=c-9;unit=usd;element_id=f-77;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ritm-2025-09-30.xml
+    sha256: fa99d89a2a94e1fc8262c278719c3630d89af41791cb3b42357f8381ea8e17ed
+    byte_length: 28503
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - nrz:MortgageServicingRightsPrincipalBalance
+    - ritm:MortgageServicingRightsPrincipalBalance
+    - us-gaap:Assets
+  evidence_case_ids:
+  - ritm-2025-09-30-owned-msr-upb
+  - ritm-2025-09-30-total-assets
+- fixture_id: b-ritm-2025-12-31
+  cohort: B
+  issuer_id: ritm
+  ticker: RITM
+  cik: 0001556593
+  accession: 0001556593-26-000012
+  form: 10-K
+  filed: '2026-02-19'
+  report_period: '2025-12-31'
+  original:
+    document: nrz-20251231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659326000012/nrz-20251231.htm
+    sha256: ed22317c016eb2c675f28fa92549e04c9aedfc7b19521faccfdaaba2058a7c9e
+    byte_length: 9279373
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: nrz-20251231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659326000012/nrz-20251231.htm
+    locators:
+    - xbrl:nrz:MortgageServicingRightsPrincipalBalance;context=c-1003;unit=usd;element_id=f-3781;occurrence=22
+    - xbrl:us-gaap:Assets;context=c-11;unit=usd;element_id=f-106;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-11;unit=usd;element_id=f-1178;occurrence=9
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ritm-2025-12-31.xml
+    sha256: 5c8ebf7e64784a8e26a215d44f0875976f6157dffc08e7cfe80c1e7f16e1b99c
+    byte_length: 33088
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - nrz:MortgageServicingRightsPrincipalBalance
+    - ritm:MortgageServicingRightsPrincipalBalance
+    - us-gaap:Assets
+  evidence_case_ids:
+  - ritm-2025-12-31-owned-msr-upb
+  - ritm-2025-12-31-total-assets
+- fixture_id: b-ritm-2026-03-31
+  cohort: B
+  issuer_id: ritm
+  ticker: RITM
+  cik: 0001556593
+  accession: 0001556593-26-000023
+  form: 10-Q
+  filed: '2026-05-04'
+  report_period: '2026-03-31'
+  original:
+    document: nrz-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659326000023/nrz-20260331.htm
+    sha256: fd57f01d8d25d5a074d81d5b3e9dc701a5122a3305de16d1ad32b2dcb9e1139c
+    byte_length: 7157791
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: nrz-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659326000023/nrz-20260331.htm
+    locators:
+    - xbrl:nrz:MortgageServicingRightsPrincipalBalance;context=c-829;unit=usd;element_id=f-2630;occurrence=18
+    - xbrl:us-gaap:Assets;context=c-10;unit=usd;element_id=f-723;occurrence=10
+    - xbrl:us-gaap:Assets;context=c-10;unit=usd;element_id=f-78;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ritm-2026-03-31.xml
+    sha256: ab75c3d058228d888a1908211b5c95f17ec419add5f13abd35a59631f2c921a3
+    byte_length: 31689
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - nrz:MortgageServicingRightsPrincipalBalance
+    - ritm:MortgageServicingRightsPrincipalBalance
+    - us-gaap:Assets
+  evidence_case_ids:
+  - ritm-2026-03-31-owned-msr-upb
+  - ritm-2026-03-31-total-assets
+- fixture_id: b-ritm-2026-06-30
+  cohort: B
+  issuer_id: ritm
+  ticker: RITM
+  cik: 0001556593
+  accession: 0001556593-26-000029
+  form: 10-Q
+  filed: '2026-08-04'
+  report_period: '2026-06-30'
+  original:
+    document: nrz-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659326000029/nrz-20260630.htm
+    sha256: 8e219fd09094ea3ec88832d4f07d62bb96fe7ad6968d38eac4bb2efa06e904cc
+    byte_length: 8564319
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: nrz-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1556593/000155659326000029/nrz-20260630.htm
+    locators:
+    - xbrl:nrz:MortgageServicingRightsPrincipalBalance;context=c-1112;unit=usd;element_id=f-3297;occurrence=18
+    - xbrl:us-gaap:Assets;context=c-10;unit=usd;element_id=f-1061;occurrence=10
+    - xbrl:us-gaap:Assets;context=c-10;unit=usd;element_id=f-78;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-ritm-2026-06-30.xml
+    sha256: 0f4468740ca3eb9a446f5f3229e94ce77749522a9e055e0bbaa7ba1eec9748fb
+    byte_length: 33333
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - nrz:MortgageServicingRightsPrincipalBalance
+    - ritm:MortgageServicingRightsPrincipalBalance
+    - us-gaap:Assets
+  evidence_case_ids:
+  - ritm-2026-06-30-owned-msr-upb
+  - ritm-2026-06-30-total-assets
+- fixture_id: b-rkt-2025-12-31
+  cohort: B
+  issuer_id: rkt
+  ticker: RKT
+  cik: 0001805284
+  accession: 0001628280-26-013283
+  form: 10-K
+  filed: '2026-03-02'
+  report_period: '2025-12-31'
+  original:
+    document: rkt-20251231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1805284/000162828026013283/rkt-20251231.htm
+    sha256: 3bc8fa075c8e63d3893981c9662325f3a5fc002591eb61d93e95d6b26a629c1d
+    byte_length: 3594177
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: rkt-20251231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1805284/000162828026013283/rkt-20251231.htm
+    locators:
+    - xbrl:rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced;context=c-5;unit=usd;element_id=f-1036;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-5;unit=usd;element_id=f-79;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-rkt-2025-12-31.xml
+    sha256: 94dea3adf889384f55d3f4f358d1cda2210b467ead559c7adb220a5696c6e1b2
+    byte_length: 2862
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced
+    - us-gaap:Assets
+  evidence_case_ids:
+  - rkt-2025-12-31-total-assets
+  - rkt-2025-12-31-total-servicing-upb
+- fixture_id: b-rkt-2026-03-31
+  cohort: B
+  issuer_id: rkt
+  ticker: RKT
+  cik: 0001805284
+  accession: 0001628280-26-033694
+  form: 10-Q
+  filed: '2026-05-12'
+  report_period: '2026-03-31'
+  original:
+    document: rkt-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1805284/000162828026033694/rkt-20260331.htm
+    sha256: c45ab7381648828571db32eb69f1411c0ded4fbc5e8a5b1205e7065320da1d99
+    byte_length: 2099906
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: rkt-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1805284/000162828026033694/rkt-20260331.htm
+    locators:
+    - xbrl:rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced;context=c-4;unit=usd;element_id=f-764;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-4;unit=usd;element_id=f-55;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-rkt-2026-03-31.xml
+    sha256: da5e54242898d4fdcf9ba5fc93e1653892b218f301609d19e51c872c575819c9
+    byte_length: 2783
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced
+    - us-gaap:Assets
+  evidence_case_ids:
+  - rkt-2026-03-31-total-assets
+  - rkt-2026-03-31-total-servicing-upb
+- fixture_id: b-rkt-2026-06-30
+  cohort: B
+  issuer_id: rkt
+  ticker: RKT
+  cik: 0001805284
+  accession: 0001628280-26-054577
+  form: 10-Q
+  filed: '2026-08-07'
+  report_period: '2026-06-30'
+  original:
+    document: rkt-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1805284/000162828026054577/rkt-20260630.htm
+    sha256: aa90f269e3b1ce08427f263e5f504828a30ca60abcff1b28f35e28f92b69abb8
+    byte_length: 2619013
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: rkt-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1805284/000162828026054577/rkt-20260630.htm
+    locators:
+    - xbrl:rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced;context=c-4;unit=usd;element_id=f-978;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-4;unit=usd;element_id=f-55;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-rkt-2026-06-30.xml
+    sha256: 801b9afd1ef0446a5340e4dc2625d773c99a548ab6afc4044d2e6f1b9b2902aa
+    byte_length: 2782
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced
+    - us-gaap:Assets
+  evidence_case_ids:
+  - rkt-2026-06-30-total-assets
+  - rkt-2026-06-30-total-servicing-upb
+- fixture_id: b-rkt-2024-09-30
+  cohort: B
+  issuer_id: rkt
+  ticker: RKT
+  cik: 0001805284
+  accession: 0001805284-24-000176
+  form: 10-Q
+  filed: '2024-11-12'
+  report_period: '2024-09-30'
+  original:
+    document: rkt-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528424000176/rkt-20240930.htm
+    sha256: baf2ccf9770fd4e43bb453706423373162e15222ac289da814b0ad812bf8c705
+    byte_length: 2384070
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: rkt-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528424000176/rkt-20240930.htm
+    locators:
+    - xbrl:rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced;context=c-4;unit=usd;element_id=f-886;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-4;unit=usd;element_id=f-59;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-rkt-2024-09-30.xml
+    sha256: 871ba98a0db16727dcd45997f4fd7c68f6a5b325a1246331554b164b0a92bf72
+    byte_length: 2799
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced
+    - us-gaap:Assets
+  evidence_case_ids:
+  - rkt-2024-09-30-total-assets
+  - rkt-2024-09-30-total-servicing-upb
+- fixture_id: b-rkt-2024-12-31
+  cohort: B
+  issuer_id: rkt
+  ticker: RKT
+  cik: 0001805284
+  accession: 0001805284-25-000010
+  form: 10-K
+  filed: '2025-03-03'
+  report_period: '2024-12-31'
+  original:
+    document: rkt-20241231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528425000010/rkt-20241231.htm
+    sha256: dbdd5718424181c4741ee392baa3b490a92e4b23166f8b2572db907e514807be
+    byte_length: 3245889
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: rkt-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528425000010/rkt-20241231.htm
+    locators:
+    - xbrl:rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced;context=c-5;unit=usd;element_id=f-845;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-5;unit=usd;element_id=f-81;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-rkt-2024-12-31.xml
+    sha256: 826e1d1cf634f941236a61b2690eef3a9e559793d2d8e32257a7d00b932bf23f
+    byte_length: 2825
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced
+    - us-gaap:Assets
+  evidence_case_ids:
+  - rkt-2024-12-31-total-assets
+  - rkt-2024-12-31-total-servicing-upb
+- fixture_id: b-rkt-2025-03-31
+  cohort: B
+  issuer_id: rkt
+  ticker: RKT
+  cik: 0001805284
+  accession: 0001805284-25-000065
+  form: 10-Q
+  filed: '2025-05-09'
+  report_period: '2025-03-31'
+  original:
+    document: rkt-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528425000065/rkt-20250331.htm
+    sha256: 8613be9fb6ef74ebf6277f698f58952a92bd65e9a46bb34a7e842493a7e20e6a
+    byte_length: 1962924
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: rkt-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528425000065/rkt-20250331.htm
+    locators:
+    - xbrl:rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced;context=c-4;unit=usd;element_id=f-668;occurrence=4
+    - xbrl:us-gaap:Assets;context=c-4;unit=usd;element_id=f-59;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-rkt-2025-03-31.xml
+    sha256: fc8ea71c596819609d9d76c01e6ca505a8514142f24a68c8fc94a447323787b7
+    byte_length: 4740
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced
+    - us-gaap:Assets
+  evidence_case_ids:
+  - rkt-2025-03-31-total-assets
+  - rkt-2025-03-31-total-servicing-upb
+- fixture_id: b-rkt-2025-06-30
+  cohort: B
+  issuer_id: rkt
+  ticker: RKT
+  cik: 0001805284
+  accession: 0001805284-25-000088
+  form: 10-Q
+  filed: '2025-08-08'
+  report_period: '2025-06-30'
+  original:
+    document: rkt-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528425000088/rkt-20250630.htm
+    sha256: 14d9dfe8fb63959074bcf7ed376db3977a07645b6208d58173fd2f6474c0ce87
+    byte_length: 2533568
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: rkt-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528425000088/rkt-20250630.htm
+    locators:
+    - xbrl:rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced;context=c-4;unit=usd;element_id=f-952;occurrence=3
+    - xbrl:us-gaap:Assets;context=c-4;unit=usd;element_id=f-57;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-rkt-2025-06-30.xml
+    sha256: 46bc46c835ad46a1261948037fabfb59afbbf45616619a4a14b14e9239713f4d
+    byte_length: 3727
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced
+    - us-gaap:Assets
+  evidence_case_ids:
+  - rkt-2025-06-30-total-assets
+  - rkt-2025-06-30-total-servicing-upb
+- fixture_id: b-rkt-2025-09-30
+  cohort: B
+  issuer_id: rkt
+  ticker: RKT
+  cik: 0001805284
+  accession: 0001805284-25-000136
+  form: 10-Q
+  filed: '2025-11-06'
+  report_period: '2025-09-30'
+  original:
+    document: rkt-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528425000136/rkt-20250930.htm
+    sha256: 856804bf3c9faa6b42c591225f424f6895cd83cbe4f7e671f8b8aa89f86fbe3d
+    byte_length: 2820447
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: rkt-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1805284/000180528425000136/rkt-20250930.htm
+    locators:
+    - xbrl:rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced;context=c-4;unit=usd;element_id=f-1145;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-4;unit=usd;element_id=f-57;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-rkt-2025-09-30.xml
+    sha256: ad6e3955131fdfcb282e971687a71c8a3c1f223bb115d1fd841f1db16554f4c0
+    byte_length: 2801
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - rkt:ServicingAssetsPrincipalValueOfLoansBeingServiced
+    - us-gaap:Assets
+  evidence_case_ids:
+  - rkt-2025-09-30-total-assets
+  - rkt-2025-09-30-total-servicing-upb
+- fixture_id: b-tfc-2024-09-30
+  cohort: B
+  issuer_id: tfc
+  ticker: TFC
+  cik: 0000092230
+  accession: 0000092230-24-000079
+  form: 10-Q
+  filed: '2024-11-01'
+  report_period: '2024-09-30'
+  original:
+    document: tfc-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223024000079/tfc-20240930.htm
+    sha256: b949277088af2a79ef16ea381a22ce0ac6648db454bc39d6e1959e1adc937d3c
+    byte_length: 6846500
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: tfc-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223024000079/tfc-20240930.htm
+    locators:
+    - xbrl:tfc:TotalResidentialMortgageServicingPortfolio;context=c-812;unit=usd;element_id=f-3190;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-7;unit=usd;element_id=f-82;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-tfc-2024-09-30.xml
+    sha256: 6585f06081085f9205cc8b44315386e982fba78366e0e16cdce98ea883608b43
+    byte_length: 11455
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - tfc:TotalResidentialMortgageServicingPortfolio
+    - us-gaap:Assets
+  evidence_case_ids:
+  - tfc-2024-09-30-total-assets
+  - tfc-2024-09-30-total-servicing-upb
+- fixture_id: b-tfc-2024-12-31
+  cohort: B
+  issuer_id: tfc
+  ticker: TFC
+  cik: 0000092230
+  accession: 0000092230-25-000020
+  form: 10-K
+  filed: '2025-02-25'
+  report_period: '2024-12-31'
+  original:
+    document: tfc-20241231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223025000020/tfc-20241231.htm
+    sha256: 49822c2564a08899bc5324d51031dbcf0325d351b73e98b338cff2b73201df8e
+    byte_length: 7874582
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: tfc-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223025000020/tfc-20241231.htm
+    locators:
+    - xbrl:tfc:TotalResidentialMortgageServicingPortfolio;context=c-506;unit=usd;element_id=f-2927;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-9;unit=usd;element_id=f-106;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-tfc-2024-12-31.xml
+    sha256: b8cdd3960ef43c1dc52df75fae3829bdc1d5b71d8a98a004f65f2fe0f71180a9
+    byte_length: 14975
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - tfc:TotalResidentialMortgageServicingPortfolio
+    - us-gaap:Assets
+  evidence_case_ids:
+  - tfc-2024-12-31-total-assets
+  - tfc-2024-12-31-total-servicing-upb
+- fixture_id: b-tfc-2025-03-31
+  cohort: B
+  issuer_id: tfc
+  ticker: TFC
+  cik: 0000092230
+  accession: 0000092230-25-000050
+  form: 10-Q
+  filed: '2025-04-30'
+  report_period: '2025-03-31'
+  original:
+    document: tfc-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223025000050/tfc-20250331.htm
+    sha256: f9b371b100422751678a84372aa757cc5176b75876c24e0c119e4048f9d22467
+    byte_length: 5501479
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: tfc-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223025000050/tfc-20250331.htm
+    locators:
+    - xbrl:tfc:TotalResidentialMortgageServicingPortfolio;context=c-525;unit=usd;element_id=f-2421;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-7;unit=usd;element_id=f-80;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-tfc-2025-03-31.xml
+    sha256: deee43a9445603a629229fff0bf87f0db1dfb13567e3a1ecd1f2940f3c56f38f
+    byte_length: 9751
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - tfc:TotalResidentialMortgageServicingPortfolio
+    - us-gaap:Assets
+  evidence_case_ids:
+  - tfc-2025-03-31-total-assets
+  - tfc-2025-03-31-total-servicing-upb
+- fixture_id: b-tfc-2025-06-30
+  cohort: B
+  issuer_id: tfc
+  ticker: TFC
+  cik: 0000092230
+  accession: 0000092230-25-000123
+  form: 10-Q
+  filed: '2025-07-31'
+  report_period: '2025-06-30'
+  original:
+    document: tfc-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223025000123/tfc-20250630.htm
+    sha256: 229bb801f2009ff3547057b39e15978ebf7d58e258cf9bf430434f748ebc8eb2
+    byte_length: 6733462
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: tfc-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223025000123/tfc-20250630.htm
+    locators:
+    - xbrl:tfc:TotalResidentialMortgageServicingPortfolio;context=c-733;unit=usd;element_id=f-2964;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-7;unit=usd;element_id=f-80;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-tfc-2025-06-30.xml
+    sha256: 0496f41decc12a99077c263060f32958ae9f665182b219153b6ec5179c178cd4
+    byte_length: 11455
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - tfc:TotalResidentialMortgageServicingPortfolio
+    - us-gaap:Assets
+  evidence_case_ids:
+  - tfc-2025-06-30-total-assets
+  - tfc-2025-06-30-total-servicing-upb
+- fixture_id: b-tfc-2025-09-30
+  cohort: B
+  issuer_id: tfc
+  ticker: TFC
+  cik: 0000092230
+  accession: 0000092230-25-000157
+  form: 10-Q
+  filed: '2025-10-30'
+  report_period: '2025-09-30'
+  original:
+    document: tfc-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223025000157/tfc-20250930.htm
+    sha256: 9692f270d6c3480cbde08a2b2cce13670175b6ac897b8e43ed9f333556aa144b
+    byte_length: 6778626
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: tfc-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223025000157/tfc-20250930.htm
+    locators:
+    - xbrl:tfc:TotalResidentialMortgageServicingPortfolio;context=c-752;unit=usd;element_id=f-3001;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-7;unit=usd;element_id=f-80;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-tfc-2025-09-30.xml
+    sha256: 6f96b5af83603bb49e7b613fca2be25210cb3d4d50052fe0a9a06bd834f68dee
+    byte_length: 11455
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - tfc:TotalResidentialMortgageServicingPortfolio
+    - us-gaap:Assets
+  evidence_case_ids:
+  - tfc-2025-09-30-total-assets
+  - tfc-2025-09-30-total-servicing-upb
+- fixture_id: b-tfc-2025-12-31
+  cohort: B
+  issuer_id: tfc
+  ticker: TFC
+  cik: 0000092230
+  accession: 0000092230-26-000030
+  form: 10-K
+  filed: '2026-02-24'
+  report_period: '2025-12-31'
+  original:
+    document: tfc-20251231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000030/tfc-20251231.htm
+    sha256: 2f0b46fa7dc89aa0bc2cf8624b256388d26d478fffc9ef4157a1e9aa2f1ed568
+    byte_length: 8116202
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: tfc-20251231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000030/tfc-20251231.htm
+    locators:
+    - xbrl:tfc:TotalResidentialMortgageServicingPortfolio;context=c-578;unit=usd;element_id=f-3013;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-9;unit=usd;element_id=f-103;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-tfc-2025-12-31.xml
+    sha256: 8a246ba4e8c17774a69d038b56cb4b7cb73026d62711dc76d7c588641a5bb4cb
+    byte_length: 15016
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - tfc:TotalResidentialMortgageServicingPortfolio
+    - us-gaap:Assets
+  evidence_case_ids:
+  - tfc-2025-12-31-total-assets
+  - tfc-2025-12-31-total-servicing-upb
+- fixture_id: b-tfc-2026-03-31
+  cohort: B
+  issuer_id: tfc
+  ticker: TFC
+  cik: 0000092230
+  accession: 0000092230-26-000062
+  form: 10-Q
+  filed: '2026-05-01'
+  report_period: '2026-03-31'
+  original:
+    document: tfc-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000062/tfc-20260331.htm
+    sha256: 4a40b4784439d511f4fd42867271fb916cce70e9ed4f0394dfd1dafa9bddd55f
+    byte_length: 5399571
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: tfc-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000062/tfc-20260331.htm
+    locators:
+    - xbrl:tfc:TotalResidentialMortgageServicingPortfolio;context=c-422;unit=usd;element_id=f-2325;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-7;unit=usd;element_id=f-80;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-tfc-2026-03-31.xml
+    sha256: 88687fd1425ccd7488e4d54d7f96e8ffe7b203e51227df72384168d7585c01b4
+    byte_length: 9751
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - tfc:TotalResidentialMortgageServicingPortfolio
+    - us-gaap:Assets
+  evidence_case_ids:
+  - tfc-2026-03-31-total-assets
+  - tfc-2026-03-31-total-servicing-upb
+- fixture_id: b-tfc-2026-06-30
+  cohort: B
+  issuer_id: tfc
+  ticker: TFC
+  cik: 0000092230
+  accession: 0000092230-26-000099
+  form: 10-Q
+  filed: '2026-07-31'
+  report_period: '2026-06-30'
+  original:
+    document: tfc-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm
+    sha256: 8b4e75df610503670a55802f4a29e36fae8bb9195b78abddd0272b11f1d0efed
+    byte_length: 6452566
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: tfc-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/92230/000009223026000099/tfc-20260630.htm
+    locators:
+    - xbrl:tfc:TotalResidentialMortgageServicingPortfolio;context=c-633;unit=usd;element_id=f-2842;occurrence=2
+    - xbrl:us-gaap:Assets;context=c-7;unit=usd;element_id=f-80;occurrence=0
+  fixture:
+    path: tests/fixtures/phase5/replay/b-tfc-2026-06-30.xml
+    sha256: 05e994a15aff683786d52f475710fbec4b8c9b01ebcd3996ab260fcf3bdcdb29
+    byte_length: 11455
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - tfc:TotalResidentialMortgageServicingPortfolio
+    - us-gaap:Assets
+  evidence_case_ids:
+  - tfc-2026-06-30-total-assets
+  - tfc-2026-06-30-total-servicing-upb
+- fixture_id: b-usb-2024-09-30
+  cohort: B
+  issuer_id: usb
+  ticker: USB
+  cik: '0000036104'
+  accession: 0000036104-24-000072
+  form: 10-Q
+  filed: '2024-11-05'
+  report_period: '2024-09-30'
+  original:
+    document: usb-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610424000072/usb-20240930.htm
+    sha256: 7594ec7311c831a3ed6fe4c148bdcf035ff04fcc2dd892e085b22f85985246f4
+    byte_length: 5080899
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: usb-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610424000072/usb-20240930.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-94;occurrence=0
+    - xbrl:usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset;context=c-12;unit=usd;element_id=f-2392;occurrence=10
+  fixture:
+    path: tests/fixtures/phase5/replay/b-usb-2024-09-30.xml
+    sha256: 35b9173cce0fde36622e26b6c3bb2d8ae7d71432348e5ab7f53ae84f6e482ab7
+    byte_length: 9173
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+  evidence_case_ids:
+  - usb-2024-09-30-servicing-for-others-upb
+  - usb-2024-09-30-total-assets
+- fixture_id: b-usb-2024-12-31
+  cohort: B
+  issuer_id: usb
+  ticker: USB
+  cik: '0000036104'
+  accession: 0000036104-25-000016
+  form: 10-K
+  filed: '2025-02-21'
+  report_period: '2024-12-31'
+  original:
+    document: usb-20241231_htm.xml
+    source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610425000016/usb-20241231_htm.xml
+    sha256: 94e3948b1d4ede54ec77ad41ef24403fd0a769f8c473ca3471a00934cfaf93fe
+    byte_length: 7192264
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: false
+    primary_document: usb-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610425000016/usb-20241231.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-14;unit=usd;element_id=f-123;occurrence=0
+    - xbrl:usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset;context=c-14;unit=usd;element_id=f-2161;occurrence=9
+  fixture:
+    path: tests/fixtures/phase5/replay/b-usb-2024-12-31.xml
+    sha256: a2ac8493db516042775aa7b4f65fd48171fb2571a622544e7df1ebb3f174aabe
+    byte_length: 9413
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+  evidence_case_ids:
+  - usb-2024-12-31-servicing-for-others-upb
+  - usb-2024-12-31-total-assets
+- fixture_id: b-usb-2025-03-31
+  cohort: B
+  issuer_id: usb
+  ticker: USB
+  cik: '0000036104'
+  accession: 0000036104-25-000028
+  form: 10-Q
+  filed: '2025-05-06'
+  report_period: '2025-03-31'
+  original:
+    document: usb-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610425000028/usb-20250331.htm
+    sha256: 31a0cb79495aad729a618218e749c25daaeffa0f97ab11a06864c4edec1c9cfd
+    byte_length: 3904099
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: usb-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610425000028/usb-20250331.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-95;occurrence=0
+    - xbrl:usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset;context=c-12;unit=usd;element_id=f-1748;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-usb-2025-03-31.xml
+    sha256: 0c59d14bb4eb376fad8ff88e8c59b216d7dec212e42a28386842507bf4c19fc3
+    byte_length: 7630
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+  evidence_case_ids:
+  - usb-2025-03-31-servicing-for-others-upb
+  - usb-2025-03-31-total-assets
+- fixture_id: b-usb-2025-06-30
+  cohort: B
+  issuer_id: usb
+  ticker: USB
+  cik: '0000036104'
+  accession: 0000036104-25-000055
+  form: 10-Q
+  filed: '2025-08-07'
+  report_period: '2025-06-30'
+  original:
+    document: usb-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610425000055/usb-20250630.htm
+    sha256: b747d8f5278ce3481cb0f2bbceca46fd830648f3a8cd20635a9bef89fc6c27db
+    byte_length: 5075236
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: usb-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610425000055/usb-20250630.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-95;occurrence=0
+    - xbrl:usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset;context=c-12;unit=usd;element_id=f-2349;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-usb-2025-06-30.xml
+    sha256: 486c0aad922bc61174b1e51049a8312a0f8d05ca028c3cb6d84c401500306443
+    byte_length: 7685
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+  evidence_case_ids:
+  - usb-2025-06-30-servicing-for-others-upb
+  - usb-2025-06-30-total-assets
+- fixture_id: b-usb-2025-09-30
+  cohort: B
+  issuer_id: usb
+  ticker: USB
+  cik: '0000036104'
+  accession: 0000036104-25-000064
+  form: 10-Q
+  filed: '2025-11-05'
+  report_period: '2025-09-30'
+  original:
+    document: usb-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610425000064/usb-20250930.htm
+    sha256: 02d7836aa97d3273221281c75fec1ecdec14af560c7fbdf28fa583b2f68c5a18
+    byte_length: 5091706
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: usb-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610425000064/usb-20250930.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-94;occurrence=0
+    - xbrl:usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset;context=c-12;unit=usd;element_id=f-2366;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-usb-2025-09-30.xml
+    sha256: b05ef15c296f80331798e85d4141c21077efcfb2f4e233ae681e68fb7471e156
+    byte_length: 7661
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+  evidence_case_ids:
+  - usb-2025-09-30-servicing-for-others-upb
+  - usb-2025-09-30-total-assets
+- fixture_id: b-usb-2025-12-31
+  cohort: B
+  issuer_id: usb
+  ticker: USB
+  cik: '0000036104'
+  accession: 0000036104-26-000011
+  form: 10-K
+  filed: '2026-02-23'
+  report_period: '2025-12-31'
+  original:
+    document: usb-20251231_htm.xml
+    source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610426000011/usb-20251231_htm.xml
+    sha256: 52bfa950187eac5f9b07685ff9ef75ca5ac04e700d31ff7200334198313acf03
+    byte_length: 7267895
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: false
+    primary_document: usb-20251231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610426000011/usb-20251231.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-14;unit=usd;element_id=f-123;occurrence=0
+    - xbrl:usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset;context=c-14;unit=usd;element_id=f-2264;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-usb-2025-12-31.xml
+    sha256: cc5d0fb3667a604ffca0054f109fafb362fa41e73b0f75eaf2fc3876963ba2c6
+    byte_length: 8791
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+  evidence_case_ids:
+  - usb-2025-12-31-servicing-for-others-upb
+  - usb-2025-12-31-total-assets
+- fixture_id: b-usb-2026-03-31
+  cohort: B
+  issuer_id: usb
+  ticker: USB
+  cik: '0000036104'
+  accession: 0000036104-26-000024
+  form: 10-Q
+  filed: '2026-05-04'
+  report_period: '2026-03-31'
+  original:
+    document: usb-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610426000024/usb-20260331.htm
+    sha256: 45d22cb40ae81d7ecc5e5fbbfd378c44bab02ee62430502e1a3b2d46725acd59
+    byte_length: 3858541
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: usb-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610426000024/usb-20260331.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-12;unit=usd;element_id=f-94;occurrence=0
+    - xbrl:usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset;context=c-12;unit=usd;element_id=f-1763;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-usb-2026-03-31.xml
+    sha256: 8bdc01f03225b90d05632f967222d5d0f598e8c0a345470b110c1c8e1d78b45e
+    byte_length: 7457
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+  evidence_case_ids:
+  - usb-2026-03-31-servicing-for-others-upb
+  - usb-2026-03-31-total-assets
+- fixture_id: b-usb-2026-06-30
+  cohort: B
+  issuer_id: usb
+  ticker: USB
+  cik: '0000036104'
+  accession: 0000036104-26-000044
+  form: 10-Q
+  filed: '2026-08-06'
+  report_period: '2026-06-30'
+  original:
+    document: usb-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610426000044/usb-20260630.htm
+    sha256: fc2ec5d59cb4208ab2c58508f6ee805df3eb54268919ede23c95f44d28a58fad
+    byte_length: 5088801
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: usb-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/36104/000003610426000044/usb-20260630.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-13;unit=usd;element_id=f-98;occurrence=0
+    - xbrl:usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset;context=c-13;unit=usd;element_id=f-2366;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/b-usb-2026-06-30.xml
+    sha256: 55316f503b87a9fb7000b8cf1d15069557cc87d4ab4c4065635ea4256ec88f45
+    byte_length: 7421
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - usb:ResidentialMortgageLoansServicedForOthersIncludingSubservicedMortgagesWithNoCorrespondingMsrsAsset
+  evidence_case_ids:
+  - usb-2026-06-30-servicing-for-others-upb
+  - usb-2026-06-30-total-assets
+- fixture_id: b-uwmc-2024-09-30
+  cohort: B
+  issuer_id: uwmc
+  ticker: UWMC
+  cik: 0001783398
+  accession: 0001783398-24-000044
+  form: 10-Q
+  filed: '2024-11-07'
+  report_period: '2024-09-30'
+  original:
+    document: uwmc-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339824000044/uwmc-20240930.htm
+    sha256: b49c015f02a4ac26e9194dbf812fec232d2f055e6b7e448f3a584b828b325ee4
+    byte_length: 1784879
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: uwmc-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339824000044/uwmc-20240930.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-60;occurrence=2
+    - xbrl:us-gaap:ServicingAsset;context=c-152;unit=usd;element_id=f-576;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-uwmc-2024-09-30.xml
+    sha256: c212c1ace2cbca37fd180f21127ff91ebed119fb20eced0c487e54d58f80c929
+    byte_length: 4521
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - uwmc-2024-09-30-servicing-for-others-upb
+  - uwmc-2024-09-30-total-assets
+- fixture_id: b-uwmc-2024-12-31
+  cohort: B
+  issuer_id: uwmc
+  ticker: UWMC
+  cik: 0001783398
+  accession: 0001783398-25-000007
+  form: 10-K
+  filed: '2025-02-26'
+  report_period: '2024-12-31'
+  original:
+    document: uwmc-20241231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339825000007/uwmc-20241231.htm
+    sha256: c3354fc9d28ae8456729647790df1486b31f835116b05a72d3eebb662bb1de6a
+    byte_length: 2272940
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: uwmc-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339825000007/uwmc-20241231.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-7;unit=usd;element_id=f-88;occurrence=2
+    - xbrl:us-gaap:ServicingAsset;context=c-91;unit=usd;element_id=f-550;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-uwmc-2024-12-31.xml
+    sha256: 85ce590c4198e0697922c0a7dc15740f9ca6c1d16d3a4d5f713791314934e606
+    byte_length: 4557
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - uwmc-2024-12-31-servicing-for-others-upb
+  - uwmc-2024-12-31-total-assets
+- fixture_id: b-uwmc-2025-03-31
+  cohort: B
+  issuer_id: uwmc
+  ticker: UWMC
+  cik: 0001783398
+  accession: 0001783398-25-000025
+  form: 10-Q
+  filed: '2025-05-06'
+  report_period: '2025-03-31'
+  original:
+    document: uwmc-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339825000025/uwmc-20250331.htm
+    sha256: ff4643e362aafa02ae19522992cfd183382fd68bbcfc7ce9009ddbcb7164a62d
+    byte_length: 1447848
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: uwmc-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339825000025/uwmc-20250331.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-62;occurrence=2
+    - xbrl:us-gaap:ServicingAsset;context=c-81;unit=usd;element_id=f-424;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-uwmc-2025-03-31.xml
+    sha256: f176b2747e53ad313dfbc15743453402a76433b2e110d33223571da71819dc48
+    byte_length: 4513
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - uwmc-2025-03-31-servicing-for-others-upb
+  - uwmc-2025-03-31-total-assets
+- fixture_id: b-uwmc-2025-06-30
+  cohort: B
+  issuer_id: uwmc
+  ticker: UWMC
+  cik: 0001783398
+  accession: 0001783398-25-000035
+  form: 10-Q
+  filed: '2025-08-07'
+  report_period: '2025-06-30'
+  original:
+    document: uwmc-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339825000035/uwmc-20250630.htm
+    sha256: 8b8450c09b2706836f9c5244c6469cd9a201aa6ccf8940cdd319a5e1efe71cf9
+    byte_length: 1704341
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: uwmc-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339825000035/uwmc-20250630.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-62;occurrence=2
+    - xbrl:us-gaap:ServicingAsset;context=c-115;unit=usd;element_id=f-527;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-uwmc-2025-06-30.xml
+    sha256: 64184169c6131f43c632972424dfaa1cdf5793fb847de8da9b52764ab16e6b89
+    byte_length: 4510
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - uwmc-2025-06-30-servicing-for-others-upb
+  - uwmc-2025-06-30-total-assets
+- fixture_id: b-uwmc-2025-09-30
+  cohort: B
+  issuer_id: uwmc
+  ticker: UWMC
+  cik: 0001783398
+  accession: 0001783398-25-000050
+  form: 10-Q
+  filed: '2025-11-06'
+  report_period: '2025-09-30'
+  original:
+    document: uwmc-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339825000050/uwmc-20250930.htm
+    sha256: a2c3c301ed54a9fc8da0c10142f3a40a107f0f31a80e36f2705bc0fcc3788306
+    byte_length: 1849765
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: uwmc-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339825000050/uwmc-20250930.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-6;unit=usd;element_id=f-62;occurrence=2
+    - xbrl:us-gaap:ServicingAsset;context=c-147;unit=usd;element_id=f-585;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-uwmc-2025-09-30.xml
+    sha256: 8ed2976037f50535ff8cfac951db3c0c9d1531aa91f6d1ff2d680a49483ae03d
+    byte_length: 4330
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - uwmc-2025-09-30-servicing-for-others-upb
+  - uwmc-2025-09-30-total-assets
+- fixture_id: b-uwmc-2025-12-31
+  cohort: B
+  issuer_id: uwmc
+  ticker: UWMC
+  cik: 0001783398
+  accession: 0001783398-26-000013
+  form: 10-K
+  filed: '2026-02-25'
+  report_period: '2025-12-31'
+  original:
+    document: uwmc-20251231.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339826000013/uwmc-20251231.htm
+    sha256: e0e593fe37be4ac0c0c1a62f19a1d664dcce3f81e39c905839d3614c2e936288
+    byte_length: 2398798
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: uwmc-20251231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339826000013/uwmc-20251231.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-5;unit=usd;element_id=f-87;occurrence=2
+    - xbrl:us-gaap:ServicingAsset;context=c-102;unit=usd;element_id=f-573;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-uwmc-2025-12-31.xml
+    sha256: c959f635cde20c7a793c342b9509c3e49eb9f2f26bdf02262186bb7e19bc4bf9
+    byte_length: 4532
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - uwmc-2025-12-31-servicing-for-others-upb
+  - uwmc-2025-12-31-total-assets
+- fixture_id: b-uwmc-2026-03-31
+  cohort: B
+  issuer_id: uwmc
+  ticker: UWMC
+  cik: 0001783398
+  accession: 0001783398-26-000051
+  form: 10-Q
+  filed: '2026-05-11'
+  report_period: '2026-03-31'
+  original:
+    document: uwmc-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339826000051/uwmc-20260331.htm
+    sha256: f79bf1c7f302200cfe5fd9b3361ac966c28723ea98ffe046e2774762ca1238f0
+    byte_length: 1453737
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: uwmc-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339826000051/uwmc-20260331.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-4;unit=usd;element_id=f-59;occurrence=2
+    - xbrl:us-gaap:ServicingAsset;context=c-80;unit=usd;element_id=f-429;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-uwmc-2026-03-31.xml
+    sha256: 851ceef97abe603f3cf65eafdb4b939edf8bc16efc8c4d4155ba7815539c5e5c
+    byte_length: 4483
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - uwmc-2026-03-31-servicing-for-others-upb
+  - uwmc-2026-03-31-total-assets
+- fixture_id: b-uwmc-2026-06-30
+  cohort: B
+  issuer_id: uwmc
+  ticker: UWMC
+  cik: 0001783398
+  accession: 0001783398-26-000117
+  form: 10-Q
+  filed: '2026-08-07'
+  report_period: '2026-06-30'
+  original:
+    document: uwmc-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339826000117/uwmc-20260630.htm
+    sha256: 8c931b67e5628e4706ffc09775ed33f2c4bc5e4cde50d3e036693a37941602f1
+    byte_length: 1764907
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: uwmc-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1783398/000178339826000117/uwmc-20260630.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-4;unit=usd;element_id=f-59;occurrence=2
+    - xbrl:us-gaap:ServicingAsset;context=c-103;unit=usd;element_id=f-519;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-uwmc-2026-06-30.xml
+    sha256: 17ffcba12539aa89e51a46f3f650ea1c538e687a052efc6ec2a4d36536f375b6
+    byte_length: 4486
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - uwmc-2026-06-30-servicing-for-others-upb
+  - uwmc-2026-06-30-total-assets
+- fixture_id: b-wfc-2024-09-30
+  cohort: B
+  issuer_id: wfc
+  ticker: WFC
+  cik: 0000072971
+  accession: 0000072971-24-000243
+  form: 10-Q
+  filed: '2024-10-31'
+  report_period: '2024-09-30'
+  original:
+    document: wfc-20240930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297124000243/wfc-20240930.htm
+    sha256: 0c0f4d6745286373715ac73975f0e1b794afa06a127308e0e9744528bc9fc23c
+    byte_length: 11601049
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: wfc-20240930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297124000243/wfc-20240930.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-308;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-6337;occurrence=20
+    - xbrl:wfc:LoansServicedforOthers;context=c-32;unit=usd;element_id=f-3321;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-wfc-2024-09-30.xml
+    sha256: a187e364c99b8a578537bddaa6b210a96e708fbc1fc2f010003ef6b4a1f847a3
+    byte_length: 20276
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - wfc:LoansServicedForOthers
+    - wfc:LoansServicedforOthers
+  evidence_case_ids:
+  - wfc-2024-09-30-servicing-for-others-upb
+  - wfc-2024-09-30-total-assets
+- fixture_id: b-wfc-2024-12-31
+  cohort: B
+  issuer_id: wfc
+  ticker: WFC
+  cik: 0000072971
+  accession: 0000072971-25-000066
+  form: 10-K
+  filed: '2025-02-25'
+  report_period: '2024-12-31'
+  original:
+    document: wfc-20241231_htm.xml
+    source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297125000066/wfc-20241231_htm.xml
+    sha256: 84e724ecbc72632941d07ce8b2638b023e238a852bcb268fd796357106c1072a
+    byte_length: 14569859
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: false
+    primary_document: wfc-20241231.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297125000066/wfc-20241231.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-24;unit=usd;element_id=f-288;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-24;unit=usd;element_id=f-6033;occurrence=20
+    - xbrl:wfc:LoansServicedforOthers;context=c-553;unit=usd;element_id=f-3042;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-wfc-2024-12-31.xml
+    sha256: 4de2be9ab50cd2398ac8df5ae1157237126120369972514dfd91d05698fed79f
+    byte_length: 22819
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - wfc:LoansServicedForOthers
+    - wfc:LoansServicedforOthers
+  evidence_case_ids:
+  - wfc-2024-12-31-servicing-for-others-upb
+  - wfc-2024-12-31-total-assets
+- fixture_id: b-wfc-2025-03-31
+  cohort: B
+  issuer_id: wfc
+  ticker: WFC
+  cik: 0000072971
+  accession: 0000072971-25-000129
+  form: 10-Q
+  filed: '2025-04-29'
+  report_period: '2025-03-31'
+  original:
+    document: wfc-20250331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297125000129/wfc-20250331.htm
+    sha256: 8a439c8e22f30198e9f7e61e5e9b121f80a2ec76df80ae895cf2b1a42c46ef54
+    byte_length: 8859588
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: wfc-20250331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297125000129/wfc-20250331.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-18;unit=usd;element_id=f-204;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-18;unit=usd;element_id=f-4849;occurrence=20
+    - xbrl:wfc:LoansServicedforOthers;context=c-428;unit=usd;element_id=f-2626;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-wfc-2025-03-31.xml
+    sha256: 5df777ce18079ee4596509dde345c2bcdf7e046edc4655938c7d2be14d1b1ff2
+    byte_length: 20281
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - wfc:LoansServicedForOthers
+    - wfc:LoansServicedforOthers
+  evidence_case_ids:
+  - wfc-2025-03-31-servicing-for-others-upb
+  - wfc-2025-03-31-total-assets
+- fixture_id: b-wfc-2025-06-30
+  cohort: B
+  issuer_id: wfc
+  ticker: WFC
+  cik: 0000072971
+  accession: 0000072971-25-000201
+  form: 10-Q
+  filed: '2025-08-05'
+  report_period: '2025-06-30'
+  original:
+    document: wfc-20250630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297125000201/wfc-20250630.htm
+    sha256: 548c81f56618a0fcb408a76fd8f4f77c8a52468f3a376d625472134e4b492c2d
+    byte_length: 10949765
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: wfc-20250630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297125000201/wfc-20250630.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-306;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-6054;occurrence=20
+    - xbrl:wfc:LoansServicedforOthers;context=c-542;unit=usd;element_id=f-3071;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-wfc-2025-06-30.xml
+    sha256: f2ff44348860de76470e4fa0720d32fd59f6c462101302d224af50e6e90bb758
+    byte_length: 20283
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - wfc:LoansServicedForOthers
+    - wfc:LoansServicedforOthers
+  evidence_case_ids:
+  - wfc-2025-06-30-servicing-for-others-upb
+  - wfc-2025-06-30-total-assets
+- fixture_id: b-wfc-2025-09-30
+  cohort: B
+  issuer_id: wfc
+  ticker: WFC
+  cik: 0000072971
+  accession: 0000072971-25-000253
+  form: 10-Q
+  filed: '2025-10-31'
+  report_period: '2025-09-30'
+  original:
+    document: wfc-20250930.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297125000253/wfc-20250930.htm
+    sha256: 00dc2feb65a3ebe065b1298626bcdfc76f9b11d02c8ee4eb4c013fda13c17722
+    byte_length: 10931658
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: wfc-20250930.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297125000253/wfc-20250930.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-302;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-6100;occurrence=20
+    - xbrl:wfc:LoansServicedforOthers;context=c-540;unit=usd;element_id=f-3095;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-wfc-2025-09-30.xml
+    sha256: 5b77494584bc655f0873eb012502a0773f1d439dbcb6cb205c44dedc421379a9
+    byte_length: 20283
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - wfc:LoansServicedForOthers
+    - wfc:LoansServicedforOthers
+  evidence_case_ids:
+  - wfc-2025-09-30-servicing-for-others-upb
+  - wfc-2025-09-30-total-assets
+- fixture_id: b-wfc-2025-12-31
+  cohort: B
+  issuer_id: wfc
+  ticker: WFC
+  cik: 0000072971
+  accession: 0000072971-26-000133
+  form: 10-K
+  filed: '2026-02-24'
+  report_period: '2025-12-31'
+  original:
+    document: wfc-20251231_d2_htm.xml
+    source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297126000133/wfc-20251231_d2_htm.xml
+    sha256: 0e4d78d257cfddfaa565b87fc6cef3d66d33085895fcd568c40b0c4581c19e42
+    byte_length: 14352650
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: false
+    primary_document: wfc-20251231_d2.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297126000133/wfc-20251231_d2.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-13;unit=usd;element_id=f-218;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-13;unit=usd;element_id=f-5881;occurrence=20
+    - xbrl:wfc:LoansServicedforOthers;context=c-531;unit=usd;element_id=f-2976;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-wfc-2025-12-31.xml
+    sha256: c8e4dc99611577dafe077b881239867eda538d4abe230ac4947c77b8255ee803
+    byte_length: 22867
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - wfc:LoansServicedForOthers
+    - wfc:LoansServicedforOthers
+  evidence_case_ids:
+  - wfc-2025-12-31-servicing-for-others-upb
+  - wfc-2025-12-31-total-assets
+- fixture_id: b-wfc-2026-03-31
+  cohort: B
+  issuer_id: wfc
+  ticker: WFC
+  cik: 0000072971
+  accession: 0000072971-26-000217
+  form: 10-Q
+  filed: '2026-04-29'
+  report_period: '2026-03-31'
+  original:
+    document: wfc-20260331.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297126000217/wfc-20260331.htm
+    sha256: 9b8853aad4fa7442b870c49dff3338178864812dc10400b39d1a07bf894b8763
+    byte_length: 8552077
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: wfc-20260331.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297126000217/wfc-20260331.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-18;unit=usd;element_id=f-198;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-18;unit=usd;element_id=f-4834;occurrence=20
+    - xbrl:wfc:LoansServicedForOthers;context=c-432;unit=usd;element_id=f-2640;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-wfc-2026-03-31.xml
+    sha256: 9e456ed0eae7ca3f6370c25918d459da3db9a214cb6a2816165fe55765a325e2
+    byte_length: 20256
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - wfc:LoansServicedForOthers
+    - wfc:LoansServicedforOthers
+  evidence_case_ids:
+  - wfc-2026-03-31-servicing-for-others-upb
+  - wfc-2026-03-31-total-assets
+- fixture_id: b-wfc-2026-06-30
+  cohort: B
+  issuer_id: wfc
+  ticker: WFC
+  cik: 0000072971
+  accession: 0000072971-26-000302
+  form: 10-Q
+  filed: '2026-07-28'
+  report_period: '2026-06-30'
+  original:
+    document: wfc-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297126000302/wfc-20260630.htm
+    sha256: 261e3d592eafecd998877837f1f5a27b24416357f22cf5365d232db20188f911
+    byte_length: 10648937
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: wfc-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/72971/000007297126000302/wfc-20260630.htm
+    locators:
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-302;occurrence=0
+    - xbrl:us-gaap:Assets;context=c-26;unit=usd;element_id=f-6055;occurrence=20
+    - xbrl:wfc:LoansServicedForOthers;context=c-507;unit=usd;element_id=f-3065;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/b-wfc-2026-06-30.xml
+    sha256: 99b25a210c1e55ada803e77a15ecb3a6fbf6fe9860f21c16b1fcb162daa3afe7
+    byte_length: 20258
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:Assets
+    - wfc:LoansServicedForOthers
+    - wfc:LoansServicedforOthers
+  evidence_case_ids:
+  - wfc-2026-06-30-servicing-for-others-upb
+  - wfc-2026-06-30-total-assets
+- fixture_id: c-c-2026-06-30
+  cohort: C
+  issuer_id: c
+  ticker: C
+  cik: 0000831001
+  accession: 0000831001-26-000045
+  form: 10-Q
+  filed: '2026-08-06'
+  report_period: '2026-06-30'
+  original:
+    document: c-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/831001/000083100126000045/c-20260630.htm
+    sha256: 51ab4617e736c41083924cf0853fb28db8c4a8fbca936788f2fa3b1523076e1c
+    byte_length: 14543948
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: c-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/831001/000083100126000045/c-20260630.htm
+    locators:
+    - xbrl:us-gaap:ServicingAssetAtFairValueAmount;context=c-1708;unit=usd;element_id=f-6419;occurrence=2
+  fixture:
+    path: tests/fixtures/phase5/replay/c-c-2026-06-30.xml
+    sha256: b3c9a748d27bba77a48713ca45b8b3dc056d5631584d2d4e5944d4ceb1e930e8
+    byte_length: 8073
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:ServicingAssetAtFairValueAmount
+  evidence_case_ids:
+  - c-2026-06-30-msr-fair-value
+- fixture_id: c-cfg-2026-06-30
+  cohort: C
+  issuer_id: cfg
+  ticker: CFG
+  cik: 0000759944
+  accession: 0000759944-26-000148
+  form: 10-Q
+  filed: '2026-08-03'
+  report_period: '2026-06-30'
+  original:
+    document: cfg-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/759944/000075994426000148/cfg-20260630.htm
+    sha256: 18e06ea4985a653e6526a8f7cdfcacc3e7947ce3d113f20240620994ec6d9990
+    byte_length: 5494829
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: cfg-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/759944/000075994426000148/cfg-20260630.htm
+    locators:
+    - xbrl:us-gaap:ServicingAssetAtFairValueAmount;context=c-7;unit=usd;element_id=f-3115;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/c-cfg-2026-06-30.xml
+    sha256: 83b82f7eeee8f3c6ab55239e140b39ab0797da93d0aad0d44aaf151fef12bcb7
+    byte_length: 12274
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:ServicingAssetAtFairValueAmount
+  evidence_case_ids:
+  - cfg-2026-06-30-residential-msr-fair-value
+- fixture_id: c-chmi-2026-06-30
+  cohort: C
+  issuer_id: chmi
+  ticker: CHMI
+  cik: '0001571776'
+  accession: 0001140361-26-032050
+  form: 10-Q
+  filed: '2026-08-10'
+  report_period: '2026-06-30'
+  original:
+    document: ef20075172_10q.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1571776/000114036126032050/ef20075172_10q.htm
+    sha256: e147df1dd64fe99bb0e3099a672b413f41ed3afc54949cf4c96178109e6f5a72
+    byte_length: 4359179
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: ef20075172_10q.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1571776/000114036126032050/ef20075172_10q.htm
+    locators:
+    - xbrl:chmi:ServicingAssetsUnpaidPrincipalBalance;context=c20260630;unit=U002;element_id=Fact_f314944c4a8046aa91a5a0e605647cb1;occurrence=1
+  fixture:
+    path: tests/fixtures/phase5/replay/c-chmi-2026-06-30.xml
+    sha256: 504e839c700ecbe289bb9f7e22dcba779a4d2eafb9fc2660fbc4d1dbee83f3e0
+    byte_length: 4328
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - chmi:ServicingAssetsUnpaidPrincipalBalance
+  evidence_case_ids:
+  - chmi-2026-06-30-msr-underlying-upb
+- fixture_id: c-fitb-2026-06-30
+  cohort: C
+  issuer_id: fitb
+  ticker: FITB
+  cik: '0000035527'
+  accession: 0000035527-26-000202
+  form: 10-Q
+  filed: '2026-08-04'
+  report_period: '2026-06-30'
+  original:
+    document: fitb-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/35527/000003552726000202/fitb-20260630.htm
+    sha256: 50e26c5318bbe4cd59c3d938ae50f4d397ea4c9025bf11b4af0fc7e659e317ae
+    byte_length: 7296795
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: fitb-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/35527/000003552726000202/fitb-20260630.htm
+    locators:
+    - xbrl:fitb:LoansServicedForOthers;context=c-799;unit=usd;element_id=f-3383;occurrence=0
+    - xbrl:fitb:LoansServicedForOthers;context=c-975;unit=usd;element_id=f-3743;occurrence=2
+  fixture:
+    path: tests/fixtures/phase5/replay/c-fitb-2026-06-30.xml
+    sha256: db6f653902ee9e0ef2e614a576020929285fb0a0178ee291927cc0d62ae7d64c
+    byte_length: 3677
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - fitb:LoansServicedForOthers
+  evidence_case_ids:
+  - fitb-2026-06-30-dus-commercial-servicing-upb
+  - fitb-2026-06-30-residential-servicing-upb
+- fixture_id: c-foa-2026-06-30
+  cohort: C
+  issuer_id: foa
+  ticker: FOA
+  cik: 0001828937
+  accession: 0001628280-26-054843
+  form: 10-Q
+  filed: '2026-08-07'
+  report_period: '2026-06-30'
+  original:
+    document: foa-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1828937/000162828026054843/foa-20260630.htm
+    sha256: 64c9c4e5014206b29756c1286170f9f8085c859f6b9dda108bd0719de7a72e88
+    byte_length: 3032125
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: foa-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1828937/000162828026054843/foa-20260630.htm
+    locators:
+    - xbrl:foa:FairValueOptionServicingAssetUnpaidPrincipalBalance;context=c-332;unit=usd;element_id=f-1078;occurrence=4
+  fixture:
+    path: tests/fixtures/phase5/replay/c-foa-2026-06-30.xml
+    sha256: a484e20ec9cd4d4e29b1446a76eab9132d6c90833725ccc3b290009783fa764a
+    byte_length: 5618
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - foa:FairValueOptionServicingAssetUnpaidPrincipalBalance
+  evidence_case_ids:
+  - foa-2026-06-30-total-reverse-serviced-upb
+- fixture_id: c-key-2026-06-30
+  cohort: C
+  issuer_id: key
+  ticker: KEY
+  cik: 0000091576
+  accession: 0001628280-26-052671
+  form: 10-Q
+  filed: '2026-08-04'
+  report_period: '2026-06-30'
+  original:
+    document: key-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/91576/000162828026052671/key-20260630.htm
+    sha256: 23e5db779909cdadbd7fbafeca5caa5d8bf866832ff278f066a9bb5faefc73d1
+    byte_length: 6536415
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: key-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/91576/000162828026052671/key-20260630.htm
+    locators:
+    - xbrl:us-gaap:ServicingAssetAtAmortizedValue;context=c-874;unit=usd;element_id=f-3677;occurrence=12
+    - xbrl:us-gaap:ServicingAssetAtAmortizedValue;context=c-874;unit=usd;element_id=f-3679;occurrence=14
+    - xbrl:us-gaap:ServicingAssetAtAmortizedValue;context=c-876;unit=usd;element_id=f-3604;occurrence=4
+    - xbrl:us-gaap:ServicingAssetAtAmortizedValue;context=c-876;unit=usd;element_id=f-3606;occurrence=6
+  fixture:
+    path: tests/fixtures/phase5/replay/c-key-2026-06-30.xml
+    sha256: db3cf275271588c9a934a9a66a356c73ded2e51725ec8b9e68faef76d0f7e426
+    byte_length: 10119
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:ServicingAssetAtAmortizedValue
+  evidence_case_ids:
+  - key-2026-06-30-commercial-msr-carrying-value
+  - key-2026-06-30-residential-msr-carrying-value
+- fixture_id: c-nly-2026-06-30
+  cohort: C
+  issuer_id: nly
+  ticker: NLY
+  cik: 0001043219
+  accession: 0001043219-26-000058
+  form: 10-Q
+  filed: '2026-07-29'
+  report_period: '2026-06-30'
+  original:
+    document: nly-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1043219/000104321926000058/nly-20260630.htm
+    sha256: 3475254d69c84b576ebf223a70399e46195ea532e4e45cbef84abc3dcf943d42
+    byte_length: 4019594
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: nly-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1043219/000104321926000058/nly-20260630.htm
+    locators:
+    - xbrl:us-gaap:ServicingAsset;context=c-8;unit=usd;element_id=f-56;occurrence=2
+  fixture:
+    path: tests/fixtures/phase5/replay/c-nly-2026-06-30.xml
+    sha256: cf4aaaea84d6b3577580bb00cbfbed29833c820185011a1e3d25b55d39bb25a1
+    byte_length: 3547
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:ServicingAsset
+  evidence_case_ids:
+  - nly-2026-06-30-msr-carrying-value
+- fixture_id: c-pnc-2026-06-30
+  cohort: C
+  issuer_id: pnc
+  ticker: PNC
+  cik: '0000713676'
+  accession: 0001628280-26-053170
+  form: 10-Q
+  filed: '2026-08-05'
+  report_period: '2026-06-30'
+  original:
+    document: pnc-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/713676/000162828026053170/pnc-20260630.htm
+    sha256: 2c2b4d4a55adaaf8dd21afa85e53250204608497b8408709ab0020f452bf925a
+    byte_length: 7742718
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: pnc-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/713676/000162828026053170/pnc-20260630.htm
+    locators:
+    - xbrl:pnc:UnpaidPrincipalBalanceOfLoansServicedForOthers;context=c-559;unit=usd;element_id=f-2655;occurrence=0
+    - xbrl:pnc:UnpaidPrincipalBalanceOfLoansServicedForOthers;context=c-561;unit=usd;element_id=f-2657;occurrence=2
+  fixture:
+    path: tests/fixtures/phase5/replay/c-pnc-2026-06-30.xml
+    sha256: b833ea85a44936a2da151f5faf546907d775d49b30b69cafa313ab1649faa562
+    byte_length: 4537
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - pnc:UnpaidPrincipalBalanceOfLoansServicedForOthers
+  evidence_case_ids:
+  - pnc-2026-06-30-commercial-servicing-upb
+  - pnc-2026-06-30-residential-servicing-upb
+- fixture_id: c-two-2026-06-30
+  cohort: C
+  issuer_id: two
+  ticker: TWO
+  cik: '0001465740'
+  accession: 0001465740-26-000031
+  form: 10-Q
+  filed: '2026-07-29'
+  report_period: '2026-06-30'
+  original:
+    document: two-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1465740/000146574026000031/two-20260630.htm
+    sha256: c622cbef5b07efa06af5546241a68b90bdc24c215996c3bfaad59433630bdf01
+    byte_length: 3380158
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: two-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1465740/000146574026000031/two-20260630.htm
+    locators:
+    - xbrl:us-gaap:ServicingAssetAtFairValueAmount;context=c-8;unit=usd;element_id=f-1248;occurrence=17
+    - xbrl:us-gaap:ServicingAssetAtFairValueAmount;context=c-8;unit=usd;element_id=f-1473;occurrence=22
+    - xbrl:us-gaap:ServicingAssetAtFairValueAmount;context=c-8;unit=usd;element_id=f-1474;occurrence=23
+    - xbrl:us-gaap:ServicingAssetAtFairValueAmount;context=c-8;unit=usd;element_id=f-49;occurrence=0
+    - xbrl:us-gaap:ServicingAssetAtFairValueAmount;context=c-8;unit=usd;element_id=f-701;occurrence=6
+    - xbrl:us-gaap:ServicingAssetAtFairValueAmount;context=c-8;unit=usd;element_id=f-703;occurrence=8
+  fixture:
+    path: tests/fixtures/phase5/replay/c-two-2026-06-30.xml
+    sha256: 020d3dbe014e79e38414f11dcd31e617b08552e7af7948ce0c3aa4d25a9f820c
+    byte_length: 14631
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - us-gaap:ServicingAssetAtFairValueAmount
+  evidence_case_ids:
+  - two-2026-06-30-msr-fair-value
+- fixture_id: c-vel-2026-06-30
+  cohort: C
+  issuer_id: vel
+  ticker: VEL
+  cik: 0001692376
+  accession: 0001193125-26-335807
+  form: 10-Q
+  filed: '2026-08-06'
+  report_period: '2026-06-30'
+  original:
+    document: vel-20260630.htm
+    source_url: https://www.sec.gov/Archives/edgar/data/1692376/000119312526335807/vel-20260630.htm
+    sha256: d264b56f2273dd6002ff150786c18198798ce36b80c5e4e3abb6d9ea1f137d1c
+    byte_length: 9814133
+    representation: EDGARTOOLS_LIBRARY_TEXT_CANONICAL_UTF8
+    capture_method: edgartools_attachment_text_utf8
+    is_primary: true
+    primary_document: vel-20260630.htm
+    primary_source_url: https://www.sec.gov/Archives/edgar/data/1692376/000119312526335807/vel-20260630.htm
+    locators:
+    - xbrl:vel:ServicingAssetAtUnpaidPrincipalBalanceAmount;context=C_3e54990a-b855-4e7a-a182-6f75c1268b45;unit=U_USD;element_id=F_021289b3-d28f-4275-860d-44afa3ebd077;occurrence=2
+  fixture:
+    path: tests/fixtures/phase5/replay/c-vel-2026-06-30.xml
+    sha256: 95ee48219be4c7ad818811593c87a69f5dae44a66d1f80dfaccf611673b9a156
+    byte_length: 5928
+    representation: BOUNDED_DERIVED_REPLAY_EXCERPT
+    capture_method: offline_bounded_xbrl_replay_excerpt
+    qualified_concepts:
+    - vel:ServicingAssetAtUnpaidPrincipalBalanceAmount
+  evidence_case_ids:
+  - vel-2026-06-30-msr-underlying-upb

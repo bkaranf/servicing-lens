@@ -20,7 +20,7 @@ from mortgage_servicing_dashboard.edgartools_adapter.errors import (
     AdapterState,
 )
 
-_DEFAULT_LOCAL_DATA_PATH = Path(".msi") / "edgartools" / "data"
+_DEFAULT_LOCAL_DATA_PATH = Path("edgartools") / "data"
 _MAX_REQUESTS_PER_SECOND = 9
 _EXPECTED_EDGARTOOLS_VERSION = "5.48.0"
 _ASCII_CONTROL_LIMIT = 32
@@ -36,7 +36,7 @@ _CUSTOM_MIRROR_VARIABLES = (
 
 @dataclass(frozen=True, slots=True)
 class EdgarBootstrapConfig:
-    """Secret identity and repository root used for an ignored local data path.
+    """Secret identity and application state root for the edgartools cache.
 
     ``identity`` is intentionally excluded from the dataclass representation.  It is
     accepted only as a ``SecretStr`` so a caller cannot accidentally pass a printable
@@ -44,12 +44,12 @@ class EdgarBootstrapConfig:
     """
 
     identity: SecretStr = field(repr=False)
-    repository_root: Path = Path()
+    runtime_root: Path = Path(".msi")
 
     @property
     def local_data_root(self) -> Path:
-        """Return the required repository-local edgartools data directory."""
-        return (self.repository_root / _DEFAULT_LOCAL_DATA_PATH).resolve()
+        """Return the cache path below the already-resolved application state root."""
+        return (self.runtime_root.resolve() / _DEFAULT_LOCAL_DATA_PATH).resolve()
 
 
 class EdgarBootstrap:
@@ -61,7 +61,7 @@ class EdgarBootstrap:
         self._module: ModuleType | None = None
 
     def load(self) -> ModuleType:
-        """Configure CRAWL/local access, then import the public package.
+        """Configure CRAWL network access and local caching, then import edgartools.
 
         Returns:
             The lazily imported public ``edgar`` module.
@@ -161,11 +161,14 @@ class EdgarBootstrap:
                 operation="bootstrap",
             ) from error
 
-        # edgartools 5.48 reads these supported settings at import time.  Keep the
+        # edgartools 5.48 reads these supported settings at import time. Keep the
         # library's own cache and bounded retry machinery; no application retry loop
-        # or alternate host is configured here.
+        # or alternate host is configured here. EDGAR_USE_LOCAL_DATA is deliberately
+        # disabled: that mode is a bulk-data-only lookup, and Company.get_facts()
+        # returns None on an empty bulk directory instead of using its SEC network
+        # path. EDGAR_LOCAL_DATA_DIR still owns edgartools' ignored HTTP cache.
         os.environ["EDGAR_IDENTITY"] = identity
         os.environ["EDGAR_ACCESS_MODE"] = "CRAWL"
         os.environ["EDGAR_LOCAL_DATA_DIR"] = str(data_root)
-        os.environ["EDGAR_USE_LOCAL_DATA"] = "1"
+        os.environ["EDGAR_USE_LOCAL_DATA"] = "0"
         os.environ["EDGARTOOLS_STRICT_ERRORS"] = "1"

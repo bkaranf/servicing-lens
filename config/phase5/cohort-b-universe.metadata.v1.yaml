@@ -1,0 +1,147 @@
+schema_version: phase5-cohort-b-universe-metadata-v1
+as_of: "2026-08-18"
+status: DECLARATIVE_IDENTITIES_WITH_EVIDENCE_CASE_REFERENCES
+companies:
+  - id: tfc
+    legal_name: Truist Financial Corporation
+    sec_resolved_name: TRUIST FINANCIAL CORP
+    ticker: TFC
+    cik: "0000092230"
+    classification: bank
+    reporting_entity_id: tfc_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [tfc-2026-06-30-total-servicing-upb]
+    expected_scope: Residential mortgage servicing portfolio; commercial servicing excluded.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: Residential servicing UPB is not every serviced asset class.
+
+  - id: wfc
+    legal_name: Wells Fargo & Company
+    sec_resolved_name: WELLS FARGO & COMPANY/MN
+    ticker: WFC
+    cik: "0000072971"
+    classification: bank
+    reporting_entity_id: wfc_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [wfc-2026-06-30-servicing-for-others-upb]
+    expected_scope: Residential loans serviced for others under the effective source-defined disclosure scope.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: Distinct effective disclosure scopes are not treated as automatically comparable.
+
+  - id: jpm
+    legal_name: JPMorgan Chase & Co.
+    sec_resolved_name: JPMORGAN CHASE & CO
+    ticker: JPM
+    cik: "0000019617"
+    classification: bank
+    reporting_entity_id: jpm_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [jpm-2026-06-30-servicing-for-others-upb]
+    expected_scope: Third-party mortgage loans serviced at period end.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: Third-party mortgage servicing is not total company servicing or owned-loan UPB.
+
+  - id: bac
+    legal_name: Bank of America Corporation
+    sec_resolved_name: BANK OF AMERICA CORP /DE/
+    ticker: BAC
+    cik: "0000070858"
+    classification: bank
+    reporting_entity_id: bac_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [bac-2026-06-30-servicing-for-others-upb]
+    expected_scope: Consumer first-lien loans serviced for investors in the source-defined disclosure context.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: This scope is not treated as total company servicing.
+
+  - id: usb
+    legal_name: U.S. Bancorp
+    sec_resolved_name: US BANCORP \DE\
+    ticker: USB
+    cik: "0000036104"
+    classification: bank
+    reporting_entity_id: usb_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [usb-2026-06-30-servicing-for-others-upb]
+    expected_scope: Residential loans serviced for others, including the source-defined subservicing population.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: The issuer-defined inclusion of specified subservicing is preserved.
+
+  - id: pfsi
+    legal_name: PennyMac Financial Services, Inc.
+    sec_resolved_name: PennyMac Financial Services, Inc.
+    ticker: PFSI
+    cik: "0001745916"
+    classification: nonbank
+    reporting_entity_id: pfsi_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [pfsi-2026-06-30-owned-msr-upb]
+    expected_scope: UPB underlying owned fair-value MSRs; not total servicing or subservicing UPB.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: Owned-MSR UPB is not presented as total servicing UPB.
+
+  - id: rkt
+    legal_name: Rocket Companies, Inc.
+    sec_resolved_name: Rocket Companies, Inc.
+    ticker: RKT
+    cik: "0001805284"
+    classification: nonbank
+    reporting_entity_id: rkt_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [rkt-2026-06-30-total-servicing-upb]
+    expected_scope: Mortgage loans serviced, excluding subserviced loans, under the effective source-defined disclosure scope.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: Distinct effective disclosure scopes remain separate; no continuity is inferred.
+
+  - id: uwmc
+    legal_name: UWM Holdings Corp
+    sec_resolved_name: UWM Holdings Corp
+    ticker: UWMC
+    cik: "0001783398"
+    classification: nonbank
+    reporting_entity_id: uwmc_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [uwmc-2026-06-30-servicing-for-others-upb]
+    expected_scope: Mortgage loans serviced for others in the exact source dimensional context.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: The dimensional contract distinguishes servicing UPB from the undimensioned MSR asset.
+
+  - id: ritm
+    legal_name: Rithm Capital Corp.
+    sec_resolved_name: Rithm Capital Corp.
+    ticker: RITM
+    cik: "0001556593"
+    classification: nonbank
+    reporting_entity_id: ritm_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [ritm-2026-06-30-owned-msr-upb]
+    expected_scope: Principal balance or notional amount of consolidated MSRs and MSR financing receivables.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: The metric includes MSR financing receivables and is not total servicing or subservicing UPB.
+
+  - id: ldi
+    legal_name: loanDepot, Inc.
+    sec_resolved_name: loanDepot, Inc.
+    ticker: LDI
+    cik: "0001831631"
+    classification: nonbank
+    reporting_entity_id: ldi_registrant
+    current_sec_status: ACTIVE_CURRENT_REGISTRANT
+    evidence_case_ids: [ldi-2026-06-30-total-servicing-upb]
+    expected_scope: Total source-reported servicing portfolio comprising agency, government, and other categories.
+    corporate_actions: []
+    onboarding_status: B_END_TO_END_PUBLISHED
+    exclusion_or_risk_notes: Included on its own evidence-qualified current record; no ranking claim is made.
+
+unsupported_corporate_action_notes:
+  status: NOT_DISCLOSED
+  reason: No corporate-action narrative is retained without an exact tracked evidence-case locator.

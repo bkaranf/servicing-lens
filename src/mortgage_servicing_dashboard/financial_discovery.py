@@ -75,6 +75,10 @@ class ReportingScopeCategory(StrEnum):
     """Additive scope categories permitted by the compact financial mapping."""
 
     CONSOLIDATED_COMPANY = "CONSOLIDATED_COMPANY"
+    TOTAL_SERVICING_PORTFOLIO = "TOTAL_SERVICING_PORTFOLIO"
+    SERVICING_FOR_OTHERS = "SERVICING_FOR_OTHERS"
+    OWNED_MSR_PORTFOLIO = "OWNED_MSR_PORTFOLIO"
+    MSR_ASSET = "MSR_ASSET"
 
 
 class Directness(StrEnum):
@@ -136,7 +140,10 @@ class SelectedFieldMapping:
         if not self.eligible_forms or any(not form.strip() for form in self.eligible_forms):
             message = "selected financial fields require explicit eligible forms"
             raise FinancialDiscoveryError(message)
-        if self.portfolio_population != "consolidated_sec_registrant":
+        if (
+            self.classification is FinancialClassification.CORE_FINANCIAL
+            and self.portfolio_population != "consolidated_sec_registrant"
+        ):
             message = "selected core financial scope must identify the consolidated SEC registrant"
             raise FinancialDiscoveryError(message)
         if self.selection_decision is SelectionDecision.SELECTED:
@@ -157,6 +164,46 @@ class SelectedFieldMapping:
         """Return the configured issuer identifier."""
         return self.xbrl.issuer_id
 
+    @property
+    def mapping_id(self) -> str:
+        """Return the stable identity of this effective-dated source mapping."""
+        return self.xbrl.stable_mapping_id
+
+
+@dataclass(frozen=True, slots=True)
+class FinancialMetricDefinition:
+    """Issuer-neutral metadata for one shared financial metric version."""
+
+    metric_id: str
+    semantic_version: str
+    display_name: str
+    category: str
+    business_meaning: str
+    grain: str
+    unit: str
+
+    def __post_init__(self) -> None:
+        """Reject incomplete global metadata before any issuer fact is mapped."""
+        if any(
+            not value.strip()
+            for value in (
+                self.metric_id,
+                self.semantic_version,
+                self.display_name,
+                self.category,
+                self.business_meaning,
+                self.grain,
+                self.unit,
+            )
+        ):
+            message = "financial metric definition fields must not be blank"
+            raise FinancialDiscoveryError(message)
+
+    @property
+    def version_id(self) -> str:
+        """Return the stable database key for this semantic version."""
+        return f"{self.metric_id}:{self.semantic_version}"
+
 
 @dataclass(frozen=True, slots=True)
 class FinancialFieldRegistry:
@@ -164,16 +211,28 @@ class FinancialFieldRegistry:
 
     version: str
     mappings: tuple[SelectedFieldMapping, ...]
+    metric_definitions: tuple[FinancialMetricDefinition, ...] = ()
 
     def __post_init__(self) -> None:
         """Reject an empty or multiply defined issuer/field selection."""
         if not self.version.strip() or not self.mappings:
             message = "financial-field registry requires a version and mappings"
             raise FinancialDiscoveryError(message)
-        identities = {(item.issuer_id, item.field_id) for item in self.mappings}
+        identities = {item.mapping_id for item in self.mappings}
         if len(identities) != len(self.mappings):
-            message = "financial-field registry repeats an issuer/field mapping"
+            message = "financial-field registry repeats an issuer/field mapping identity"
             raise FinancialDiscoveryError(message)
+        definition_ids = {item.version_id for item in self.metric_definitions}
+        if len(definition_ids) != len(self.metric_definitions):
+            message = "financial-field registry repeats a metric definition version"
+            raise FinancialDiscoveryError(message)
+        if self.metric_definitions:
+            mapped_versions = {
+                f"{item.field_id}:{item.xbrl.metric_version}" for item in self.mappings
+            }
+            if definition_ids != mapped_versions:
+                message = "financial metric definitions must exactly cover mapped metric versions"
+                raise FinancialDiscoveryError(message)
 
     @classmethod
     def from_yaml(cls, path: Path) -> FinancialFieldRegistry:
@@ -209,9 +268,44 @@ class FinancialFieldRegistry:
             )
             for index, value in enumerate(raw_mappings)
         )
-        return cls(version=xbrl_registry.version, mappings=mappings)
+        raw_definitions = root.get("metric_definitions", ())
+        definitions = tuple(
+            _metric_definition_from_payload(
+                value,
+                location=f"root.metric_definitions[{index}]",
+            )
+            for index, value in enumerate(
+                _as_sequence(raw_definitions, location="root.metric_definitions")
+            )
+        )
+        return cls(
+            version=xbrl_registry.version,
+            mappings=mappings,
+            metric_definitions=definitions,
+        )
 
-    def for_filing(self, *, cik: str, form: str) -> tuple[SelectedFieldMapping, ...]:
+    def metric_definition(
+        self,
+        metric_id: str,
+        semantic_version: str,
+    ) -> FinancialMetricDefinition | None:
+        """Return the one issuer-neutral definition for a mapped metric version."""
+        return next(
+            (
+                item
+                for item in self.metric_definitions
+                if item.metric_id == metric_id and item.semantic_version == semantic_version
+            ),
+            None,
+        )
+
+    def for_filing(
+        self,
+        *,
+        cik: str,
+        form: str,
+        period_end: date | None = None,
+    ) -> tuple[SelectedFieldMapping, ...]:
         """Return selected mappings eligible for an exact filing identity."""
         return tuple(
             mapping
@@ -219,6 +313,7 @@ class FinancialFieldRegistry:
             if mapping.xbrl.cik == cik
             and form in mapping.eligible_forms
             and mapping.selection_decision is SelectionDecision.SELECTED
+            and (period_end is None or mapping.xbrl.applies_to(period_end))
         )
 
 
@@ -480,9 +575,10 @@ def _parsed_fact_matches(fact: ParsedXbrlFact, mapping: SelectedFieldMapping) ->
         and fact.taxonomy == expected.taxonomy
         and fact.concept == expected.concept
         and fact.unit == expected.unit
-        and fact.decimals == expected.decimals
+        and (expected.decimals is None or fact.decimals == expected.decimals)
         and fact.period_type is expected.period_type
         and tuple(sorted(fact.dimensions)) == tuple(sorted(expected.dimensions))
+        and expected.applies_to(fact.period_end)
     )
 
 
@@ -637,7 +733,7 @@ def _fact_matches(fact: XbrlFact, mapping: SelectedFieldMapping) -> bool:
         and tuple(sorted(fact_dimensions)) == tuple(sorted(expected.dimensions))
         and fact.unit is not None
         and _canonical_unit_measure(fact.unit.measure) == expected.unit
-        and fact.decimals == decimals
+        and (expected.decimals is None or fact.decimals == decimals)
     )
 
 
@@ -813,6 +909,32 @@ def _selected_mapping_from_payload(
     except ValueError as error:
         message = f"{location} contains an unsupported financial-field enum value"
         raise FinancialDiscoveryError(message) from error
+
+
+def _metric_definition_from_payload(
+    value: object,
+    *,
+    location: str,
+) -> FinancialMetricDefinition:
+    """Parse one issuer-neutral shared metric definition."""
+    payload = _as_mapping(value, location=location)
+    return FinancialMetricDefinition(
+        metric_id=_required_string(payload, "metric_id", location=location),
+        semantic_version=_required_string(
+            payload,
+            "semantic_version",
+            location=location,
+        ),
+        display_name=_required_string(payload, "display_name", location=location),
+        category=_required_string(payload, "category", location=location),
+        business_meaning=_required_string(
+            payload,
+            "business_meaning",
+            location=location,
+        ),
+        grain=_required_string(payload, "grain", location=location),
+        unit=_required_string(payload, "unit", location=location),
+    )
 
 
 def _as_mapping(value: object, *, location: str) -> Mapping[str, object]:

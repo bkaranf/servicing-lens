@@ -76,6 +76,7 @@ _BOOTSTRAP_ENVIRONMENT = (
     "EDGAR_ACCESS_MODE",
     "EDGAR_LOCAL_DATA_DIR",
     "EDGAR_USE_LOCAL_DATA",
+    "EDGAR_ALLOW_NETWORK_FALLBACK",
     "EDGARTOOLS_STRICT_ERRORS",
     "EDGAR_RATE_LIMIT_PER_SEC",
     "EDGAR_BASE_URL",
@@ -150,7 +151,7 @@ def _bootstrap(tmp_path: Path, *, identity: str = _IDENTITY) -> EdgarBootstrap:
     return EdgarBootstrap(
         EdgarBootstrapConfig(
             identity=SecretStr(identity),
-            repository_root=tmp_path,
+            runtime_root=tmp_path,
         )
     )
 
@@ -174,11 +175,12 @@ def _acquired_content(
     )
 
 
-def test_bootstrap_configures_crawl_and_local_storage_before_one_lazy_import(
+def test_bootstrap_configures_crawl_and_cache_root_before_one_lazy_import(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _clear_bootstrap_state(monkeypatch)
+    monkeypatch.setenv("EDGAR_USE_LOCAL_DATA", "1")
     imported = ModuleType("edgar")
     calls: list[str] = []
 
@@ -188,9 +190,9 @@ def test_bootstrap_configures_crawl_and_local_storage_before_one_lazy_import(
         assert os.environ["EDGAR_ACCESS_MODE"] == "CRAWL"
         assert "EDGAR_RATE_LIMIT_PER_SEC" not in os.environ
         assert os.environ["EDGAR_IDENTITY"] == _IDENTITY
-        assert os.environ["EDGAR_USE_LOCAL_DATA"] == "1"
+        assert os.environ["EDGAR_USE_LOCAL_DATA"] == "0"
         assert os.environ["EDGARTOOLS_STRICT_ERRORS"] == "1"
-        expected_data = (tmp_path / ".msi" / "edgartools" / "data").resolve()
+        expected_data = (tmp_path / "edgartools" / "data").resolve()
         assert Path(os.environ["EDGAR_LOCAL_DATA_DIR"]) == expected_data
         assert expected_data.is_dir()
         return imported
@@ -385,11 +387,11 @@ def test_bootstrap_rejects_prior_edgar_import_before_environment_mutation(
     assert captured.value.operation == "bootstrap"
     assert imported is False
     assert "EDGAR_IDENTITY" not in os.environ
-    assert not (tmp_path / ".msi").exists()
+    assert not (tmp_path / "edgartools").exists()
 
 
 def test_bootstrap_configuration_repr_does_not_expose_identity(tmp_path: Path) -> None:
-    config = EdgarBootstrapConfig(identity=SecretStr(_IDENTITY), repository_root=tmp_path)
+    config = EdgarBootstrapConfig(identity=SecretStr(_IDENTITY), runtime_root=tmp_path)
 
     assert _IDENTITY not in repr(config)
 
@@ -1356,7 +1358,7 @@ def test_production_facade_construction_remains_lazy_and_identity_safe(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _clear_bootstrap_state(monkeypatch)
-    config = EdgarBootstrapConfig(identity=SecretStr(_IDENTITY), repository_root=tmp_path)
+    config = EdgarBootstrapConfig(identity=SecretStr(_IDENTITY), runtime_root=tmp_path)
 
     adapter = EdgarToolsAdapter.from_config(config)
 

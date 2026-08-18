@@ -266,74 +266,12 @@ function activateTab(activeTab, moveFocus = true) {
   if (moveFocus) activeTab.focus();
 }
 
-const selectionStorageKey = "servicing-lens-comparison";
 const companyRowsContainer = document.querySelector("#company-rows");
 const companyRows = Array.from(document.querySelectorAll(".company-row"));
 const companySearch = document.querySelector("#company-search");
 const companySort = document.querySelector("#company-sort");
 const companyEmpty = document.querySelector("#company-empty");
 const matchCount = document.querySelector("#match-count");
-const comparisonNotice = document.querySelector("#comparison-notice");
-const compareCheckboxes = Array.from(document.querySelectorAll(".compare-checkbox"));
-
-function readSelection() {
-  try {
-    const stored = JSON.parse(sessionStorage.getItem(selectionStorageKey) || "[]");
-    return Array.isArray(stored) ? stored.filter((item) => typeof item === "string").slice(0, 3) : [];
-  } catch (_error) {
-    return [];
-  }
-}
-
-function writeSelection(selected) {
-  try {
-    sessionStorage.setItem(selectionStorageKey, JSON.stringify(selected.slice(0, 3)));
-  } catch (_error) {
-    // The interface remains fully usable when browser storage is unavailable.
-  }
-}
-
-function activeCheckboxSelection() {
-  return compareCheckboxes.filter((item) => item.checked).map((item) => item.value);
-}
-
-function updateCheckboxLabels() {
-  compareCheckboxes.forEach((checkbox) => {
-    const row = checkbox.closest(".company-row");
-    const name = row?.querySelector("h3")?.textContent || checkbox.value;
-    checkbox.setAttribute(
-      "aria-label",
-      `${checkbox.checked ? "Remove" : "Add"} ${name} ${checkbox.checked ? "from" : "to"} comparison`,
-    );
-  });
-}
-
-if (compareCheckboxes.length) {
-  const knownIds = new Set(compareCheckboxes.map((item) => item.value));
-  const stored = readSelection().filter((item) => knownIds.has(item));
-  if (stored.length) {
-    compareCheckboxes.forEach((checkbox) => {
-      checkbox.checked = stored.includes(checkbox.value);
-    });
-  } else {
-    writeSelection(activeCheckboxSelection());
-  }
-  updateCheckboxLabels();
-  compareCheckboxes.forEach((checkbox) => {
-    checkbox.addEventListener("change", () => {
-      const result = window.ServicingLensState.toggleCompany(readSelection(), checkbox.value);
-      compareCheckboxes.forEach((item) => {
-        item.checked = result.selected.includes(item.value);
-      });
-      if (comparisonNotice) {
-        comparisonNotice.textContent = result.status;
-        comparisonNotice.classList.toggle("limit", !result.accepted);
-      }
-      writeSelection(result.selected);
-      updateCheckboxLabels();
-    });
-  });
-}
 
 function refreshCompanyRows() {
   if (!companyRowsContainer) return;
@@ -367,21 +305,6 @@ refreshCompanyRows();
 
 const comparisonCards = Array.from(document.querySelectorAll(".compare-card"));
 const kpiSelectors = Array.from(document.querySelectorAll(".kpi-selector"));
-const benchStatus = document.querySelector("#bench-status");
-
-function updateBench() {
-  if (!comparisonCards.length) return;
-  let selected = readSelection();
-  const known = comparisonCards.map((card) => card.dataset.companyId);
-  selected = selected.filter((item) => known.includes(item));
-  if (!selected.length) selected = known.slice(0, 2);
-  comparisonCards.forEach((card) => {
-    card.hidden = !selected.includes(card.dataset.companyId);
-  });
-  if (benchStatus) benchStatus.textContent = `${selected.length} of 3 companies selected.`;
-  document.querySelector(".add-card")?.toggleAttribute("hidden", selected.length >= 3);
-  writeSelection(selected);
-}
 
 function updateKpiSlot(selector) {
   const slot = selector.dataset.slot;
@@ -397,17 +320,6 @@ kpiSelectors.forEach((selector) => {
   updateKpiSlot(selector);
   selector.addEventListener("change", () => updateKpiSlot(selector));
 });
-comparisonCards.forEach((card) => {
-  card.querySelector(".remove-company")?.addEventListener("click", () => {
-    const result = window.ServicingLensState.toggleCompany(readSelection(), card.dataset.companyId);
-    writeSelection(result.selected);
-    card.hidden = true;
-    if (benchStatus) benchStatus.textContent = result.status;
-    document.querySelector(".add-card")?.removeAttribute("hidden");
-  });
-});
-updateBench();
-
 const earningsSearch = document.querySelector("#earnings-search");
 const earningsCards = Array.from(document.querySelectorAll(".earnings-card"));
 const earningsStatus = document.querySelector("#earnings-status");
