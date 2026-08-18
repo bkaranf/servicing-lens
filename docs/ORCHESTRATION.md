@@ -64,13 +64,11 @@ and observation semantic/knowledge keys. The recorded Stage A seed operation is
 idempotent: replay inserts no duplicate company, metric, evidence, filing, event,
 or observation rows.
 
-The opt-in SEC client boundary requires an explicit identifying User-Agent,
-official HTTPS SEC hosts only, a minimum request interval, bounded retry with
-backoff, response-size bounds, validator-aware local caching, and immutable
-content-addressed retention. Non-SEC hosts, redirects, invalid identity, and
-exhausted retries fail closed. The concrete bank adapter selects only FFIEC CDR
-or FR Y-9C and resolves RSSD identity before parsing; it cannot silently cross
-holding-company and depository scopes.
+The supported opt-in acquisition path is `msi sync`, which requires
+`EDGAR_IDENTITY` and uses public core `edgartools` interfaces behind the central
+acquisition boundary. The legacy direct SEC client and bank-regulatory adapters
+remain pre-cleanup implementation inventory only; they are outside the active
+source policy and are not eligible for new product observations.
 
 ## Human review
 

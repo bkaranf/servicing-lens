@@ -1,43 +1,66 @@
-# Servicing Lens development guidelines
+# Servicing Lens agent instructions
 
-## Scope and product boundary
+## Working approach
 
-This repository is a local, read-only, provenance-first public-data application for comparing selected U.S. mortgage servicers. It is pre-alpha: it is not production-ready, investment advice, or an industry ranking.
+- Choose the simplest robust design that satisfies the current goal.
+- Do not add frameworks, providers, services, abstraction layers, deployment
+  systems, authentication, remote tracing, or security machinery for hypothetical
+  needs.
+- Keep changes narrow. Fix unrelated issues only when they block the active goal
+  or are small, obvious, and safely covered by tests. Otherwise record them.
+- Read the README and only the documentation relevant to the files being changed.
+- Never add an agent name as a commit co-author.
+- Do not manually edit generated files, retained evidence bytes, or `uv.lock`.
+  Use the tool that owns each generated artifact.
 
-Preserve these boundaries:
+## Product boundary
 
-- deterministic code owns numbers, normalization, formulas, validation, reconciliation, revisions, and comparability;
-- use `Decimal` and SQL `NUMERIC` for money, balances, UPB, rates, and derived values;
-- retained evidence is immutable and content-addressed; never edit bytes under `config/recorded_evidence/`;
-- ambiguous values enter quarantine, and missing disclosure remains `NOT_DISCLOSED`;
-- public routes are read-only;
-- model calls, Deep Agents, tracing, and LangGraph persistence remain disabled by default;
-- do not add deployment, hosting, authentication, scheduled jobs, or model-provider wiring without an accepted decision.
+- Servicing Lens is a local, read-only comparison application using public SEC
+  data for current SEC registrants with material mortgage-servicing exposure.
+- Product data may come only from SEC-hosted filings, XBRL facts, and SEC-filed
+  exhibits acquired through `edgartools`.
+- `edgartools` is the sole SEC acquisition library. Use only its core company,
+  filing, attachment, and XBRL functionality.
+- Do not use hosted `api.edgar.tools`, edgartools MCP or AI features, another SEC
+  client, web scraping, FFIEC, FR Y-9C, agency data, issuer websites, or paid data.
+- The application runtime is deterministic and non-agentic. Do not add LangChain,
+  Deep Agents, model-provider wiring, or model-authored numeric paths.
 
-Read the governing documents in this order before changing behavior: `docs/PRODUCT_SCOPE.md`, `docs/SOURCE_AND_EVIDENCE_POLICY.md`, `docs/REPORTING_ENTITY_AND_SCOPE_MODEL.md`, `docs/METRIC_CATALOG.md`, `docs/DATA_MODEL.md`, `docs/ORCHESTRATION.md`, `docs/COMPARABILITY_POLICY.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/DECISIONS.md`, then `QUALITY_GUIDE.md`.
+## Financial authority
 
-## Development workflow
+- Deterministic code owns all financial values, normalization, formulas,
+  validation, reconciliation, revisions, and comparability.
+- Use `Decimal` and SQL `NUMERIC` for money, balances, UPB, rates, and derived
+  values. Never publish authoritative binary floating-point values.
+- Never estimate, interpolate, infer, or fabricate a financial value.
+- Missing disclosure remains `NOT_DISCLOSED`. Ambiguous or conflicting facts do
+  not publish.
+- Preserve legal entity, reporting scope, fiscal period, unit, scale,
+  methodology, and source identity.
+- Never blend parent, bank, subsidiary, segment, predecessor, successor,
+  portfolio, or subservicer facts merely because they share a corporate family.
+- Every published value must retain its CIK, accession, form, filing date, report
+  period, document name, SEC URL, locator, retrieval time, `edgartools` version,
+  byte length, and SHA-256 where document bytes are used.
 
-Use `uv` for dependency and environment operations. Depend only on released packages. Do not use path or editable dependency sources. All Python code must be typed; new behavior and bug fixes require deterministic unit tests. Unit tests must not use the network.
+## SEC access
 
-Run the complete gate from the repository root:
+- Live SEC access requires `EDGAR_IDENTITY` from the environment.
+- Fail before opening a socket when the identity is missing or invalid.
+- Never create a fallback identity, commit the identity, or expose it in logs,
+  fixtures, screenshots, reports, or generated artifacts.
+- Use one centralized SEC acquisition lane across all workers.
+- Never exceed nine SEC requests per second in aggregate.
+- Cache and reuse responses. Use bounded retries and backoff.
+- Stop and report when SEC access is blocked or repeatedly rate-limited.
 
-```text
-uv sync --locked --group dev
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy src tests
-uv run pytest --cov=mortgage_servicing_dashboard --cov-report=term-missing
-uv run msi doctor --json
-```
+## Testing and delivery
 
-Use Conventional Commits with a scope, for example `feat(acquisition): add SEC filing discovery`. Branches use `<github-user>/<scope>/<short-description>`. Keep changes reviewable, inspect dependency and evidence diffs, and do not merge draft pull requests.
-
-## Code quality and safety
-
-- Preserve public signatures unless a reviewed change explicitly authorizes a break.
-- Prefer keyword-only parameters for additions to public callables.
-- Use Google-style docstrings for public functions.
-- Avoid `eval`, `exec`, pickle on untrusted input, bare `except`, and silent exception handling.
-- Close files, database connections, sockets, and threads deterministically.
-- GitHub Actions must be pinned to full commit SHAs.
+- Reproduce defects with the smallest test that proves the failure.
+- Use E2E tests for end-user workflows, not as the default for parser defects.
+- New behavior requires deterministic offline tests.
+- Normal tests must remain network-free and socket-blocked.
+- Use `uv` for dependency and environment operations.
+- Run the complete repository quality gate before declaring work complete.
+- Do not merge, force-push, delete unlanded work, or publish a release without
+  explicit user approval.

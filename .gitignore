@@ -16,6 +16,7 @@ build/
 .msi/
 .ci/
 artifacts/
+.lavish/
 *.db
 *.db-journal
 .DS_Store

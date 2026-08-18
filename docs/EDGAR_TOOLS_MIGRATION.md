@@ -1,4 +1,9 @@
-# EdgarTools REST migration status
+# Historical hosted EdgarTools REST migration report
+
+> **Historical and non-authoritative.** D-019 superseded this hosted-provider
+> attempt. Active acquisition rules are in
+> [SOURCE_AND_EVIDENCE_POLICY.md](SOURCE_AND_EVIDENCE_POLICY.md); the product uses
+> the open-source `edgartools` package rather than `api.edgar.tools`.
 
 Date: 2026-08-12. Branch: `bkaranf/data/edgar-tools-only-cleanup`.
 

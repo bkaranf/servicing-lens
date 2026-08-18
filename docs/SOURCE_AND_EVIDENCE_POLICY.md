@@ -1,4 +1,4 @@
-# Source and evidence policy
+# Servicing Lens source and evidence policy
 
 ## Purpose
 
@@ -12,9 +12,7 @@ Stage A covers TFC and PFSI for Q3 2025 through Q2 2026. The source-discovery
 assessment must verify the actual available filings and documents before a metric
 is configured for publication.
 
-## Source classes and hierarchy
-
-### SEC sources
+## Eligible sources and acquisition
 
 Use official SEC public interfaces and EDGAR documents for:
 
@@ -24,64 +22,25 @@ Use official SEC public interfaces and EDGAR documents for:
 - inline XBRL and company facts; and
 - filing exhibits and amendment chains.
 
-The acquisition client must send a configurable, descriptive User-Agent with a
-real contact held outside source control. It must use bounded concurrency,
-conservative rate limiting below the SEC's published maximum, bounded retries with
-exponential backoff and jitter, caching, and conditional requests where supported.
-Permanent errors do not retry indefinitely.
+SEC-hosted filings, XBRL facts, and SEC-filed exhibits acquired through the
+public core `edgartools` company, filing, attachment, and XBRL interfaces are the
+only eligible product sources. Hosted `api.edgar.tools`, custom SEC HTTP clients,
+web scraping, FFIEC, FR Y-9C, agency data, issuer websites, and paid data are not
+eligible acquisition paths or publication sources.
 
-Only the controlled SEC adapter may issue SEC HTTP requests. Models, LangChain
-tools, graph nodes outside acquisition, and Deep Agents have no generic or direct
-SEC network access.
+Supported live access occurs only through `msi sync` and requires a validated
+`EDGAR_IDENTITY` held outside source control. One centralized acquisition lane
+serves all workers, remains below nine SEC requests per second in aggregate,
+reuses cached responses, and applies bounded retries and backoff. Missing or
+invalid identity, blocked SEC access, repeated rate limiting, or a gap in the
+public `edgartools` APIs stops acquisition without a fallback provider.
 
-### Issuer investor-relations sources
-
-Use an issuer's investor-relations material only when:
-
-- the material is not available as a filed SEC exhibit; or
-- it provides material context absent from the filed version.
-
-Retain the original URL, retrieval time, content hash, media type, and document
-version. A filed version has precedence for a published fact. An unfiled IR
-document can supplement context but cannot silently overwrite or supersede a filed
-fact.
-
-### Bank regulatory sources
-
-Adapters cover:
-
-- FFIEC Call Reports;
-- applicable FR Y-9C schedules; and
-- National Information Center institution attributes, relationships, and
-  transformations.
-
-Regulatory facts remain attached to their actual reporting entity and reporting
-scope. A depository institution, bank holding company, SEC registrant, reporting
-segment, and servicing subsidiary remain distinct even when they share a
-corporate family. SEC and regulatory values are not blended based on name or
-ownership alone.
-
-Phase 2 implements two explicit bulk shapes: tab-delimited FFIEC CDR Call Report
-rows for RSSD 852320 (Truist Bank) and caret-delimited FR Y-9C rows for RSSD
-1074156 (Truist Financial Corporation). NIC-style crosswalk rows verify ticker,
-CIK, RSSD, parent relationship, and effective dates. Adapter fixtures are marked
-`SYNTHETIC_TEST_DATA`; they test parsing but are not public observations.
-
-### Implemented live SEC boundary
-
-Live access occurs only after an explicit `--live` command and a validated
-`MSD_SEC_USER_AGENT`. The client permits official SEC HTTPS hosts, rejects
-redirects and user-info URLs, serializes requests at a conservative interval,
-uses bounded retry/backoff and response sizes, and verifies cached content.
-Original response bytes are retained by SHA-256 with representation
-`ORIGINAL_HTTP_RESPONSE` and capture method `sec_http_get`. Reacquiring changed
-bytes from the same URL creates a new content identity; conflicting observations
-enter quarantine.
-
-SEC company-facts and filing-level XBRL are parsed only from already acquired
-bytes. Mappings record concept, taxonomy, unit, exact Decimal scale, decimals,
-instant/duration period, and every dimension/member. XBRL and exhibit
-methodologies remain distinct and an exact mismatch never establishes precedence.
+Retain accession, CIK, form, filing date, report period, document name, SEC URL,
+locator, retrieval time, `edgartools` version, byte length, and SHA-256 where
+document bytes are used. Preserve filing-specific raw XBRL fact text, taxonomy,
+unit, scale, decimals, instant/duration period, context, and dimensions until
+deterministic normalization and validation complete. Conflicting observations
+enter quarantine rather than establishing an implicit precedence.
 
 ### Discovery-only material
 
@@ -103,7 +62,7 @@ Every acquired document or payload receives:
 - original URL;
 - timezone-aware retrieval timestamp;
 - publication or filing timestamp;
-- accession or regulatory identifier when applicable;
+- accession and SEC document identity;
 - SHA-256 hash of the exact retained representation bytes;
 - media type and byte length;
 - representation type and capture method;

@@ -27,11 +27,12 @@ The Stage A recorded-data vertical slice is implemented. It provides versioned
 TFC/PFSI configuration, hash-verified retained SEC DOM serializations, exact observations and
 explicit missingness, SQLAlchemy/Alembic persistence, typed read tools, a
 read-only API, server-rendered dashboard pages, a provenance dialog, and an
-interruptible review graph. Phase 2 wires opt-in SEC discovery and ingest,
-implements SEC company-facts and filing-XBRL paths, implements FFIEC/FR Y-9C/NIC
-adapters with native reporting scopes, and exposes an official-source earnings
-calendar. Recorded evidence remains the socket-blocked default. This is not
-a claim of production readiness or broad market coverage.
+interruptible review graph. A public-core `edgartools` qualification path handles
+opt-in SEC discovery and filing-specific XBRL. Legacy direct-client and regulatory
+adapters remain in the pre-cleanup implementation but are outside the active
+source boundary; they are not eligible for new product observations. Recorded
+evidence remains the socket-blocked default. This is not a claim of production
+readiness or broad market coverage.
 
 ## Stage A selection
 

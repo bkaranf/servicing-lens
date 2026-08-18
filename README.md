@@ -3,9 +3,9 @@
 Servicing Lens is a read-only public-data application for
 comparing selected publicly traded U.S. mortgage servicers. It turns authoritative
 SEC filings and filed earnings materials into reproducible observations with
-complete provenance. Opt-in SEC acquisition, SEC XBRL, FFIEC Call Report,
-FR Y-9C/NIC identity, and earnings-calendar adapters extend the closed Stage A
-recorded-data slice without changing its offline default.
+complete provenance. Opt-in `edgartools` acquisition, filing-specific SEC XBRL,
+and earnings-calendar adapters extend the closed Stage A recorded-data slice
+without changing its offline default.
 
 The current governed universe remains intentionally narrow:
 
@@ -24,9 +24,9 @@ application now lives in this history-preserving standalone repository. It inclu
 versioned configuration, hash-verified retained SEC DOM serializations,
 SQLAlchemy/Alembic persistence,
 a read-only API and dashboard, an interruptible LangGraph review workflow, and a
-socket-blocked acceptance suite. Phase 2 wires the controlled SEC client to
-explicit `--live` commands, persists original HTTP responses and structured raw
-facts, and adds a two-issuer official-source calendar. Live access remains opt-in.
+socket-blocked acceptance suite. The public-core `edgartools` qualification path
+is exposed as `msi sync`; legacy acquisition implementations remain in the tree
+pending bounded cleanup. Live access remains opt-in.
 Phase 3 deepens only TFC and PFSI across the same four quarters. Its complete
 424-cell disclosure assessment publishes 120 reported grid observations, 40
 supporting observations, and 43 exact derived observations; 222 cells remain
@@ -89,8 +89,8 @@ The locked install uses released packages only; there are no path or editable
 dependency overrides. Do not install dependencies with \`pip\`.
 
 No credential is required for the normal test suite. Explicit live SEC commands
-require `MSD_SEC_USER_AGENT` with an application name and monitored contact email,
-held only in an untracked `.env` or local environment.
+require `EDGAR_IDENTITY`, held only in the local environment and never committed
+or copied into logs, fixtures, screenshots, reports, or generated artifacts.
 
 ## CLI
 
@@ -99,11 +99,10 @@ The Stage A command is \`msi\`:
 \`\`\`bash
 uv run msi doctor --json
 uv run msi discover --company TFC
-uv run msi discover --live --company TFC
 uv run msi ingest
 uv run msi seed-phase3
 uv run msi ingest --phase3
-uv run msi ingest --live
+uv run msi sync --all --dry-run
 uv run msi calendar
 uv run msi validate
 uv run msi review list
@@ -121,9 +120,12 @@ rejection rebuild the deterministic graph to its interrupt, resume on the
 candidate's persisted run thread, create an audited decision, and run
 revalidation; they never edit a published observation directly.
 
-`--live` performs bounded per-CIK EDGAR submissions discovery, original-response
-retention, deterministic parsing, reconciliation, and idempotent publication.
-Without `MSD_SEC_USER_AGENT` it fails before opening a database or socket.
+`msi sync` uses the public core `edgartools` company, filing, attachment, and XBRL
+interfaces for bounded per-CIK qualification, evidence retention, deterministic
+parsing, reconciliation, and optional atomic publication. Without
+`EDGAR_IDENTITY` it fails before opening a database or socket. The legacy
+`discover --live` and `ingest --live` dispatch paths remain pre-cleanup code; they
+are not the supported acquisition boundary and must not be used for new evidence.
 `msi calendar` keeps the last actual filing separate from its conspicuously
 inferred next report window and lists every filing event used in the inference.
 

@@ -1,5 +1,10 @@
 # Implementation plan
 
+> **Historical implementation sequence.** This document records the completed
+> Stage A and later phase gates; it is not current acquisition authority. Use
+> [SOURCE_AND_EVIDENCE_POLICY.md](SOURCE_AND_EVIDENCE_POLICY.md) for the active
+> SEC-only `edgartools` boundary.
+
 ## Execution rule
 
 Work depth-first. Stage A is one bank, one nonbank, four selected fiscal quarters,
