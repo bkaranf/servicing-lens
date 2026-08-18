@@ -2,9 +2,10 @@
 
 ## Mission status
 
-Implementation phases 0–7 are complete and locally green. The mission is not
-complete until six fresh-context final critics, their bounded repairs if any,
-the completion audit, and the authorized push are complete.
+Implementation phases 0–7 are complete, locally green, and pushed to the
+authoritative cleanup branch. The mission is not complete until six
+fresh-context final critics, their bounded repairs if any, and the completion
+audit are complete.
 
 ## Branch and checkpoints
 
@@ -60,7 +61,8 @@ ledger and exact results.
    migration round trip, generators, wheel install, full tests, coverage, Ruff,
    mypy, and diff checks.
 5. Confirm the final report remains accurate after any repair commits.
-6. `/root` verifies remote/auth state and performs the authorized push.
+6. Reconfirm the remote cleanup branch still points at this handoff checkpoint
+   before beginning any repair work.
 
 Do not declare the entire mission complete before items 1–5 pass.
 
@@ -104,9 +106,10 @@ From the repository root in PowerShell:
 $env:UV_PROJECT_ENVIRONMENT = "$env:LOCALAPPDATA\servicing-lens\handoff-venv"
 $env:UV_LINK_MODE = "copy"
 uv sync --locked --group dev
-uv run msi ingest --phase5-cohort-b --database-url sqlite:///./.msi/servicing-lens.db --runtime-dir .msi
-uv run msi validate --database-url sqlite:///./.msi/servicing-lens.db
-uv run msi serve --database-url sqlite:///./.msi/servicing-lens.db --runtime-dir .msi --host 127.0.0.1 --port 8000
+uv run msi ingest --phase3 --database-url sqlite:///./.msi/servicing-lens-handoff.db
+uv run msi ingest --phase5-cohort-b --database-url sqlite:///./.msi/servicing-lens-handoff.db --runtime-dir .msi/handoff-runtime
+uv run msi validate --database-url sqlite:///./.msi/servicing-lens-handoff.db
+uv run msi serve --database-url sqlite:///./.msi/servicing-lens-handoff.db --runtime-dir .msi/handoff-runtime --host 127.0.0.1 --port 8000
 ```
 
 Open the dashboard at <http://127.0.0.1:8000/> and health JSON at
@@ -139,9 +142,14 @@ all passed.
 
 ## Push status
 
-`PUSH_STATUS: NOT_PUSHED_AS_OF_HANDOFF`
+`PUSH_STATUS: PUSHED_TO_ORIGIN_CLEANUP_BRANCH`
 
-After all final critics and the completion audit pass, `/root` should verify:
+The branch `bkaranf/data/edgar-tools-only-cleanup` was pushed to
+`https://github.com/bkaranf/servicing-lens.git`. No pull request, merge,
+release, or deployment was created. The local dashboard is served from the
+offline handoff database and is not a hosted public URL.
+
+Before any future push, verify:
 
 ```powershell
 git remote -v
@@ -150,18 +158,15 @@ git status --short --branch
 git rev-list --left-right --count origin/main...HEAD
 ```
 
-Then, only if the authenticated destination and branch are correct:
+Then, only if new reviewed commits exist and the authenticated destination and
+branch are correct:
 
 ```powershell
 git push origin bkaranf/data/edgar-tools-only-cleanup
 ```
 
-Update the push-status line and the report's publication statement if another
-tracked documentation commit is authorized after pushing; otherwise report the
-actual pushed commit out of band without rewriting history.
-
 ## First next action
 
-Run `git status --short --branch` and `git log -2 --oneline`, confirm the two
-local checkpoint commits and clean worktree, then dispatch the six final critics
-against the same immutable HEAD.
+Fetch remote metadata without merging, confirm a clean worktree and expected
+remote branch tip, then dispatch the six final critics against the same
+immutable HEAD.

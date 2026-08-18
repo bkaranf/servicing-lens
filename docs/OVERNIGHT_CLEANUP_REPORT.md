@@ -1,8 +1,9 @@
 # Overnight Cleanup Report
 
-Status: implementation phases 0–7 are complete and locally gated. The overall
-overnight mission is **not yet complete**: the six fresh-context final critics,
-the completion audit, and the authorized push remain outstanding.
+Status: implementation phases 0–7 are complete, locally gated, and pushed to
+the authoritative cleanup branch. The overall overnight mission is **not yet
+complete**: the six fresh-context final critics and completion audit remain
+outstanding.
 
 ## 1. Starting branch and commit
 
@@ -19,16 +20,18 @@ the completion audit, and the authorized push remain outstanding.
 - Product-code checkpoint:
   `de7d512b7ce0cac6fa103c17af7578ebfb4bd5cd`
   (`chore(repo): remove obsolete framework and evidence bloat`)
-- Documentation checkpoint: the commit containing this report, with subject
-  `docs(repo): add cleanup report and continuation handoff`. Resolve its hash
-  with `git rev-parse HEAD` after checkout.
+- Initial documentation checkpoint:
+  `5b7efc57d3a5cf97176ab6990bedc87d8044f507`
+  (`docs(repo): add cleanup report and continuation handoff`).
+- Final handoff correction: the commit containing this updated report, with
+  subject `docs(repo): correct pushed dashboard handoff`.
 
 ## 3. Divergence from origin/main
 
 At the product-code checkpoint, `git rev-list --left-right --count
 origin/main...HEAD` returned `0 23`: 0 behind and 23 ahead. The documentation
-checkpoint makes this 0 behind / 24 ahead if the fetched remote metadata is
-unchanged. Re-run the command before pushing.
+checkpoint made this 0 behind / 24 ahead before the final handoff correction.
+Re-run the command after fetching remote metadata for the current count.
 
 ## 4. Summary of deleted complexity
 
@@ -291,9 +294,10 @@ uv run msi doctor --json
 Run these with `UV_PROJECT_ENVIRONMENT` pointing to a short external environment
 and `UV_LINK_MODE=copy` if OneDrive locks the repository `.venv`.
 
-## 26. Confirmation nothing pushed/merged/published
+## 26. Publication status
 
-As of this report's creation, nothing from this mission has been pushed, merged,
-or otherwise published. All commits are local. `/root` is responsible for
-verifying authentication and remote state before any authorized push. No SEC
-network call occurred during Phases 6, 7, or this wrap-up.
+The branch `bkaranf/data/edgar-tools-only-cleanup` was pushed to `origin` after
+authentication and destination verification. Nothing was merged; no pull
+request, release, hosted deployment, or history rewrite was created. The
+dashboard link in the handoff is local-only. No SEC network call occurred
+during Phases 6, 7, or this wrap-up.
