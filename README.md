@@ -110,6 +110,11 @@ uv run msi review list
 uv run msi serve
 \`\`\`
 
+Phase 3 retained evidence is intentionally not bundled in the wheel. Run
+`seed-phase3` and `ingest --phase3` from a repository checkout, or pass
+`--config-dir` (or set `MSI_CONFIG_DIR`) to a complete external Phase 3
+configuration and evidence root.
+
 All listed commands are implemented. Stage A ingest is atomic across the complete
 governed source set; discovery can be filtered by issuer. Review approval and
 rejection rebuild the deterministic graph to its interrupt, resume on the

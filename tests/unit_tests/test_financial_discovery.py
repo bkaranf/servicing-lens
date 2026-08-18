@@ -9,7 +9,6 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
 
 import pytest
 import yaml
@@ -35,6 +34,7 @@ from mortgage_servicing_dashboard.financial_discovery import (
     RawFieldDiscovery,
     RawFilingFactLocator,
     ReviewStatus,
+    SelectedFieldMapping,
     SelectionDecision,
     SourceRoute,
     discover_filing_fields,
@@ -68,12 +68,22 @@ _URL = "https://www.sec.gov/Archives/example/tfc-20260630.htm"
 _EVIDENCE_ID = "sha256:" + "a" * 64
 
 
+class _DefaultUnit:
+    """Sentinel marking the default synthetic USD unit."""
+
+
+_DEFAULT_UNIT = _DefaultUnit()
+
+
 @pytest.fixture
 def registry() -> FinancialFieldRegistry:
     return FinancialFieldRegistry.from_yaml(_MAPPING_PATH)
 
 
-def _mapping(registry: FinancialFieldRegistry, issuer_id: str = "tfc") -> Any:
+def _mapping(
+    registry: FinancialFieldRegistry,
+    issuer_id: str = "tfc",
+) -> SelectedFieldMapping:
     return next(item for item in registry.mappings if item.issuer_id == issuer_id)
 
 
@@ -87,7 +97,7 @@ def _adapter_fact(  # noqa: PLR0913 - variations exercise every exact matching s
     period_instant: str | None = "2026-06-30",
     dimensions: tuple[XbrlDimension, ...] = (),
     unit_measure: str | None = "iso4217:USD",
-    unit: XbrlUnit | object | None = ...,
+    unit: XbrlUnit | _DefaultUnit | None = _DEFAULT_UNIT,
     decimals: str | None = "-6",
     scale: str | None = None,
     precision: str | None = None,
@@ -113,7 +123,7 @@ def _adapter_fact(  # noqa: PLR0913 - variations exercise every exact matching s
             numerator=(),
             denominator=(),
         )
-        if unit is ...
+        if isinstance(unit, _DefaultUnit)
         else unit
     )
     return AdapterXbrlFact(
@@ -265,27 +275,45 @@ def test_registry_filters_exact_cik_form_and_selected_decision(
     assert mixed.for_filing(cik=_CIK, form="10-Q") == ()
 
 
+def _exercise_selected_mapping_invalid_change(
+    selected: SelectedFieldMapping,
+    change: str,
+) -> None:
+    if change == "blank_display_name":
+        replace(selected, display_name=" ")
+    elif change == "empty_eligible_forms":
+        replace(selected, eligible_forms=())
+    elif change == "blank_eligible_form":
+        replace(selected, eligible_forms=("10-Q", ""))
+    elif change == "wrong_portfolio_population":
+        replace(selected, portfolio_population="servicing")
+    elif change == "published":
+        replace(selected, publication_state=PublicationState.PUBLISHED)
+    elif change == "independent_review":
+        replace(selected, review_status=ReviewStatus.INDEPENDENTLY_CROSS_CHECKED)
+    else:
+        raise AssertionError
+
+
 @pytest.mark.parametrize(
-    ("changes", "message"),
+    ("change", "message"),
     [
-        ({"display_name": " "}, "semantics must not be blank"),
-        ({"eligible_forms": ()}, "explicit eligible forms"),
-        ({"eligible_forms": ("10-Q", "")}, "explicit eligible forms"),
-        ({"portfolio_population": "servicing"}, "consolidated SEC registrant"),
-        ({"publication_state": PublicationState.PUBLISHED}, "must remain CANDIDATE"),
-        (
-            {"review_status": ReviewStatus.INDEPENDENTLY_CROSS_CHECKED},
-            "require independent review",
-        ),
+        ("blank_display_name", "semantics must not be blank"),
+        ("empty_eligible_forms", "explicit eligible forms"),
+        ("blank_eligible_form", "explicit eligible forms"),
+        ("wrong_portfolio_population", "consolidated SEC registrant"),
+        ("published", "must remain CANDIDATE"),
+        ("independent_review", "require independent review"),
     ],
 )
 def test_selected_mapping_fails_closed_on_unsafe_semantics(
     registry: FinancialFieldRegistry,
-    changes: dict[str, object],
+    change: str,
     message: str,
 ) -> None:
+    selected = _mapping(registry)
     with pytest.raises(FinancialDiscoveryError, match=message):
-        replace(_mapping(registry), **changes)
+        _exercise_selected_mapping_invalid_change(selected, change)
 
 
 def test_excluded_mapping_may_record_completed_review_without_becoming_selected(
@@ -320,7 +348,7 @@ def test_registry_loader_wraps_second_read_errors(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        discovery.XbrlMappingRegistry,
+        XbrlMappingRegistry,
         "from_yaml",
         classmethod(lambda _cls, _path: SimpleNamespace(version="v", mappings=registry.mappings)),
     )
@@ -339,7 +367,7 @@ def test_registry_loader_rejects_mismatched_counts_and_payload_shapes(
 ) -> None:
     mapping = _mapping(registry)
     monkeypatch.setattr(
-        discovery.XbrlMappingRegistry,
+        XbrlMappingRegistry,
         "from_yaml",
         classmethod(lambda _cls, _path: SimpleNamespace(version="v", mappings=(mapping.xbrl,))),
     )
@@ -635,22 +663,48 @@ def test_retained_document_route_fails_selected_unsupported_transform_and_issuer
         )
 
 
+def _exercise_raw_locator_invalid_change(
+    candidate: RawFilingFactLocator,
+    change: str,
+) -> None:
+    if change == "blank_accession_number":
+        replace(candidate, accession_number="")
+    elif change == "wrong_normalized_value_type":
+        invalid_candidate = replace(candidate)
+        object.__setattr__(invalid_candidate, "normalized_value", "1")
+        invalid_candidate.__post_init__()
+    elif change == "nonfinite_normalized_value":
+        replace(candidate, normalized_value=Decimal("NaN"))
+    elif change == "zero_scale":
+        replace(candidate, scale=Decimal(0))
+    elif change == "infinite_scale":
+        replace(candidate, scale=Decimal("Infinity"))
+    elif change == "missing_source_locators":
+        replace(candidate, source_object_count=0, source_locators=())
+    elif change == "mismatched_source_object_count":
+        replace(candidate, source_object_count=2)
+    elif change == "approved_review_status":
+        replace(candidate, review_status=ReviewStatus.REVIEWER_APPROVED)
+    else:
+        raise AssertionError
+
+
 @pytest.mark.parametrize(
-    ("changes", "message"),
+    ("change", "message"),
     [
-        ({"accession_number": ""}, "nonblank lineage"),
-        ({"normalized_value": "1"}, "finite Decimal"),
-        ({"normalized_value": Decimal("NaN")}, "finite Decimal"),
-        ({"scale": Decimal(0)}, "positive finite Decimal"),
-        ({"scale": Decimal("Infinity")}, "positive finite Decimal"),
-        ({"source_object_count": 0, "source_locators": ()}, "complete source-object"),
-        ({"source_object_count": 2}, "complete source-object"),
-        ({"review_status": ReviewStatus.REVIEWER_APPROVED}, "cannot approve"),
+        ("blank_accession_number", "nonblank lineage"),
+        ("wrong_normalized_value_type", "finite Decimal"),
+        ("nonfinite_normalized_value", "finite Decimal"),
+        ("zero_scale", "positive finite Decimal"),
+        ("infinite_scale", "positive finite Decimal"),
+        ("missing_source_locators", "complete source-object"),
+        ("mismatched_source_object_count", "complete source-object"),
+        ("approved_review_status", "cannot approve"),
     ],
 )
 def test_raw_locator_invariants_fail_closed(
     registry: FinancialFieldRegistry,
-    changes: dict[str, object],
+    change: str,
     message: str,
 ) -> None:
     result = discover_parsed_filing_fields(
@@ -664,27 +718,41 @@ def test_raw_locator_invariants_fail_closed(
         registry=registry,
     )[0]
     with pytest.raises(FinancialDiscoveryError, match=message):
-        replace(result.candidates[0], **changes)
+        _exercise_raw_locator_invalid_change(result.candidates[0], change)
+
+
+def _exercise_adapter_locator_invalid_change(
+    candidate: ProposedFactLocator,
+    change: str,
+) -> None:
+    if change == "blank_raw_value":
+        replace(candidate, raw_value="")
+    elif change == "zero_source_object_count":
+        replace(candidate, source_object_count=0)
+    elif change == "approved_review_status":
+        replace(candidate, review_status=ReviewStatus.REVIEWER_APPROVED)
+    else:
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
-    ("changes", "message"),
+    ("change", "message"),
     [
-        ({"raw_value": ""}, "nonblank lineage"),
-        ({"source_object_count": 0}, "at least one source object"),
-        ({"review_status": ReviewStatus.REVIEWER_APPROVED}, "cannot approve"),
+        ("blank_raw_value", "nonblank lineage"),
+        ("zero_source_object_count", "at least one source object"),
+        ("approved_review_status", "cannot approve"),
     ],
 )
 def test_adapter_locator_invariants_fail_closed(
     registry: FinancialFieldRegistry,
-    changes: dict[str, object],
+    change: str,
     message: str,
 ) -> None:
     candidate = discover_filing_fields(_filing(_adapter_fact()), form="10-Q", registry=registry)[
         0
     ].candidates[0]
     with pytest.raises(FinancialDiscoveryError, match=message):
-        replace(candidate, **changes)
+        _exercise_adapter_locator_invalid_change(candidate, change)
 
 
 @pytest.mark.parametrize(
@@ -711,11 +779,20 @@ def test_discovery_result_invariants_fail_closed(  # noqa: PLR0913, PLR0917
     message: str,
 ) -> None:
     if factory is FieldDiscovery:
-        candidate_value: ProposedFactLocator | RawFilingFactLocator = discover_filing_fields(
+        adapter_candidate = discover_filing_fields(
             _filing(_adapter_fact()), form="10-Q", registry=registry
         )[0].candidates[0]
+        with pytest.raises(FinancialDiscoveryError, match=message):
+            FieldDiscovery(
+                mapping=_mapping(registry),
+                accession_number=_ACCESSION,
+                form="10-Q",
+                candidates=(adapter_candidate,) if candidate else (),
+                status=status,
+                ambiguities=ambiguities,
+            )
     else:
-        candidate_value = discover_parsed_filing_fields(
+        raw_candidate = discover_parsed_filing_fields(
             (_parsed_fact(),),
             cik=_CIK,
             evidence_id=_EVIDENCE_ID,
@@ -725,15 +802,15 @@ def test_discovery_result_invariants_fail_closed(  # noqa: PLR0913, PLR0917
             form="10-Q",
             registry=registry,
         )[0].candidates[0]
-    with pytest.raises(FinancialDiscoveryError, match=message):
-        factory(
-            mapping=_mapping(registry),
-            accession_number=_ACCESSION,
-            form="10-Q",
-            candidates=(candidate_value,) if candidate else (),  # type: ignore[arg-type]
-            status=status,
-            ambiguities=ambiguities,
-        )
+        with pytest.raises(FinancialDiscoveryError, match=message):
+            RawFieldDiscovery(
+                mapping=_mapping(registry),
+                accession_number=_ACCESSION,
+                form="10-Q",
+                candidates=(raw_candidate,) if candidate else (),
+                status=status,
+                ambiguities=ambiguities,
+            )
 
 
 def test_golden_manifest_has_exactly_four_bounded_honestly_reviewed_cases() -> None:

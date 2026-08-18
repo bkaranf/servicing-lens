@@ -176,6 +176,21 @@ def test_phase3_seed_is_idempotent_and_publicly_visible(  # noqa: PLR0915
     engine.dispose()
 
 
+def test_phase3_requires_external_retained_evidence_before_database_writes(
+    tmp_path: Path,
+) -> None:
+    """Installed-wheel config must fail clearly instead of exposing a broken seed path."""
+    config_root = tmp_path / "wheel-config"
+    config_root.mkdir()
+    engine = create_database_engine(f"sqlite:///{(tmp_path / 'wheel.db').as_posix()}")
+
+    with pytest.raises(FileNotFoundError, match="not bundled in installed wheels"):
+        seed_phase3(engine, config_dir=config_root)
+
+    assert inspect(engine).get_table_names() == []
+    engine.dispose()
+
+
 def test_phase3_lineage_and_blocked_cells_remain_honest(tmp_path: Path) -> None:
     """Require exact lineage and prohibit blocked derivations from missingness."""
     pytest.importorskip("mortgage_servicing_dashboard.phase3")

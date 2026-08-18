@@ -3647,6 +3647,14 @@ def seed_phase3(
     from mortgage_servicing_dashboard.phase3 import load_phase3_dataset  # noqa: PLC0415
 
     root = config_directory(config_dir)
+    required_roots = (root / "phase3", root / "recorded_evidence" / "phase3")
+    if not all(path.is_dir() for path in required_roots):
+        msg = (
+            "Phase 3 retained evidence is not bundled in installed wheels; run from a "
+            "repository checkout or pass --config-dir/MSI_CONFIG_DIR for a complete "
+            "Phase 3 configuration root"
+        )
+        raise FileNotFoundError(msg)
     seed_stage_a(engine, config_dir=root)
     dataset = load_phase3_dataset(root)
     inserted = {

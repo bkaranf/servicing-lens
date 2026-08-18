@@ -56,9 +56,18 @@ dev = [
 packages = ["src/mortgage_servicing_dashboard"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"config" = "share/public-mortgage-servicing-intelligence/config"
+"config/calendar" = "share/public-mortgage-servicing-intelligence/config/calendar"
+"config/financial_fields.v1.yaml" = "share/public-mortgage-servicing-intelligence/config/financial_fields.v1.yaml"
+"config/metrics/catalog.yaml" = "share/public-mortgage-servicing-intelligence/config/metrics/catalog.yaml"
+"config/regulatory" = "share/public-mortgage-servicing-intelligence/config/regulatory"
+"config/stage_a_data.yaml" = "share/public-mortgage-servicing-intelligence/config/stage_a_data.yaml"
+"config/universe.yaml" = "share/public-mortgage-servicing-intelligence/config/universe.yaml"
+"config/xbrl_concepts.yaml" = "share/public-mortgage-servicing-intelligence/config/xbrl_concepts.yaml"
 "tests/fixtures/edgartools/golden-sources.v1.yaml" = "share/public-mortgage-servicing-intelligence/config/golden-sources.v1.yaml"
 "alembic" = "share/public-mortgage-servicing-intelligence/alembic"
+
+[tool.uv]
+constraint-dependencies = ["numpy>=2.4.6,<2.5"]
 
 [tool.pytest.ini_options]
 addopts = "--disable-socket --strict-config --strict-markers -q"

@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
-from typing import cast
+from typing import TypedDict
 
 import pytest
 
@@ -39,6 +39,14 @@ _ROOT = Path(__file__).resolve().parents[2]
 _CONFIG = _ROOT / "config" / "xbrl_concepts.yaml"
 _FINANCIAL_CONFIG = _ROOT / "config" / "financial_fields.v1.yaml"
 _FIXTURES = _ROOT / "tests" / "fixtures" / "xbrl"
+
+
+class _FilingParseKwargs(TypedDict):
+    issuer_id: str
+    evidence_id: str
+    accession: str
+    form: str
+    filed: date
 
 
 def _registry() -> XbrlMappingRegistry:
@@ -304,7 +312,7 @@ def test_inline_xbrl_concept_filter_skips_only_unrelated_unknown_transform() -> 
     )
 
     adapter = SecFilingXbrlAdapter()
-    parse_kwargs = {
+    parse_kwargs: _FilingParseKwargs = {
         "issuer_id": "tfc",
         "evidence_id": "evidence:concept-filter",
         "accession": "0000092230-26-000030",
@@ -748,10 +756,34 @@ def test_filing_xbrl_context_unit_and_fact_errors_fail_closed() -> None:
             )
 
 
+def _exercise_invalid_fact_value(fact: XbrlFact, value: object) -> None:
+    invalid_fact = replace(fact)
+    object.__setattr__(invalid_fact, "value", value)
+    invalid_fact.__post_init__()
+
+
+def _exercise_invalid_reconciliation_value(
+    value: ReconciliationValue,
+    invalid_value: object,
+) -> None:
+    invalid_value_record = replace(value)
+    object.__setattr__(invalid_value_record, "value", invalid_value)
+    invalid_value_record.__post_init__()
+
+
+def _exercise_invalid_reconciliation_difference(
+    decision: ReconciliationDecision,
+    difference: object,
+) -> None:
+    invalid_decision = replace(decision)
+    object.__setattr__(invalid_decision, "difference", difference)
+    invalid_decision.__post_init__()
+
+
 def test_decimal_and_context_model_guards() -> None:
     fact = _company_facts()[0]
     with pytest.raises(TypeError, match="finite Decimal"):
-        replace(fact, value=cast("Decimal", 1.0))
+        _exercise_invalid_fact_value(fact, 1.0)
     with pytest.raises(XbrlDataError, match="instant XBRL facts"):
         replace(fact, period_start=date(2026, 4, 1))
     with pytest.raises(XbrlDataError, match="dimension and member"):
@@ -784,26 +816,16 @@ def test_domain_models_reject_incomplete_or_inexact_semantics() -> None:
     assert quarantined.disposition is DecisionDisposition.QUARANTINED
 
     duplicate_dimension = DimensionMember("axis", "member")
-    fact_errors = (
-        (replace, (fact,), {"scale": Decimal(0)}, "scale must be positive"),
-        (replace, (fact,), {"issuer_id": ""}, "semantics must not be blank"),
-        (
-            replace,
-            (fact,),
-            {"period_type": XbrlPeriodType.DURATION, "period_start": None},
-            "duration XBRL facts",
-        ),
-        (
-            replace,
-            (fact,),
-            {"dimensions": (duplicate_dimension, duplicate_dimension)},
-            "cannot repeat",
-        ),
-        (replace, (fact,), {"decimals": "BAD"}, "decimals must be"),
-    )
-    for callable_, args, kwargs, error in fact_errors:
-        with pytest.raises(XbrlDataError, match=error):
-            callable_(*args, **kwargs)
+    with pytest.raises(XbrlDataError, match="scale must be positive"):
+        replace(fact, scale=Decimal(0))
+    with pytest.raises(XbrlDataError, match="semantics must not be blank"):
+        replace(fact, issuer_id="")
+    with pytest.raises(XbrlDataError, match="duration XBRL facts"):
+        replace(fact, period_type=XbrlPeriodType.DURATION, period_start=None)
+    with pytest.raises(XbrlDataError, match="cannot repeat"):
+        replace(fact, dimensions=(duplicate_dimension, duplicate_dimension))
+    with pytest.raises(XbrlDataError, match="decimals must be"):
+        replace(fact, decimals="BAD")
 
     with pytest.raises(XbrlDataError, match="mapping scale must be positive"):
         replace(mapping, scale=Decimal(0))
@@ -830,7 +852,7 @@ def test_domain_models_reject_incomplete_or_inexact_semantics() -> None:
 
     exact = ReconciliationValue.from_xbrl(valid_decision.candidate)
     with pytest.raises(TypeError, match="finite Decimal"):
-        replace(exact, value=cast("Decimal", float("inf")))
+        _exercise_invalid_reconciliation_value(exact, float("inf"))
     with pytest.raises(XbrlDataError, match="must not be blank"):
         replace(exact, evidence_id="")
     with pytest.raises(XbrlDataError, match="instant reconciliation"):
@@ -848,7 +870,7 @@ def test_domain_models_reject_incomplete_or_inexact_semantics() -> None:
             difference=Decimal(0),
         )
     with pytest.raises(TypeError, match="finite Decimal"):
-        replace(reconciliation, difference=cast("Decimal", 1.0))
+        _exercise_invalid_reconciliation_difference(reconciliation, 1.0)
 
 
 def test_company_facts_duration_string_value_and_optional_metadata() -> None:
